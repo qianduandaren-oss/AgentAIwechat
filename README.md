@@ -1,36 +1,16 @@
 # Agent AI 工程师 · Day 1–6 完整可运行项目
 
-这不是把前 6 天聊天里的代码片段简单复制到一起，而是把缺失的接口补齐后，重新整理成一套连续、可运行、可继续扩展的 TypeScript 工程。
+这是 Agent AI 工程师课程 Day 1–6 的 TypeScript 实战代码，内容覆盖 LLM、Structured Output、Tool Calling、Agent Loop、Memory、RAG、MCP、Workflow 等核心能力。
 
-## 先看结论
+## 运行方式
 
-之前课程里没有真正落地的两个函数，现在都已经补齐：
-
-```text
-src/llm/client.ts
-└── callLLM()
-
-src/llm/response-parser.ts
-├── extractToolCalls()
-├── extractText()
-└── extractStructured()
-```
-
-其中原来教学里出现过的 `extractToolCall()` 被调整为 `extractToolCalls()`，因为真实模型一次响应可能包含多个 Tool Call。
-
----
-
-## 最快运行方式
-
-压缩包已经包含编译后的 `dist/`，所以**不需要 API Key，也不需要先 npm install**：
+直接运行已编译代码：
 
 ```bash
 node dist/index.js
 ```
 
-你会依次看到 Day 1 → Day 6 的完整演示输出。
-
-如果你修改了 TypeScript 源码，再执行：
+修改 TypeScript 源码后：
 
 ```bash
 npm install
@@ -38,33 +18,25 @@ npm run build
 npm run demo
 ```
 
-主教学项目只需要 TypeScript 作为开发依赖。
-
 ---
 
-# 前 6 天的真正知识链
+## Day 1–6 学习内容
 
 ```text
-Day 1
-LLM / Structured Output
-      ↓
-Day 2
-Tool Calling / Agent Loop
-      ↓
-Day 3
-Memory / Context
-      ↓
-Day 4
-RAG / Retrieval
-      ↓
-Day 5
-MCP / Capability Discovery
-      ↓
-Day 6
-Workflow / State / Retry / Idempotency / HITL
+Day 1  LLM / Structured Output
+  ↓
+Day 2  Tool Calling / Agent Loop
+  ↓
+Day 3  Memory / Context
+  ↓
+Day 4  RAG / Retrieval
+  ↓
+Day 5  MCP / Capability Discovery
+  ↓
+Day 6  Workflow / State / Retry / Idempotency / HITL
 ```
 
-最终不是 6 个互相独立的 Demo，而是串成：
+整体结构：
 
 ```text
                           Memory
@@ -72,9 +44,9 @@ Workflow / State / Retry / Idempotency / HITL
                             │
 User → Router → Context Builder ← RAG
   │
-  ├─ 普通问答 → callLLM()
+  ├─ 普通问答 → LLM
   │
-  └─ 确定性业务流程
+  └─ 业务流程
           ↓
        Workflow
           ↓
@@ -84,11 +56,9 @@ User → Router → Context Builder ← RAG
           ↓
       MCP Executor
           ↓
-     MCP Client
+       MCP Client
           ↓
-     MCP Server
-          ↓
-   External Capability
+       MCP Server
 ```
 
 ---
@@ -104,7 +74,16 @@ src/llm/providers/mock-provider.ts
 src/day1/lead-analyzer.ts
 ```
 
-真正补齐的链路：
+主要函数：
+
+```text
+callLLM()
+extractToolCalls()
+extractText()
+extractStructured()
+```
+
+调用链：
 
 ```text
 业务代码
@@ -113,16 +92,16 @@ callLLM()
   ↓
 LLMProvider.generate()
   ↓
-原始模型响应
+模型响应
   ↓
 extractStructured()
   ↓
 LeadResult
 ```
 
-`callLLM()` 的目的不是增加一层没必要的封装，而是避免 Agent Runtime 直接绑定 OpenAI / Claude / Gemini 某一家 SDK。
+`callLLM()` 负责统一 LLM 调用入口，Provider 层负责具体模型实现。
 
-教学项目默认使用 `MockLLMProvider`，原因是：你下载后不需要任何模型账号就能把 Agent Runtime 调试完整。生产环境只需要新增真实 Provider，不需要修改 Agent Loop。
+项目默认使用 `MockLLMProvider`，方便直接运行和调试课程代码。
 
 ---
 
@@ -138,7 +117,7 @@ src/agent/agent-loop.ts
 src/llm/response-parser.ts
 ```
 
-完整执行链：
+执行链：
 
 ```text
 User
@@ -155,7 +134,7 @@ Tool Result
  ↓
 callLLM()
  ↓
-继续 Tool / Final Answer
+Tool / Final Answer
 ```
 
 示例任务：
@@ -166,7 +145,7 @@ callLLM()
 明天下午 3 点提醒我跟进。
 ```
 
-实际执行：
+工具调用过程：
 
 ```text
 search_customer
@@ -180,7 +159,7 @@ Observation
 Final Answer
 ```
 
-并且 Agent Loop 有 `maxSteps`，避免无限循环。
+Agent Loop 通过 `maxSteps` 控制最大执行轮数。
 
 ---
 
@@ -196,7 +175,7 @@ src/memory/store.ts
 src/memory/selector.ts
 ```
 
-链路：
+处理流程：
 
 ```text
 User Message
@@ -217,16 +196,16 @@ Context
 示例：
 
 ```text
-“以后尽量下午联系我”
+以后尽量下午联系我
 ```
 
-会保存：
+保存为：
 
 ```text
 contactTime = afternoon
 ```
 
-而不是把所有聊天内容都长期保存。
+Memory 模块负责记忆提取、存储策略、合并和上下文选择。
 
 ---
 
@@ -243,7 +222,7 @@ src/rag/retriever.ts
 src/rag/context.ts
 ```
 
-完整链：
+检索流程：
 
 ```text
 Document
@@ -267,35 +246,29 @@ Top K
 Context
 ```
 
-为了让项目无 API Key 运行，`embedding.ts` 用的是**教学版本地 Hash Embedding**。它保留了：
+`embedding.ts` 使用本地 Hash Embedding：
 
 ```text
 text → number[] → cosine similarity
 ```
 
-整个接口和 Retriever 结构。
-
-生产环境替换成真实 Embedding API 时，只替换：
+RAG 模块包含：
 
 ```text
-src/rag/embedding.ts
+Document
+Chunk
+Embedding
+Metadata Filter
+Similarity
+Top K
+Context Builder
 ```
-
-Retriever、Metadata Filter、Top K 等代码无需重写。
-
-同时代码明确处理：
-
-```text
-Similarity ≠ Freshness ≠ Authority
-```
-
-所以检索默认过滤 2026 数据，避免 2024 旧制度因为语义更像而胜出。
 
 ---
 
 # Day 5：MCP
 
-主项目为了保证一键运行，提供了一套 `MiniMcpServer / MiniMcpClient`：
+核心文件：
 
 ```text
 src/mcp/mini-server.ts
@@ -305,7 +278,7 @@ src/mcp/tool-router.ts
 src/mcp/executor.ts
 ```
 
-它不是冒充官方协议实现，而是专门把 MCP 最重要的运行时关系透明化：
+调用关系：
 
 ```text
 Server
@@ -319,13 +292,13 @@ Client.callTool()
 Server Handler
 ```
 
-另外压缩包里单独提供：
+项目中还包含官方 MCP SDK 示例：
 
 ```text
 official-mcp-example/
 ```
 
-这是按 2026-08-27 当前官方 TypeScript SDK 结构整理的 stdio 示例，使用：
+主要使用：
 
 ```text
 @modelcontextprotocol/server
@@ -334,10 +307,13 @@ serveStdio()
 StdioClientTransport
 ```
 
-也就是说：
+目录说明：
 
-- `src/mcp/`：用于理解底层结构、一键跑通。
-- `official-mcp-example/`：用于学习真实 MCP SDK 的接法。
+```text
+src/mcp/              MCP 核心运行流程
+
+official-mcp-example/ 官方 TypeScript SDK 示例
+```
 
 ---
 
@@ -356,61 +332,57 @@ src/workflow/persistence.ts
 src/workflow/approval.ts
 ```
 
-当前业务流程：
+业务流程：
 
 ```text
 LOAD_CUSTOMER
       ↓
-CHECK_INTENT     ← LLM Node
+CHECK_INTENT
       ↓
  high ?
    ├─ No → DONE
    ↓ Yes
-CHECK_FOLLOWUP   ← MCP / Program Node
+CHECK_FOLLOWUP
       ↓
  exists ?
    ├─ Yes → DONE
    ↓ No
-CREATE_FOLLOWUP  ← MCP Side Effect
+CREATE_FOLLOWUP
       ↓
-WRITE_LOG        ← 第一次模拟 timeout，再 Retry
+WRITE_LOG
       ↓
 SEND_NOTIFICATION
       ↓
 DONE
 ```
 
-实现了：
+主要能力：
 
 ### State
 
-知道当前流程执行到哪里，以及已经产生了什么数据。
+记录 Workflow 当前节点和业务数据。
 
-### Node / Transition 分离
+### Node / Transition
 
 ```text
 Node       = 执行当前步骤
 Transition = 决定下一步
-Runner     = 驱动流程
+Runner     = 驱动流程执行
 ```
 
 ### Retry
 
-`WRITE_LOG` 第一次故意抛出 `TransientWorkflowError`，Runner 会指数退避重试。
+通过 `TransientWorkflowError` 和 Retry 机制处理临时错误。
 
 ### Idempotency
-
-`create_reminder` 使用：
 
 ```text
 idempotencyKey
 ```
 
-同一个操作重复调用不会创建多个 Reminder。
+用于避免相同副作用操作被重复执行。
 
 ### Human-in-the-loop
-
-`approval.ts` 提供：
 
 ```text
 WAITING_APPROVAL
@@ -418,7 +390,7 @@ reviewApproval()
 assertApproved()
 ```
 
-高风险动作在人工批准前会被程序级拦截，而不是只靠 Prompt 说“请先确认”。
+用于需要人工确认的业务节点。
 
 ---
 
@@ -430,7 +402,7 @@ assertApproved()
 src/app/production-agent.ts
 ```
 
-这个类把前面的能力真正接了起来：
+整体调用关系：
 
 ```text
 Message
@@ -442,74 +414,75 @@ Router
  ├─ RAG
  └─ Workflow
        ↓
-     MCP
+      MCP
 ```
 
-测试：
+示例：
 
 ```text
-“我之前说什么时候联系方便？”
+我之前说什么时候联系方便？
 → Memory
 
-“PLC 课程退费规则是什么？”
+PLC 课程退费规则是什么？
 → RAG
 
-“查一下张三，如果他是高意向客户，明天下午提醒我跟进”
+查一下张三，如果他是高意向客户，明天下午提醒我跟进
 → Workflow + LLM + MCP + Retry + Idempotency
 ```
 
 ---
 
-# 你最关心的两个函数在哪里
+# 关键代码位置
 
-## callLLM
-
-定义：
+## LLM
 
 ```text
 src/llm/client.ts
+src/llm/response-parser.ts
+src/llm/providers/
 ```
 
-使用位置包括：
+## Tool Calling
 
 ```text
-src/day1/lead-analyzer.ts
-src/memory/extractor.ts
+src/tools/
 src/agent/agent-loop.ts
-src/workflow/nodes.ts
+```
+
+## Memory
+
+```text
+src/memory/
+```
+
+## RAG
+
+```text
+src/rag/
+```
+
+## MCP
+
+```text
+src/mcp/
+official-mcp-example/
+```
+
+## Workflow
+
+```text
+src/workflow/
+```
+
+## 最终 Agent
+
+```text
 src/app/production-agent.ts
 ```
 
-## extractToolCalls
-
-定义：
-
-```text
-src/llm/response-parser.ts
-```
-
-主要使用：
-
-```text
-src/agent/agent-loop.ts
-```
-
-另外同文件还有：
-
-```text
-extractText()
-extractStructured()
-```
-
-因此模型原始响应的解析职责不会散落在业务代码里。
-
 ---
 
-# 建议你的阅读顺序
-
-不要直接从 `ProductionAgent` 开始啃。
-
-建议：
+# 推荐阅读顺序
 
 ```text
 1. src/llm/client.ts
@@ -525,20 +498,4 @@ extractStructured()
 11. src/demos/full-demo.ts
 ```
 
-这样基本就是把前 6 天重新按代码走一遍。
-
----
-
-# 重要说明
-
-这份项目的目标是“把 Agent 工程原理真正串起来”，不是包装成生产框架。
-
-因此：
-
-- LLM 默认 Mock，生产替换 Provider。
-- Embedding 默认本地教学实现，生产替换 Embedding Model。
-- Workflow State Store 默认内存，生产换 Redis/Postgres。
-- 主项目 MCP 使用透明的教学实现，真实官方 SDK 示例在 `official-mcp-example/`。
-- 没有真的发送消息、付款、退款等外部副作用。
-
-这样你可以先把每一层 Debug 明白，再逐个替换成真实基础设施。
+按照这个顺序，可以从 LLM 调用开始，一直看到完整 Agent Runtime 的组合过程。

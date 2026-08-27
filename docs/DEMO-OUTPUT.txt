@@ -1,0 +1,95 @@
+
+========== Day 1 - Structured Output ==========
+{
+  intent: 'high',
+  reason: '用户表达了明确课程兴趣',
+  nextAction: 'sales_follow_up',
+  confidence: 0.9
+}
+
+========== Day 2 - Tool Calling + Agent Loop ==========
+{ final: '已查询客户并创建了跟进提醒。', steps: 3 }
+
+========== Day 3 - Memory ==========
+[
+  {
+    type: 'preference',
+    key: 'contactTime',
+    value: 'afternoon',
+    confidence: 0.98,
+    source: 'user_explicit',
+    createdAt: '2026-08-27T12:08:36.539Z',
+    updatedAt: '2026-08-27T12:08:36.539Z'
+  },
+  {
+    type: 'identity',
+    key: 'name',
+    value: '王明',
+    confidence: 0.99,
+    source: 'user_explicit',
+    createdAt: '2026-08-27T12:08:36.539Z',
+    updatedAt: '2026-08-27T12:08:36.539Z'
+  }
+]
+
+========== Day 4 - Mini RAG ==========
+[
+  { title: '2026 课程退费制度', score: 0.836, year: 2026 },
+  { title: 'PLC 课程介绍', score: 0.351, year: 2026 },
+  { title: '2026 PLC 就业服务说明', score: 0.313, year: 2026 }
+]
+来源：2026 课程退费制度
+年份：2026
+2026 版课程退费规则：符合退费条件的学员可以提交退费申请，具体金额按照课程协议和实际学习情况核算
+---
+来源：PLC 课程介绍
+年份：2026
+PLC 课程包含电工基础、PLC 编程、自动化控制和项目实训
+---
+来源：2026 PLC 就业服务说明
+年份：2026
+完成 PLC 课程学习后，可获得简历优化、模拟面试和就业岗位推荐服务
+
+========== Day 5 - MCP: discovery + call + routing ==========
+All tools: [
+  'crm:search_customer',
+  'crm:write_crm_log',
+  'calendar:check_followup',
+  'calendar:create_reminder'
+]
+Candidate tools: [
+  'crm:search_customer',
+  'crm:write_crm_log',
+  'calendar:check_followup',
+  'calendar:create_reminder'
+]
+Direct MCP call: {
+  content: [
+    {
+      type: 'text',
+      text: '{"id":"customer_001","name":"张三","phone":"13800000001","notes":"最近工作比较忙，但 PLC 方向还是想了解，主要担心就业。"}'
+    }
+  ],
+  structuredContent: {
+    id: 'customer_001',
+    name: '张三',
+    phone: '13800000001',
+    notes: '最近工作比较忙，但 PLC 方向还是想了解，主要担心就业。'
+  }
+}
+
+========== Day 6 - Workflow + Retry + Idempotency ==========
+Workflow=DONE; path=LOAD_CUSTOMER -> CHECK_INTENT -> CHECK_FOLLOWUP -> CREATE_FOLLOWUP -> WRITE_LOG -> SEND_NOTIFICATION; followupId=followup_1787832516543_tke3qy
+Idempotency same id: true
+
+========== Day 6 - Human-in-the-loop guard ==========
+Blocked before approval: High-risk action is blocked until human approval
+Approved: high-risk action can continue.
+
+========== Integrated Agent - Memory + RAG ==========
+我检索到的相关记忆是：contactTime=afternoon，name=王明
+根据《2026 课程退费制度》：2026 版课程退费规则：符合退费条件的学员可以提交退费申请，具体金额按照课程协议和实际学习情况核算
+
+Main project compile: PASS
+Main project full demo: PASS
+Verified at: 2026-08-27

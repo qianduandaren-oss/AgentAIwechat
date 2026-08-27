@@ -1,0 +1,18 @@
+{
+  "name": "agent-ai-official-mcp-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "client": "tsx src/client.ts",
+    "server": "tsx src/crm-server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "latest",
+    "@modelcontextprotocol/server": "latest",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3"
+  }
+}

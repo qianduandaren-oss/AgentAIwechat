@@ -18,6 +18,12 @@ npm run build
 npm run demo
 ```
 
+单独运行 Day 7 Planning / Reflection：
+
+```bash
+npm run demo:day7
+```
+
 ---
 
 ## Day 1–7 学习内容
@@ -406,7 +412,7 @@ assertApproved()
 
 ---
 
-# Day 7：Planning / Action Space / Policy
+# Day 7：Planning / Reflection / Guardrail
 
 核心文件：
 
@@ -415,70 +421,42 @@ src/planning/types.ts
 src/planning/policy.ts
 src/planning/planner.ts
 src/planning/executor.ts
+src/planning/action-key.ts
+src/planning/reflection.ts
+src/planning/run-planner.ts
+src/demos/planning-demo.ts
 docs/day7-planning.md
+docs/checkpoints/week-01.md
 ```
 
-Planning 循环：
+执行链：
 
 ```text
-Goal
- ↓
-Planner
- ↓
-Action
- ↓
-Policy 校验
- ↓
-Executor
- ↓
-Observation
- ↓
-State Update
- ↓
-Planner
+Goal → Planner → Action → Reflection / Policy
+     → Executor → Observation → State Update → Planner
 ```
 
-核心原则：
-
-```text
-LLM 决定“做什么”
-程序决定“允许做什么”
-```
-
-当前 Planner Action Space：
+当前 Action Space：
 
 ```text
 search_customer
 search_chat_history
-search_order
 search_knowledge
-create_followup_plan
 finish
 ```
 
-真实副作用操作不直接开放给 Planner，例如：
+`createActionKey()` 为 Action 创建指纹，`reflectAction()` 会在执行前拦截重复 Tool Call。拒绝原因写入 `reflectionNotes`，供 Planner 下一轮调整决策。
 
-```text
-create_reminder
-send_message
-update_customer
-delete_customer
-refund_order
+真实副作用操作不直接开放给 Planner，而是交给 Workflow 处理权限、审批、重试和幂等。
+
+运行验收：
+
+```bash
+npm run build
+npm run demo:day7
 ```
 
-这些动作应该进入 Workflow，由程序处理权限、审批、重试和幂等。
-
-当前 `Planner` 使用可注入的 `PlanningDecisionProvider`：
-
-```text
-AgentState
-   ↓
-PlanningDecisionProvider
-   ↓
-PlanningDecision
-```
-
-后续可以把 Provider 接到现有 `callLLM()`，让模型根据 Observation 动态决定下一步 Tool。
+Demo 同时覆盖正常规划闭环和重复 Action 防护；重复查询最终只会执行一次。
 
 ---
 

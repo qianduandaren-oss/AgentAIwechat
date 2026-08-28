@@ -35,4 +35,6 @@ export interface PlannerState {
   goal: string;
   observations: Observation[];
   step: number;
+  visitedActions: string[];
+  reflectionNotes: string[];
 }

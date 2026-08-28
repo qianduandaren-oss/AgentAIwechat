@@ -3,7 +3,7 @@ import type {
   PlanningAction,
   PlanningDecision
 } from "./types.js";
-import { assertActionAllowed, shouldExecuteTool } from "./policy.js";
+import { assertActionAllowed } from "./policy.js";
 
 export interface PlanningToolHandlers {
   search_customer(input: { customerName: string }): Promise<unknown>;
@@ -20,7 +20,7 @@ export class PlanningExecutor {
     const action = decision.action;
     assertActionAllowed(action);
 
-    if (!shouldExecuteTool(action)) {
+    if (action.type === "finish") {
       return {
         stepId,
         action: action.type,

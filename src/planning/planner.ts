@@ -1,103 +1,67 @@
-import { PlanningExecutor } from "./executor.js";
-import { assertDecisionAllowed } from "./policy.js";
-import type {
-  AgentState,
-  Observation,
-  PlanStep,
-  PlanningDecision,
-  PlanningRunResult
-} from "./types.js";
+import type { PlannerAction, PlannerState } from "./types.js";
 
-export type PlanningDecisionProvider = (
-  state: Readonly<AgentState>
-) => Promise<PlanningDecision>;
+export interface Planner {
+  planNext(state: PlannerState): Promise<PlannerAction>;
+}
 
-export class Planner {
-  constructor(
-    private readonly decideNextAction: PlanningDecisionProvider,
-    private readonly maxSteps = 8
-  ) {}
+export class CustomerPlanner implements Planner {
+  async planNext(state: PlannerState): Promise<PlannerAction> {
+    const customerObservation = state.observations.find(
+      item => item.action === "search_customer"
+    );
 
-  createState(goal: string): AgentState {
-    if (!goal.trim()) {
-      throw new Error("Planning goal cannot be empty.");
-    }
-
-    return {
-      goal,
-      completedSteps: [],
-      pendingSteps: [],
-      observations: [],
-      errors: [],
-      iteration: 0
-    };
-  }
-
-  async next(state: AgentState): Promise<PlanningDecision> {
-    if (state.iteration >= this.maxSteps) {
+    if (!customerObservation) {
       return {
-        action: {
-          type: "finish",
-          answer: "Planning stopped because the maximum number of steps was reached."
-        },
-        reason: "Stop the loop before the Agent can keep planning indefinitely."
+        type: "search_customer",
+        input: {
+          name: "张三"
+        }
       };
     }
 
-    const decision = await this.decideNextAction(state);
-    assertDecisionAllowed(decision);
-    return decision;
-  }
-
-  applyObservation(
-    state: AgentState,
-    step: PlanStep,
-    observation: Observation
-  ): AgentState {
-    const completedStep: PlanStep = {
-      ...step,
-      status: observation.ok ? "done" : "failed"
+    const customer = customerObservation.result as {
+      id: string;
+      product: string;
     };
+
+    const chatObservation = state.observations.find(
+      item => item.action === "search_chat_history"
+    );
+
+    if (!chatObservation) {
+      return {
+        type: "search_chat_history",
+        input: {
+          customerId: customer.id
+        }
+      };
+    }
+
+    const chat = chatObservation.result as {
+      concern: string;
+    };
+
+    const knowledgeObservation = state.observations.find(
+      item => item.action === "search_knowledge"
+    );
+
+    if (!knowledgeObservation) {
+      return {
+        type: "search_knowledge",
+        input: {
+          query: `${customer.product} ${chat.concern}`
+        }
+      };
+    }
 
     return {
-      ...state,
-      completedSteps: [...state.completedSteps, completedStep],
-      observations: [...state.observations, observation],
-      errors: observation.ok
-        ? state.errors
-        : [
-            ...state.errors,
-            {
-              stepId: step.id,
-              action: step.action.type,
-              message: observation.error ?? "Unknown planning error"
-            }
-          ],
-      iteration: state.iteration + 1
-    };
-  }
-
-  async run(goal: string, executor: PlanningExecutor): Promise<PlanningRunResult> {
-    let state = this.createState(goal);
-
-    while (true) {
-      const decision = await this.next(state);
-      const step: PlanStep = {
-        id: `plan_step_${state.iteration + 1}`,
-        action: decision.action,
-        reason: decision.reason,
-        status: "running"
-      };
-
-      const observation = await executor.execute(step.id, decision);
-      state = this.applyObservation(state, step, observation);
-
-      if (decision.action.type === "finish") {
-        return {
-          state,
-          answer: decision.action.answer
-        };
+      type: "finish",
+      input: {
+        answer:
+          "客户主要顾虑是学习时间。" +
+          "建议重点说明周末班安排，" +
+          "而不是继续强调价格优惠。"
       }
-    }
+    };
   }
 }

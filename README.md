@@ -1,10 +1,21 @@
-# Agent AI 工程师 · Day 1–7 完整可运行项目
+# Agent AI 工程师 · Day 1–8 完整可运行项目
 
-这是 Agent AI 工程师课程 Day 1–7 的 TypeScript 实战代码，内容覆盖 LLM、Structured Output、Tool Calling、Agent Loop、Memory、RAG、MCP、Workflow、Planning 等核心能力。
+这是 Agent AI 工程师课程 Day 1–8 的 TypeScript 实战代码。项目不是每天新建一个孤立 Demo，而是在同一套 Agent Runtime 上持续演进，目前已经覆盖：
+
+```text
+LLM / Structured Output
+→ Tool Calling / Agent Loop
+→ Memory
+→ RAG
+→ MCP
+→ Workflow / Durable Execution
+→ Planning / Reflection
+→ LLM Planner / Validation / Re-planning
+```
 
 ## 运行方式
 
-直接运行已编译代码：
+直接运行主项目：
 
 ```bash
 node dist/index.js
@@ -24,9 +35,15 @@ npm run demo
 npm run demo:day7
 ```
 
+单独运行 Day 8 LLM Planner / Validation / Re-planning：
+
+```bash
+npm run demo:day8
+```
+
 ---
 
-## Day 1–7 学习内容
+## Day 1–8 学习路线
 
 ```text
 Day 1  LLM / Structured Output
@@ -41,10 +58,12 @@ Day 5  MCP / Capability Discovery
   ↓
 Day 6  Workflow / State / Retry / Idempotency / HITL
   ↓
-Day 7  Planning / Action Space / Policy / Observation
+Day 7  Planning / Action Space / Reflection / Guardrail
+  ↓
+Day 8  LLM Planner / Validation / Re-planning
 ```
 
-整体结构：
+当前整体结构：
 
 ```text
                           Memory
@@ -56,13 +75,18 @@ User → Router → Context Builder ← RAG
   │
   ├─ 开放式分析
   │       ↓
-  │    Planning
+  │    LLM Planner
   │       ↓
-  │     Policy
+  │ Structured Output
+  │       ↓
+  │   Validation
+  │       ↓
+  │ Reflection / Policy
   │       ↓
   │    Executor
   │       ↓
-  │   Tool / MCP
+  │ Observation
+  │       └────────→ Re-planning
   │
   └─ 确定性业务流程
           ↓
@@ -77,6 +101,13 @@ User → Router → Context Builder ← RAG
        MCP Client
           ↓
        MCP Server
+```
+
+核心原则一直没有变：
+
+```text
+LLM 负责提出判断和下一步建议
+程序负责权限、校验、状态、重试、幂等和安全边界
 ```
 
 ---
@@ -117,9 +148,9 @@ extractStructured()
 LeadResult
 ```
 
-`callLLM()` 负责统一 LLM 调用入口，Provider 层负责具体模型实现。
+`callLLM()` 是统一 LLM 调用入口，业务层不直接依赖某一家模型 SDK。
 
-项目默认使用 `MockLLMProvider`，方便直接运行和调试课程代码。
+项目默认使用 `MockLLMProvider`，方便不用 API Key 也能直接运行和调试课程代码。
 
 ---
 
@@ -177,7 +208,7 @@ Observation
 Final Answer
 ```
 
-Agent Loop 通过 `maxSteps` 控制最大执行轮数。
+Agent Loop 使用 `maxSteps` 控制最大执行轮数，防止模型无限调用工具。
 
 ---
 
@@ -270,7 +301,7 @@ Context
 text → number[] → cosine similarity
 ```
 
-RAG 模块包含：
+RAG 模块当前已经包含：
 
 ```text
 Document
@@ -328,9 +359,8 @@ StdioClientTransport
 目录说明：
 
 ```text
-src/mcp/              MCP 核心运行流程
-
-official-mcp-example/ 官方 TypeScript SDK 示例
+src/mcp/               MCP 核心运行流程
+official-mcp-example/  官方 TypeScript SDK 示例
 ```
 
 ---
@@ -445,9 +475,22 @@ search_knowledge
 finish
 ```
 
+Day 7 的 `CustomerPlanner` 还是规则版 Planner：下一步动作由程序根据 Observation 写死。
+
 `createActionKey()` 为 Action 创建指纹，`reflectAction()` 会在执行前拦截重复 Tool Call。拒绝原因写入 `reflectionNotes`，供 Planner 下一轮调整决策。
 
-真实副作用操作不直接开放给 Planner，而是交给 Workflow 处理权限、审批、重试和幂等。
+真实副作用操作不直接开放给 Planner，例如：
+
+```text
+send_message
+create_reminder
+update_customer
+delete_customer
+charge_payment
+refund_order
+```
+
+这些操作应该交给 Workflow 处理权限、审批、重试和幂等。
 
 运行验收：
 
@@ -460,7 +503,259 @@ Demo 同时覆盖正常规划闭环和重复 Action 防护；重复查询最终�
 
 ---
 
-# 最终整合 Agent
+# Day 8：LLM Planner / Structured Output / Validation / Re-planning
+
+Day 8 把 Day 7 的规则版 Planner 真正接回前面已经实现的 LLM 基础设施。
+
+核心文件：
+
+```text
+src/llm/types.ts
+src/llm/providers/mock-provider.ts
+src/planning/schema.ts
+src/planning/validation.ts
+src/planning/llm-planner.ts
+src/planning/reflection.ts
+src/planning/run-planner.ts
+src/demos/day8-llm-planner-demo.ts
+docs/day8-llm-planner.md
+```
+
+完整执行链：
+
+```text
+Goal + PlannerState
+        ↓
+     LLMPlanner
+        ↓
+     callLLM()
+        ↓
+Structured Output
+        ↓
+parsePlannerAction()
+        ↓
+Plan Validation
+   ├─ invalid → 带错误反馈重新请求模型
+   └─ valid
+        ↓
+Reflection / Policy
+        ↓
+Executor
+        ↓
+Observation
+        ↓
+Reflection Note
+        └────────→ 下一轮 LLMPlanner
+```
+
+## 08:00：Planner Structured Output
+
+`LLMTask` 新增：
+
+```text
+planner_next_action
+```
+
+`LLMRequest` 增加：
+
+```text
+responseSchema
+```
+
+`src/planning/schema.ts` 定义 Planner 的输出契约，目前模型只能从下面四类动作中选择：
+
+```text
+search_customer
+search_chat_history
+search_knowledge
+finish
+```
+
+这里需要特别区分：
+
+```text
+Structured Output Schema = 约束模型输出形状
+Validation / Policy       = 真正的程序安全边界
+```
+
+即使模型返回了 JSON，也不能因为 TypeScript 写了泛型就直接相信它。
+
+## 12:00：LLMPlanner + Runtime Validation
+
+`LLMPlanner.planNext()` 每一轮会读取：
+
+```text
+goal
+observations
+reflectionNotes
+validationFeedback
+allowed action space
+```
+
+然后执行：
+
+```text
+callLLM()
+  ↓
+extractStructured()
+  ↓
+parsePlannerAction()
+  ↓
+assertActionAllowed()
+```
+
+`parsePlannerAction()` 会在运行时检查：
+
+```text
+type 是否存在
+Action 是否在白名单
+input 是否为对象
+name / customerId / query / answer 是否有效
+```
+
+例如模型返回：
+
+```json
+{
+  "type": "send_message",
+  "input": {
+    "customerId": "C001",
+    "text": "直接发消息"
+  }
+}
+```
+
+这个结果会在进入 Executor 前被拒绝。
+
+LLMPlanner 会把失败原因写进 `validationFeedback`，再次请求模型生成合法 Action，这就是最小 Re-planning。
+
+## 18:00：Observation Reflection + Re-planning
+
+Day 7 的 Reflection 主要检查重复 Action。
+
+Day 8 又增加了 Observation 检查：
+
+```text
+null
+undefined
+空字符串
+空对象
+```
+
+这类结果不会被当成有效证据，而是形成 Reflection Note，继续进入下一轮 Planner。
+
+`runPlanner()` 也支持可配置：
+
+```text
+maxSteps
+```
+
+默认仍然是 6，避免 Planner 因不断重新规划进入无限循环。
+
+## Day 7 和 Day 8 的关键区别
+
+```text
+Day 7
+Planner 下一步由程序写死
+        ↓
+CustomerPlanner
+        ↓
+Action
+
+Day 8
+Planner 下一步由模型根据 State 动态生成
+        ↓
+LLMPlanner
+        ↓
+callLLM()
+        ↓
+Structured Output
+        ↓
+Validation
+        ↓
+Action
+```
+
+所以 Day 8 之后，Planner 才真正开始具备：
+
+```text
+根据 Observation 决定下一步
+根据失败原因重新规划
+根据 Reflection 调整下一轮决策
+```
+
+运行验收：
+
+```bash
+npm run build
+npm run demo:day8
+```
+
+正常执行路径：
+
+```text
+search_customer
+→ search_chat_history
+→ search_knowledge
+→ finish
+```
+
+Validation Demo 会故意让 Provider 第一次返回非法 `send_message`。
+
+最终应该看到：
+
+```text
+Executor received: search_customer -> search_chat_history -> search_knowledge
+Invalid send_message reached executor: false
+```
+
+这证明：
+
+```text
+模型可以提出非法动作
+但非法动作不会真正执行
+```
+
+---
+
+# 为什么 Day 8 仍然使用 MockLLMProvider
+
+课程当前已经走完整的 Provider 调用链：
+
+```text
+LLMPlanner
+ ↓
+callLLM()
+ ↓
+LLMProvider.generate()
+ ↓
+Structured Output
+```
+
+默认使用 `MockLLMProvider` 是为了让仓库不依赖 API Key 也能稳定运行。
+
+后续接真实模型时，只需要增加新的 Provider：
+
+```text
+OpenAIProvider
+AnthropicProvider
+DoubaoProvider
+...
+```
+
+只要实现：
+
+```ts
+interface LLMProvider {
+  generate(request: LLMRequest): Promise<unknown>;
+}
+```
+
+Planning、Memory、Agent Loop 等上层代码不需要因为更换模型而重写。
+
+---
+
+# 当前 Production Agent
 
 核心文件：
 
@@ -468,7 +763,7 @@ Demo 同时覆盖正常规划闭环和重复 Action 防护；重复查询最终�
 src/app/production-agent.ts
 ```
 
-Day 1–6 的整体调用关系：
+Day 1–6 已经形成：
 
 ```text
 Message
@@ -483,9 +778,20 @@ Router
       MCP
 ```
 
-Day 7 新增的 Planning 层目前保持独立，下一步会接入 Production Agent 的开放式分析路径。
+Day 7–8 新增的 Planning Runtime 当前仍然保持相对独立，方便学习每一层职责。
 
-示例：
+后续会逐步把：
+
+```text
+LLMPlanner
+Validation
+Reflection
+Re-planning
+```
+
+接入 `ProductionAgent` 的开放式分析路径。
+
+几个典型任务现在可以这样理解：
 
 ```text
 我之前说什么时候联系方便？
@@ -497,8 +803,8 @@ PLC 课程退费规则是什么？
 查一下张三，如果他是高意向客户，明天下午提醒我跟进
 → Workflow + LLM + MCP + Retry + Idempotency
 
-分析张三为什么一直没成交，并根据中间结果决定还要查什么
-→ Planning + Observation + Policy
+分析张三为什么一直没成交，并根据查询结果决定下一步还查什么
+→ LLM Planning + Observation + Validation + Reflection
 ```
 
 ---
@@ -510,6 +816,7 @@ PLC 课程退费规则是什么？
 ```text
 src/llm/client.ts
 src/llm/response-parser.ts
+src/llm/types.ts
 src/llm/providers/
 ```
 
@@ -548,8 +855,22 @@ src/workflow/
 ## Planning
 
 ```text
-src/planning/
-docs/day7-planning.md
+src/planning/types.ts
+src/planning/policy.ts
+src/planning/planner.ts
+src/planning/action-key.ts
+src/planning/reflection.ts
+src/planning/run-planner.ts
+```
+
+## Day 8 LLM Planning
+
+```text
+src/planning/schema.ts
+src/planning/validation.ts
+src/planning/llm-planner.ts
+src/demos/day8-llm-planner-demo.ts
+docs/day8-llm-planner.md
 ```
 
 ## 最终 Agent
@@ -562,22 +883,53 @@ src/app/production-agent.ts
 
 # 推荐阅读顺序
 
+如果你准备把前 8 天的代码完整串一次，建议按下面顺序看：
+
 ```text
-1. src/llm/client.ts
-2. src/llm/response-parser.ts
-3. src/day1/lead-analyzer.ts
-4. src/tools/
-5. src/agent/agent-loop.ts
-6. src/memory/
-7. src/rag/
-8. src/mcp/
-9. src/workflow/
-10. src/planning/types.ts
-11. src/planning/policy.ts
-12. src/planning/planner.ts
-13. src/planning/executor.ts
-14. src/app/production-agent.ts
-15. src/demos/full-demo.ts
+1.  src/llm/types.ts
+2.  src/llm/client.ts
+3.  src/llm/response-parser.ts
+4.  src/llm/providers/mock-provider.ts
+5.  src/day1/lead-analyzer.ts
+6.  src/tools/
+7.  src/agent/agent-loop.ts
+8.  src/memory/
+9.  src/rag/
+10. src/mcp/
+11. src/workflow/
+12. src/planning/types.ts
+13. src/planning/policy.ts
+14. src/planning/planner.ts
+15. src/planning/action-key.ts
+16. src/planning/reflection.ts
+17. src/planning/run-planner.ts
+18. src/planning/schema.ts
+19. src/planning/validation.ts
+20. src/planning/llm-planner.ts
+21. src/demos/day8-llm-planner-demo.ts
+22. src/app/production-agent.ts
+23. src/demos/full-demo.ts
 ```
 
-按照这个顺序，可以从 LLM 调用开始，一直看到 Tool Calling、Memory、RAG、MCP、Workflow，再进入 Planning。
+这样可以完整看到这套项目是怎么从：
+
+```text
+调用一次 LLM
+```
+
+逐步演进到：
+
+```text
+LLM
++ Tool
++ Memory
++ RAG
++ MCP
++ Workflow
++ Planner
++ Validation
++ Reflection
++ Re-planning
+```
+
+后面的课程会继续在这一个仓库上演进，不重新另起一套互不相关的 Demo。

@@ -7,6 +7,11 @@ export interface ReflectionResult {
   severity?: "info" | "warning" | "critical";
 }
 
+export interface ObservationReflection {
+  useful: boolean;
+  note?: string;
+}
+
 export function reflectAction(
   state: PlannerState,
   action: PlannerAction
@@ -26,4 +31,33 @@ export function reflectAction(
   }
 
   return { allowed: true };
+}
+
+export function reflectObservation(result: unknown): ObservationReflection {
+  if (result === null || result === undefined) {
+    return {
+      useful: false,
+      note: "Observation is empty; re-plan instead of assuming the tool succeeded."
+    };
+  }
+
+  if (typeof result === "string" && !result.trim()) {
+    return {
+      useful: false,
+      note: "Observation is an empty string; choose another action or finish with explicit uncertainty."
+    };
+  }
+
+  if (
+    typeof result === "object" &&
+    !Array.isArray(result) &&
+    Object.keys(result as Record<string, unknown>).length === 0
+  ) {
+    return {
+      useful: false,
+      note: "Observation is an empty object; the next plan must account for missing evidence."
+    };
+  }
+
+  return { useful: true };
 }

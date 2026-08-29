@@ -30,12 +30,14 @@ export type LLMTask =
   | "memory_extract"
   | "agent_turn"
   | "intent_classification"
-  | "answer_with_context";
+  | "answer_with_context"
+  | "planner_next_action";
 
 export type LLMRequest = {
   task: LLMTask;
   messages: AgentMessage[];
   tools?: ToolDefinition[];
+  responseSchema?: JsonSchema;
   context?: Record<string, unknown>;
 };
 

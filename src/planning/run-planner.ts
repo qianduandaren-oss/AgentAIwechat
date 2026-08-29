@@ -1,7 +1,10 @@
 import { createActionKey } from "./action-key.js";
 import { executeAction } from "./executor.js";
 import { CustomerPlanner, type Planner } from "./planner.js";
-import { reflectAction } from "./reflection.js";
+import {
+  reflectAction,
+  reflectObservation
+} from "./reflection.js";
 import type { PlannerAction, PlannerState } from "./types.js";
 
 export const MAX_PLANNER_STEPS = 6;
@@ -9,6 +12,7 @@ export const MAX_PLANNER_STEPS = 6;
 export interface RunPlannerOptions {
   planner?: Planner;
   execute?: (action: PlannerAction) => Promise<unknown>;
+  maxSteps?: number;
 }
 
 export async function runPlanner(
@@ -21,6 +25,7 @@ export async function runPlanner(
 
   const planner = options.planner ?? new CustomerPlanner();
   const execute = options.execute ?? executeAction;
+  const maxSteps = options.maxSteps ?? MAX_PLANNER_STEPS;
 
   const state: PlannerState = {
     goal,
@@ -30,7 +35,7 @@ export async function runPlanner(
     reflectionNotes: []
   };
 
-  while (state.step < MAX_PLANNER_STEPS) {
+  while (state.step < maxSteps) {
     state.step++;
 
     const action = await planner.planNext(state);
@@ -60,6 +65,12 @@ export async function runPlanner(
       action: action.type,
       result
     });
+
+    const observationReflection = reflectObservation(result);
+    if (!observationReflection.useful && observationReflection.note) {
+      state.reflectionNotes.push(observationReflection.note);
+      console.warn("Reflection:", observationReflection.note);
+    }
   }
 
   throw new Error(

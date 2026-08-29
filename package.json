@@ -1,14 +1,15 @@
 {
-  "name": "agent-ai-day1-7",
+  "name": "agent-ai-day1-8",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Agent AI Engineer Day 1-7 runnable TypeScript learning project",
+  "description": "Agent AI Engineer Day 1-8 runnable TypeScript learning project",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "demo": "node dist/index.js",
     "start": "node dist/index.js",
-    "demo:day7": "node dist/demos/planning-demo.js"
+    "demo:day7": "node dist/demos/planning-demo.js",
+    "demo:day8": "node dist/demos/day8-llm-planner-demo.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

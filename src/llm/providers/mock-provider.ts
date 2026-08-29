@@ -14,6 +14,17 @@ function toolResult(messages: AgentMessage[], name: string): string | undefined 
   return [...messages].reverse().find(m => m.role === "tool" && m.name === name)?.content;
 }
 
+type PlannerObservation = {
+  action?: string;
+  result?: unknown;
+};
+
+type PlannerStateContext = {
+  goal?: string;
+  observations?: PlannerObservation[];
+  reflectionNotes?: string[];
+};
+
 export class MockLLMProvider implements LLMProvider {
   async generate(request: LLMRequest): Promise<MockRawLLMResponse> {
     switch (request.task) {
@@ -27,6 +38,8 @@ export class MockLLMProvider implements LLMProvider {
         return this.intentClassification(request);
       case "answer_with_context":
         return this.answerWithContext(request);
+      case "planner_next_action":
+        return this.plannerNextAction(request);
     }
   }
 
@@ -188,5 +201,85 @@ export class MockLLMProvider implements LLMProvider {
     }
 
     return { output: [{ type: "text", text: "当前上下文没有足够信息。" }] };
+  }
+
+  private plannerNextAction(request: LLMRequest): MockRawLLMResponse {
+    const state = request.context?.plannerState as PlannerStateContext | undefined;
+    const observations = state?.observations ?? [];
+    const goal = state?.goal ?? "";
+
+    const customerObservation = observations.find(
+      item => item.action === "search_customer"
+    );
+
+    if (!customerObservation) {
+      return {
+        output: [],
+        structured: {
+          type: "search_customer",
+          input: {
+            name: goal.includes("李四") ? "李四" : "张三"
+          }
+        }
+      };
+    }
+
+    const customer = customerObservation.result as {
+      id?: string;
+      product?: string;
+    };
+
+    const chatObservation = observations.find(
+      item => item.action === "search_chat_history"
+    );
+
+    if (!chatObservation) {
+      return {
+        output: [],
+        structured: {
+          type: "search_chat_history",
+          input: {
+            customerId: customer.id ?? "unknown"
+          }
+        }
+      };
+    }
+
+    const chat = chatObservation.result as {
+      concern?: string;
+    };
+
+    const knowledgeObservation = observations.find(
+      item => item.action === "search_knowledge"
+    );
+
+    if (!knowledgeObservation) {
+      return {
+        output: [],
+        structured: {
+          type: "search_knowledge",
+          input: {
+            query: `${customer.product ?? "PLC"} ${chat.concern ?? "课程安排"}`
+          }
+        }
+      };
+    }
+
+    const knowledge = knowledgeObservation.result as {
+      content?: string;
+    };
+
+    return {
+      output: [],
+      structured: {
+        type: "finish",
+        input: {
+          answer:
+            "客户主要顾虑是学习时间。" +
+            `知识库信息：${knowledge.content ?? "已有周末班信息。"}` +
+            "建议下一次沟通优先解释周末班安排，再确认客户可上课的具体时间。"
+        }
+      }
+    };
   }
 }

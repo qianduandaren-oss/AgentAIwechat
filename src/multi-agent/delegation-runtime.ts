@@ -4,10 +4,22 @@ import {
   type CustomerAnalysisInput,
   type CustomerAnalysisOutput
 } from "./customer-analysis-agent.js";
+import { checkDelegation } from "./delegation-guard.js";
 
 export async function delegate(
   task: DelegationTask
 ): Promise<DelegationResult> {
+  const guard = checkDelegation(task);
+
+  if (!guard.allowed) {
+    return {
+      taskId: task.id,
+      agentId: task.toAgentId,
+      success: false,
+      error: guard.reason ?? "Delegation rejected"
+    };
+  }
+
   switch (task.toAgentId) {
     case "customer-analysis":
       return runCustomerAnalysisAgent(
@@ -19,7 +31,7 @@ export async function delegate(
         taskId: task.id,
         agentId: task.toAgentId,
         success: false,
-        error: `Unknown agent: ${task.toAgentId}`
+        error: `No runtime registered for agent: ${task.toAgentId}`
       };
   }
 }

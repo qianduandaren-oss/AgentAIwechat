@@ -48,4 +48,122 @@ SearchAgent → AnalysisAgent → WriterAgent → ReviewerAgent
 
 ## Day 9 目标
 
-今天先建立 Multi-Agent 的最小抽象：AgentRole、AgentDescriptor、DelegationTask、DelegationResult。中午再实现 Coordinator 如何把一个子任务委派给专职 Agent。
+今天先建立 Multi-Agent 的最小抽象：AgentRole、AgentDescriptor、DelegationTask、DelegationResult。中午实现 Coordinator 把一个客户分析子任务委派给专职 Agent；晚上把 Agent Registry、Delegation Guard 和 Tool Permission 接进 Runtime。
+
+## 12:00：Delegation Runtime
+
+最小调用链：
+
+```text
+Coordinator
+  ↓ DelegationTask
+Delegation Runtime
+  ↓
+CustomerAnalysisAgent
+  ↓ DelegationResult
+CoordinatorState
+```
+
+核心文件：
+
+```text
+src/multi-agent/types.ts
+src/multi-agent/customer-analysis-agent.ts
+src/multi-agent/delegation-runtime.ts
+src/multi-agent/coordinator.ts
+src/demos/multi-agent-demo.ts
+```
+
+Delegation 不使用随意字符串，而是明确记录：
+
+```text
+id
+fromAgentId
+toAgentId
+goal
+input
+```
+
+返回结果同样进入 CoordinatorState，便于后续追踪、失败处理和继续委派。
+
+## 18:00：Agent Registry + Delegation Guard
+
+仅仅让 Coordinator 知道一个 Agent 名字还不够。生产系统需要由程序维护允许存在的 Agent、委派关系和 Tool 权限。
+
+新增：
+
+```text
+src/multi-agent/agent-registry.ts
+src/multi-agent/delegation-guard.ts
+```
+
+当前 Registry：
+
+```text
+coordinator
+  allowedTools: []
+
+customer-analysis
+  allowedTools:
+  - search_customer
+  - search_chat_history
+  - search_knowledge
+```
+
+当前委派策略：
+
+```text
+coordinator
+  → customer-analysis
+```
+
+而下面这种反向委派会被程序拒绝：
+
+```text
+customer-analysis
+  → coordinator
+```
+
+完整链路升级为：
+
+```text
+Coordinator
+  ↓ DelegationTask
+Delegation Guard
+  ├─ source agent exists?
+  ├─ target agent exists?
+  └─ delegation allowed?
+  ↓
+Delegation Runtime
+  ↓
+CustomerAnalysisAgent
+  ↓ DelegationResult
+CoordinatorState
+```
+
+这里的核心原则和 Tool Permission 完全一致：
+
+```text
+LLM / Coordinator 可以提出委派
+程序决定该委派是否允许
+```
+
+`AgentDescriptor.allowedTools` 也开始成为实际权限数据，而不是文档字段。后续子 Agent 接入真实 Tool Executor 时，必须通过 `canAgentUseTool()` 再进入具体 Tool。
+
+## Day 9 验收
+
+运行：
+
+```bash
+npm run build
+npm run demo:day9
+```
+
+Demo 应同时覆盖：
+
+```text
+允许：coordinator → customer-analysis
+拒绝：customer-analysis → coordinator
+```
+
+不要依赖 Prompt 里的“请不要调用其他 Agent”。真正边界必须由 Runtime 强制执行。

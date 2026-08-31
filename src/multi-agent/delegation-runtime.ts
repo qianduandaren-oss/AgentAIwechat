@@ -4,6 +4,11 @@ import {
   type CustomerAnalysisInput,
   type CustomerAnalysisOutput
 } from "./customer-analysis-agent.js";
+import {
+  runCopywritingAgent,
+  type CopywritingInput,
+  type CopywritingOutput
+} from "./copywriting-agent.js";
 import { checkDelegation } from "./delegation-guard.js";
 
 export async function delegate(
@@ -25,7 +30,10 @@ export async function delegate(
       return runCustomerAnalysisAgent(
         task as DelegationTask<CustomerAnalysisInput>
       ) as Promise<DelegationResult<CustomerAnalysisOutput>>;
-
+    case "copywriting":
+      return runCopywritingAgent(
+        task as DelegationTask<CopywritingInput>
+      ) as Promise<DelegationResult<CopywritingOutput>>;
     default:
       return {
         taskId: task.id,

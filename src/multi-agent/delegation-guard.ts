@@ -7,7 +7,7 @@ export interface DelegationGuardResult {
 }
 
 const delegationPolicy: Record<string, string[]> = {
-  coordinator: ["customer-analysis"]
+  coordinator: ["customer-analysis", "copywriting"]
 };
 
 export function checkDelegation(
@@ -17,35 +17,22 @@ export function checkDelegation(
   const toAgent = getAgentDescriptor(task.toAgentId);
 
   if (!fromAgent) {
-    return {
-      allowed: false,
-      reason: `Unknown source agent: ${task.fromAgentId}`
-    };
+    return { allowed: false, reason: `Unknown source agent: ${task.fromAgentId}` };
   }
 
   if (!toAgent) {
-    return {
-      allowed: false,
-      reason: `Unknown target agent: ${task.toAgentId}`
-    };
+    return { allowed: false, reason: `Unknown target agent: ${task.toAgentId}` };
   }
 
   const allowedTargets = delegationPolicy[task.fromAgentId] ?? [];
-
   if (!allowedTargets.includes(task.toAgentId)) {
-    return {
-      allowed: false,
-      reason: `${task.fromAgentId} cannot delegate to ${task.toAgentId}`
-    };
+    return { allowed: false, reason: `${task.fromAgentId} cannot delegate to ${task.toAgentId}` };
   }
 
   return { allowed: true };
 }
 
-export function canAgentUseTool(
-  agentId: string,
-  toolName: string
-): boolean {
+export function canAgentUseTool(agentId: string, toolName: string): boolean {
   const descriptor = getAgentDescriptor(agentId);
   return descriptor?.allowedTools.includes(toolName) ?? false;
 }

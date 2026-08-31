@@ -1,13 +1,17 @@
+import { MockLLMProvider } from "../llm/providers/mock-provider.js";
 import { runCoordinator } from "../multi-agent/coordinator.js";
 import { delegate } from "../multi-agent/delegation-runtime.js";
 
 async function main() {
+  const provider = new MockLLMProvider();
+
   const state = await runCoordinator(
+    provider,
     "分析张三为什么没有报名",
     "C001"
   );
 
-  console.log("\nAllowed delegation:");
+  console.log("\nDynamic routing + allowed delegation:");
   console.log(JSON.stringify(state, null, 2));
 
   const rejected = await delegate({

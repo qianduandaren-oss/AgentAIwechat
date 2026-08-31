@@ -40,7 +40,29 @@ export class MockLLMProvider implements LLMProvider {
         return this.answerWithContext(request);
       case "planner_next_action":
         return this.plannerNextAction(request);
+      case "agent_routing":
+        return this.agentRouting(request);
     }
+  }
+
+  private agentRouting(request: LLMRequest): MockRawLLMResponse {
+    const goal = String(request.context?.goal ?? lastUserMessage(request.messages));
+    const candidates = request.context?.candidateAgents as Array<{
+      id?: string;
+      description?: string;
+    }> | undefined;
+
+    const preferred = /客户|报名|异议|张三|李四/.test(goal)
+      ? "customer-analysis"
+      : candidates?.[0]?.id;
+
+    return {
+      output: [],
+      structured: {
+        agentId: preferred ?? "customer-analysis",
+        reason: "当前目标需要分析客户资料、沟通记录和核心异议，与 customer-analysis 的职责匹配"
+      }
+    };
   }
 
   private leadAnalysis(request: LLMRequest): MockRawLLMResponse {
@@ -110,14 +132,7 @@ export class MockLLMProvider implements LLMProvider {
     if (!searched && /查|客户|张三|李四/.test(text)) {
       const keyword = text.includes("李四") ? "李四" : "张三";
       return {
-        output: [
-          {
-            type: "tool_call",
-            id: createId("call"),
-            name: "search_customer",
-            arguments: { keyword }
-          }
-        ]
+        output: [{ type: "tool_call", id: createId("call"), name: "search_customer", arguments: { keyword } }]
       };
     }
 
@@ -131,35 +146,23 @@ export class MockLLMProvider implements LLMProvider {
 
       if (customer.intent === "high") {
         return {
-          output: [
-            {
-              type: "tool_call",
-              id: createId("call"),
-              name: "create_reminder",
-              arguments: {
-                customerId: customer.id ?? "unknown",
-                topic: `跟进${customer.name ?? "客户"}`,
-                time: "tomorrow 15:00",
-                idempotencyKey: `${customer.id ?? "unknown"}:tomorrow-15`
-              }
+          output: [{
+            type: "tool_call",
+            id: createId("call"),
+            name: "create_reminder",
+            arguments: {
+              customerId: customer.id ?? "unknown",
+              topic: `跟进${customer.name ?? "客户"}`,
+              time: "tomorrow 15:00",
+              idempotencyKey: `${customer.id ?? "unknown"}:tomorrow-15`
             }
-          ]
+          }]
         };
       }
     }
 
-    if (reminded) {
-      return {
-        output: [{ type: "text", text: "已查询客户并创建了跟进提醒。" }]
-      };
-    }
-
-    if (searched) {
-      return {
-        output: [{ type: "text", text: `客户查询完成：${searched}` }]
-      };
-    }
-
+    if (reminded) return { output: [{ type: "text", text: "已查询客户并创建了跟进提醒。" }] };
+    if (searched) return { output: [{ type: "text", text: `客户查询完成：${searched}` }] };
     return { output: [{ type: "text", text: "这轮不需要调用工具。" }] };
   }
 
@@ -170,36 +173,17 @@ export class MockLLMProvider implements LLMProvider {
       : /没兴趣|不需要/.test(conversation)
         ? "low"
         : "medium";
-
-    return {
-      output: [],
-      structured: {
-        intent,
-        reason: `根据客户备注判断为 ${intent}`
-      }
-    };
+    return { output: [], structured: { intent, reason: `根据客户备注判断为 ${intent}` } };
   }
 
   private answerWithContext(request: LLMRequest): MockRawLLMResponse {
     const memory = request.context?.memory as Array<{ key: string; value: unknown }> | undefined;
     const knowledge = request.context?.knowledge as Array<{ title: string; content: string }> | undefined;
-
-    if (knowledge?.length) {
-      return {
-        output: [
-          {
-            type: "text",
-            text: `根据《${knowledge[0].title}》：${knowledge[0].content}`
-          }
-        ]
-      };
-    }
-
+    if (knowledge?.length) return { output: [{ type: "text", text: `根据《${knowledge[0].title}》：${knowledge[0].content}` }] };
     if (memory?.length) {
       const readable = memory.map(m => `${m.key}=${String(m.value)}`).join("，");
       return { output: [{ type: "text", text: `我检索到的相关记忆是：${readable}` }] };
     }
-
     return { output: [{ type: "text", text: "当前上下文没有足够信息。" }] };
   }
 
@@ -207,77 +191,27 @@ export class MockLLMProvider implements LLMProvider {
     const state = request.context?.plannerState as PlannerStateContext | undefined;
     const observations = state?.observations ?? [];
     const goal = state?.goal ?? "";
-
-    const customerObservation = observations.find(
-      item => item.action === "search_customer"
-    );
-
+    const customerObservation = observations.find(item => item.action === "search_customer");
     if (!customerObservation) {
-      return {
-        output: [],
-        structured: {
-          type: "search_customer",
-          input: {
-            name: goal.includes("李四") ? "李四" : "张三"
-          }
-        }
-      };
+      return { output: [], structured: { type: "search_customer", input: { name: goal.includes("李四") ? "李四" : "张三" } } };
     }
-
-    const customer = customerObservation.result as {
-      id?: string;
-      product?: string;
-    };
-
-    const chatObservation = observations.find(
-      item => item.action === "search_chat_history"
-    );
-
+    const customer = customerObservation.result as { id?: string; product?: string };
+    const chatObservation = observations.find(item => item.action === "search_chat_history");
     if (!chatObservation) {
-      return {
-        output: [],
-        structured: {
-          type: "search_chat_history",
-          input: {
-            customerId: customer.id ?? "unknown"
-          }
-        }
-      };
+      return { output: [], structured: { type: "search_chat_history", input: { customerId: customer.id ?? "unknown" } } };
     }
-
-    const chat = chatObservation.result as {
-      concern?: string;
-    };
-
-    const knowledgeObservation = observations.find(
-      item => item.action === "search_knowledge"
-    );
-
+    const chat = chatObservation.result as { concern?: string };
+    const knowledgeObservation = observations.find(item => item.action === "search_knowledge");
     if (!knowledgeObservation) {
-      return {
-        output: [],
-        structured: {
-          type: "search_knowledge",
-          input: {
-            query: `${customer.product ?? "PLC"} ${chat.concern ?? "课程安排"}`
-          }
-        }
-      };
+      return { output: [], structured: { type: "search_knowledge", input: { query: `${customer.product ?? "PLC"} ${chat.concern ?? "课程安排"}` } } };
     }
-
-    const knowledge = knowledgeObservation.result as {
-      content?: string;
-    };
-
+    const knowledge = knowledgeObservation.result as { content?: string };
     return {
       output: [],
       structured: {
         type: "finish",
         input: {
-          answer:
-            "客户主要顾虑是学习时间。" +
-            `知识库信息：${knowledge.content ?? "已有周末班信息。"}` +
-            "建议下一次沟通优先解释周末班安排，再确认客户可上课的具体时间。"
+          answer: "客户主要顾虑是学习时间。" + `知识库信息：${knowledge.content ?? "已有周末班信息。"}` + "建议下一次沟通优先解释周末班安排，再确认客户可上课的具体时间。"
         }
       }
     };

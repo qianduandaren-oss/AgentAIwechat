@@ -31,7 +31,8 @@ export type LLMTask =
   | "agent_turn"
   | "intent_classification"
   | "answer_with_context"
-  | "planner_next_action";
+  | "planner_next_action"
+  | "agent_routing";
 
 export type LLMRequest = {
   task: LLMTask;

@@ -1,6 +1,7 @@
 export type AgentRole =
   | "coordinator"
-  | "customer_analysis";
+  | "customer_analysis"
+  | "copywriting";
 
 export interface AgentDescriptor {
   id: string;

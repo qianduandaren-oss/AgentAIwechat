@@ -16,6 +16,12 @@ const agents: AgentDescriptor[] = [
       "search_chat_history",
       "search_knowledge"
     ]
+  },
+  {
+    id: "copywriting",
+    role: "copywriting",
+    description: "负责根据明确的客户上下文和写作目标生成跟进文案草稿",
+    allowedTools: []
   }
 ];
 

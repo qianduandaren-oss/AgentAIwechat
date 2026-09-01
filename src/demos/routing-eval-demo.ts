@@ -8,7 +8,8 @@ const summary = await runRoutingEvaluation(provider, routingEvalCases);
 console.log("\n=== Routing Evaluation ===");
 for (const result of summary.results) {
   console.log(
-    `${result.passed ? "PASS" : "FAIL"} ${result.caseId} | expected=${result.expectedAgentId} | actual=${result.actualAgentId}`
+    `${result.passed ? "PASS" : "FAIL"} ${result.caseId} | expected=${result.expectedAgentId} | actual=${result.actualAgentId}` +
+      (result.failureKind ? ` | kind=${result.failureKind}` : "")
   );
 }
 
@@ -17,3 +18,4 @@ console.log(`total: ${summary.total}`);
 console.log(`passed: ${summary.passed}`);
 console.log(`failed: ${summary.failed}`);
 console.log(`accuracy: ${(summary.accuracy * 100).toFixed(2)}%`);
+console.log("failuresByKind:", summary.failuresByKind);

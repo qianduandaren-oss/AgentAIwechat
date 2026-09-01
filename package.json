@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "demo:day7": "node dist/demos/planning-demo.js",
     "demo:day8": "node dist/demos/day8-llm-planner-demo.js",
-    "demo:day9": "node dist/demos/multi-agent-demo.js"
+    "demo:day9": "node dist/demos/multi-agent-demo.js",
+    "eval:routing": "node dist/demos/routing-eval-demo.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

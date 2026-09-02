@@ -3,11 +3,13 @@ import { extractText, extractToolCalls } from "../llm/response-parser.js";
 import type { AgentMessage, LLMProvider } from "../llm/types.js";
 import { executeTool } from "../tools/executor.js";
 import { ToolRegistry } from "../tools/registry.js";
+import type { AgentTrajectory, TrajectoryEvent } from "../evaluation/trajectory-types.js";
 
 export type AgentLoopResult = {
   text: string;
   messages: AgentMessage[];
   steps: number;
+  trajectory: AgentTrajectory;
 };
 
 export async function runAgentLoop(
@@ -17,8 +19,11 @@ export async function runAgentLoop(
   maxSteps = 6
 ): Promise<AgentLoopResult> {
   const messages: AgentMessage[] = [{ role: "user", content: userMessage }];
+  const events: TrajectoryEvent[] = [];
 
   for (let step = 1; step <= maxSteps; step++) {
+    events.push({ step, type: "llm_turn" });
+
     const raw = await callLLM(provider, {
       task: "agent_turn",
       messages,
@@ -27,11 +32,34 @@ export async function runAgentLoop(
 
     const calls = extractToolCalls(raw);
     if (calls.length === 0) {
-      return { text: extractText(raw), messages, steps: step };
+      const text = extractText(raw);
+      events.push({ step, type: "final_answer", content: text });
+      return {
+        text,
+        messages,
+        steps: step,
+        trajectory: { goal: userMessage, events, totalSteps: step }
+      };
     }
 
     for (const call of calls) {
+      events.push({
+        step,
+        type: "tool_call",
+        name: call.name,
+        toolCallId: call.id
+      });
+
       const result = await executeTool(registry, call);
+
+      events.push({
+        step,
+        type: "tool_result",
+        name: call.name,
+        toolCallId: call.id,
+        content: JSON.stringify(result)
+      });
+
       messages.push({
         role: "assistant",
         name: call.name,

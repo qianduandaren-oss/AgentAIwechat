@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Agent AI Engineer Day 1-9 runnable TypeScript learning project",
+  "description": "Agent AI Engineer runnable TypeScript learning project",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "demo": "node dist/index.js",
@@ -11,7 +11,8 @@
     "demo:day7": "node dist/demos/planning-demo.js",
     "demo:day8": "node dist/demos/day8-llm-planner-demo.js",
     "demo:day9": "node dist/demos/multi-agent-demo.js",
-    "eval:routing": "node dist/demos/routing-eval-demo.js"
+    "eval:routing": "node dist/demos/routing-eval-demo.js",
+    "eval:trajectory": "node dist/demos/trajectory-eval-demo.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-9",
+  "name": "agent-ai-day1-16",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,8 @@
     "demo:day8": "node dist/demos/day8-llm-planner-demo.js",
     "demo:day9": "node dist/demos/multi-agent-demo.js",
     "eval:routing": "node dist/demos/routing-eval-demo.js",
-    "eval:trajectory": "node dist/demos/trajectory-eval-demo.js"
+    "eval:trajectory": "node dist/demos/trajectory-eval-demo.js",
+    "demo:authorization-audit": "node dist/demos/authorization-audit-demo.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

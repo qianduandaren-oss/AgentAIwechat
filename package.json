@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-16",
+  "name": "agent-ai-day1-17",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,8 @@
     "demo:day9": "node dist/demos/multi-agent-demo.js",
     "eval:routing": "node dist/demos/routing-eval-demo.js",
     "eval:trajectory": "node dist/demos/trajectory-eval-demo.js",
-    "demo:authorization-audit": "node dist/demos/authorization-audit-demo.js"
+    "demo:authorization-audit": "node dist/demos/authorization-audit-demo.js",
+    "demo:prompt-injection": "node dist/demos/prompt-injection-guard-demo.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

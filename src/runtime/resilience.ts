@@ -15,14 +15,19 @@ export async function withTimeout<T>(
   timeoutMs: number
 ): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new TimeoutError(timeoutMs));
+    }, timeoutMs);
+  });
+
   try {
-    return await operation(controller.signal);
-  } catch (error) {
-    if (controller.signal.aborted) throw new TimeoutError(timeoutMs);
-    throw error;
+    return await Promise.race([operation(controller.signal), timeout]);
   } finally {
-    clearTimeout(timer);
+    if (timer) clearTimeout(timer);
   }
 }
 

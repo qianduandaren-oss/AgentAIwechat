@@ -1,37 +1,127 @@
-# Agent AI 工程师 · Day 1–13 完整可运行项目
+# Agent AI 工程师 · Day 1–19 TypeScript 实战项目
 
-这是 Agent AI 工程师课程的 TypeScript 实战代码仓库。
+这是 Agent AI 工程师课程的代码仓库。
 
-项目不是每天新建一个孤立 Demo，而是在同一套 Agent Runtime 上持续演进。目前已经从最基础的 LLM 调用，一路推进到 Multi-Agent、Evaluation、Trajectory 和 Tracing / Observability。
+这套项目不是每天新建一个互不相关的 Demo，而是在同一套 TypeScript Agent Runtime 上持续演进：从最基础的 LLM 调用，一路推进到 Tool Calling、Memory、RAG、Planning、Multi-Agent、Evaluation、Observability、安全边界和 Production Runtime。
 
-```text
-LLM / Structured Output
-→ Tool Calling / Agent Loop
-→ Memory
-→ RAG
-→ MCP
-→ Workflow / Durable Execution
-→ Planning / Reflection
-→ LLM Planner / Validation / Re-planning
-→ Multi-Agent / Delegation
-→ Agent Routing
-→ Agent Evaluation
-→ Trajectory Evaluation
-→ Tracing / Observability
-```
-
-当前进度：**Day 13 早课**。
-
-Day 13 目前已经完成 Trace Contract，下一步是在现有 `runAgentLoop()` 中接入轻量 `TraceRecorder`，开始真正记录 Agent / LLM / Tool Span 的耗时和状态。
+当前课程代码进度：**Day 19**。
 
 ---
 
-## 运行方式
+## 一、现在这套 Agent 已经走到哪里
 
-安装依赖并编译：
+```text
+LLM / Structured Output
+        ↓
+Tool Calling / Agent Loop
+        ↓
+Memory / Context
+        ↓
+RAG / Retrieval
+        ↓
+MCP / Capability Discovery
+        ↓
+Workflow / Durable Execution
+        ↓
+Planning / Reflection / Guardrail
+        ↓
+LLM Planner / Validation / Re-planning
+        ↓
+Multi-Agent / Delegation
+        ↓
+Agent Routing
+        ↓
+Evaluation / Regression
+        ↓
+Trajectory Evaluation
+        ↓
+Tracing / Observability
+        ↓
+Token / Cost / Budget
+        ↓
+Permission / Human Approval / Idempotency
+        ↓
+Authorization / Audit
+        ↓
+Prompt Injection / Trust Boundary
+        ↓
+Sensitive Data Boundary
+        ↓
+Runtime Config / Timeout / Retry
+        ↓
+Production Agent Runtime
+```
+
+核心原则一直没有变：
+
+```text
+LLM 负责：
+判断、规划、选择、提出下一步动作
+
+程序负责：
+校验、权限、状态、审批、幂等、重试、成本和安全边界
+```
+
+---
+
+## 二、当前 Production Runtime 主链
+
+现在 `runAgentLoop()` 已经不再是最早期的裸循环：
+
+```text
+User Request
+    ↓
+Trust Boundary / System Instruction
+    ↓
+Agent Loop
+    ↓
+LLM Call
+    ├── Trace Span
+    ├── Token Usage
+    ├── Cost
+    └── Budget Guard
+    ↓
+Tool Call
+    ↓
+Permission Policy
+    ↓
+Authorization
+    ↓
+Human Approval（高风险动作）
+    ↓
+Idempotency Guard
+    ↓
+Tool Execute
+    ↓
+Sensitive Data Sanitizer
+    ↓
+Audit Trail
+    ↓
+Observation
+    └────────────→ Agent Loop
+```
+
+统一生产运行入口：
+
+```text
+src/runtime/production-runtime.ts
+```
+
+它负责把 Day 13～19 的能力统一接进 Agent Runtime。
+
+---
+
+## 三、运行方式
+
+安装依赖：
 
 ```bash
 npm install
+```
+
+编译：
+
+```bash
 npm run build
 ```
 
@@ -41,13 +131,7 @@ npm run build
 npm run demo
 ```
 
-或直接运行已经编译好的入口：
-
-```bash
-node dist/index.js
-```
-
-专项 Demo：
+### Planning / Multi-Agent
 
 ```bash
 npm run demo:day7
@@ -55,119 +139,59 @@ npm run demo:day8
 npm run demo:day9
 ```
 
-Evaluation：
+### Evaluation
 
 ```bash
 npm run eval:routing
 npm run eval:trajectory
 ```
 
----
+### Day 13～15 专项 Demo
 
-## Day 1–13 学习路线
+```bash
+npm run demo:day13
+npm run demo:day14
+npm run demo:day15
+```
 
-```text
-Day 1   LLM / Structured Output
-  ↓
-Day 2   Tool Calling / Agent Loop
-  ↓
-Day 3   Memory / Context
-  ↓
-Day 4   RAG / Retrieval
-  ↓
-Day 5   MCP / Capability Discovery
-  ↓
-Day 6   Workflow / State / Retry / Idempotency / HITL
-  ↓
-Day 7   Planning / Action Space / Reflection / Guardrail
-  ↓
-Day 8   LLM Planner / Validation / Re-planning
-  ↓
-Day 9   Multi-Agent / Delegation / Permission Boundary
-  ↓
-Day 10  Agent Routing / Agent Selection / Validation
-  ↓
-Day 11  Agent Evaluation / Regression
-  ↓
-Day 12  Trajectory / Path Evaluation
-  ↓
-Day 13  Tracing / Observability
+这三个命令会先执行 TypeScript build，再运行对应 Demo。
+
+### Day 16～19 专项 Demo
+
+```bash
+npm run demo:authorization-audit
+npm run demo:prompt-injection
+npm run demo:safe-tool-result
+npm run demo:data-leakage
+npm run demo:runtime-config
+npm run demo:resilience
 ```
 
 ---
 
-## 当前整体结构
+## 四、Day 1～19 学习路线
 
-```text
-                              Memory
-                                ↑
-                                │
-User Goal → Router → Context Builder ← RAG
-    │
-    ├─ 普通问答 → LLM
-    │
-    ├─ 开放式分析
-    │       ↓
-    │    LLM Planner
-    │       ↓
-    │ Structured Output
-    │       ↓
-    │   Validation
-    │       ↓
-    │ Reflection / Policy
-    │       ↓
-    │    Executor
-    │       ↓
-    │ Observation
-    │       └────────→ Re-planning
-    │
-    ├─ 多 Agent 任务
-    │       ↓
-    │   Coordinator
-    │       ↓
-    │   Agent Router
-    │       ↓
-    │ Agent Selection
-    │       ↓
-    │ Selection Validation
-    │       ↓
-    │ Delegation Guard
-    │       ↓
-    │ Specialist Agent
-    │
-    └─ 确定性业务流程
-            ↓
-         Workflow
-            ↓
-        LLM Node
-            +
-        Program Node
-            ↓
-        MCP Executor
-            ↓
-         MCP Client
-            ↓
-         MCP Server
-```
-
-运行事实继续进入：
-
-```text
-Agent Runtime
-     ↓
-Trajectory / Trace
-     ↓
-Evaluation
-     ↓
-Regression / Metrics / Observability
-```
-
-核心原则一直没有变：
-
-```text
-LLM 负责提出判断、选择和下一步建议
-程序负责权限、校验、状态、重试、幂等和安全边界
-```
+| Day | 主题 | 主要解决的问题 |
+| --- | --- | --- |
+| Day 1 | LLM / Structured Output | 程序怎样稳定消费模型输出 |
+| Day 2 | Tool Calling / Agent Loop | 模型怎样提出动作并进入多轮执行 |
+| Day 3 | Memory / Context | Agent 怎样记住并重新取回用户信息 |
+| Day 4 | RAG / Retrieval | Agent 怎样访问模型参数之外的知识 |
+| Day 5 | MCP | 怎样把外部能力做成可发现、可调用的 Tool |
+| Day 6 | Workflow | 状态、重试、持久化、幂等、HITL |
+| Day 7 | Planning | Goal → Action → Observation → Re-plan |
+| Day 8 | LLM Planner | 用真实 LLM 做 Planner，并做运行时校验 |
+| Day 9 | Multi-Agent | Coordinator、Specialist、Delegation Boundary |
+| Day 10 | Agent Routing | 根据 Goal 自动选择合适 Agent |
+| Day 11 | Evaluation | 把“看起来能跑”变成可回归验证 |
+| Day 12 | Trajectory | 评估 Agent 实际执行路径是否合理 |
+| Day 13 | Tracing | 看清一次 Agent Run 里哪里慢、哪里错 |
+| Day 14 | Token / Cost | 记录 Token、估算成本并设置 Budget |
+| Day 15 | Permission / Approval | 高风险 Tool 不再默认自动执行 |
+| Day 16 | Authorization / Audit | 谁、通过哪个 Agent、能对什么资源做什么 |
+| Day 17 | Prompt Injection | 区分可信指令与不可信外部内容 |
+| Day 18 | Sensitive Data | 控制敏感数据进入 LLM / Log 的边界 |
+| Day 19 | Production Runtime | Runtime Config、Timeout、Retry 与统一运行入口 |
 
 ---
 
@@ -182,38 +206,34 @@ src/llm/providers/mock-provider.ts
 src/day1/lead-analyzer.ts
 ```
 
-主要能力：
+基础链：
 
 ```text
+Business Code
+    ↓
 callLLM()
-extractToolCalls()
-extractText()
+    ↓
+LLM Provider
+    ↓
+Raw Response
+    ↓
 extractStructured()
+    ↓
+Business Result
 ```
 
-调用链：
+这一阶段最重要的是先建立：
 
 ```text
-业务代码
-  ↓
-callLLM()
-  ↓
-LLMProvider.generate()
-  ↓
-模型响应
-  ↓
-extractStructured()
-  ↓
-业务结果
+LLM 输出
+→ Data Contract
+→ Runtime Validation
+→ Business Logic
 ```
-
-`callLLM()` 是统一 LLM 调用入口，上层业务不直接绑定某一家模型 SDK。
-
-项目默认使用 `MockLLMProvider`，因此没有 API Key 也可以运行课程代码。
 
 ---
 
-# Day 2：Function Calling / Tool Use / Agent Loop
+# Day 2：Tool Calling / Agent Loop
 
 核心文件：
 
@@ -222,10 +242,9 @@ src/tools/registry.ts
 src/tools/executor.ts
 src/tools/implementations.ts
 src/agent/agent-loop.ts
-src/llm/response-parser.ts
 ```
 
-基础 Agent Loop：
+基础循环：
 
 ```text
 User
@@ -234,20 +253,20 @@ LLM
  ↓
 Tool Call
  ↓
-Tool Executor
+Executor
  ↓
 Observation
  ↓
 LLM
  ↓
-Tool / Final Answer
+Final Answer / Next Tool
 ```
 
-Agent Loop 使用 `maxSteps` 控制最大执行轮数，避免模型无限调用 Tool。
+`maxSteps` 用于限制 Agent 无限循环。
 
 ---
 
-# Day 3：Memory
+# Day 3：Memory / Context
 
 核心文件：
 
@@ -259,29 +278,34 @@ src/memory/store.ts
 src/memory/selector.ts
 ```
 
-处理流程：
+链路：
 
 ```text
 User Message
    ↓
 Memory Extractor
    ↓
-MemoryCandidate
+Memory Candidate
    ↓
 Policy
    ↓
 Store / Merge
    ↓
-Relevant Memory Selection
+Relevant Selection
    ↓
 Context
 ```
 
-Memory 模块负责记忆提取、写入策略、合并和上下文选择。
+关键边界：
+
+```text
+Memory ≠ 全量聊天历史
+Context ≠ 越长越好
+```
 
 ---
 
-# Day 4：Mini RAG / Retrieval
+# Day 4：RAG / Retrieval
 
 核心文件：
 
@@ -294,7 +318,7 @@ src/rag/retriever.ts
 src/rag/context.ts
 ```
 
-检索链路：
+检索链：
 
 ```text
 Document
@@ -309,20 +333,20 @@ Question
   ↓
 Embedding
   ↓
-Metadata Filter
+Filter
   ↓
-Cosine Similarity
+Similarity
   ↓
 Top K
   ↓
 Context
 ```
 
-当前教学项目使用本地 Hash Embedding，重点是先把完整 Retrieval Pipeline 跑通。
+教学项目使用本地 Hash Embedding，重点先理解完整 Retrieval Pipeline。
 
 ---
 
-# Day 5：MCP
+# Day 5：MCP / Capability Discovery
 
 核心文件：
 
@@ -334,25 +358,13 @@ src/mcp/tool-router.ts
 src/mcp/executor.ts
 ```
 
-调用关系：
-
-```text
-Server
-  ↓ listTools()
-Tool Catalog
-  ↓
-Tool Selection
-  ↓
-Client.callTool()
-  ↓
-Server Handler
-```
-
-仓库还保留了官方 MCP SDK 示例：
+仓库同时保留：
 
 ```text
 official-mcp-example/
 ```
+
+用于对照官方 MCP SDK。
 
 ---
 
@@ -366,30 +378,18 @@ src/workflow/nodes.ts
 src/workflow/transitions.ts
 src/workflow/runner.ts
 src/workflow/retry.ts
-src/workflow/errors.ts
 src/workflow/persistence.ts
 src/workflow/approval.ts
 ```
 
-主要能力：
-
-```text
-State
-Node / Transition
-Retry
-Idempotency
-Persistence
-Human-in-the-loop
-```
-
-这里开始明确区分：
+这一阶段开始明确：
 
 ```text
 开放式判断 → Agent / Planner
-确定性业务过程 → Workflow
+确定性业务流程 → Workflow
 ```
 
-有副作用、需要审批、重试和幂等的流程，不应该完全交给模型自由决定。
+副作用、审批、重试、持久化、幂等，不应该完全交给 LLM 自由决定。
 
 ---
 
@@ -399,14 +399,11 @@ Human-in-the-loop
 
 ```text
 src/planning/types.ts
-src/planning/policy.ts
 src/planning/planner.ts
 src/planning/executor.ts
-src/planning/action-key.ts
+src/planning/policy.ts
 src/planning/reflection.ts
 src/planning/run-planner.ts
-src/demos/planning-demo.ts
-docs/day7-planning.md
 ```
 
 执行链：
@@ -423,18 +420,7 @@ Reflection / Policy
 Executor
  ↓
 Observation
- ↓
-State Update
  └────────→ Planner
-```
-
-Day 7 的 Planner 仍然是规则驱动版，重点先建立 Action Space、Reflection 和 Guardrail。
-
-运行：
-
-```bash
-npm run build
-npm run demo:day7
 ```
 
 ---
@@ -449,119 +435,46 @@ src/planning/validation.ts
 src/planning/llm-planner.ts
 src/planning/reflection.ts
 src/planning/run-planner.ts
-src/demos/day8-llm-planner-demo.ts
-docs/day8-llm-planner.md
 ```
 
-Day 8 把 Planner 真正接到 LLM：
+关键边界：
 
 ```text
-Goal + PlannerState
-        ↓
-     LLMPlanner
-        ↓
-     callLLM()
-        ↓
 Structured Output
-        ↓
-Runtime Validation
-        ↓
-Reflection / Policy
-        ↓
-Executor
-        ↓
-Observation
-        └────────→ Re-planning
-```
-
-这里最重要的边界是：
-
-```text
-Structured Output Schema
 ≠
-Runtime Permission / Validation
+Runtime Permission
 ```
 
-模型可以提出非法 Action，但非法 Action 不能进入 Executor。
-
-运行：
-
-```bash
-npm run build
-npm run demo:day8
-```
+模型可以提出动作，但非法动作不能直接进入 Executor。
 
 ---
 
-# Day 9：Multi-Agent / Delegation / Permission Boundary
-
-Day 9 开始从 Single Agent 进入 Multi-Agent，但不是简单让多个 Agent 相互聊天，而是先建立职责和权限边界。
+# Day 9：Multi-Agent / Delegation
 
 核心文件：
 
 ```text
-src/multi-agent/types.ts
-src/multi-agent/customer-analysis-agent.ts
-src/multi-agent/copywriting-agent.ts
+src/multi-agent/agent-registry.ts
 src/multi-agent/coordinator.ts
 src/multi-agent/delegation-runtime.ts
-src/multi-agent/agent-registry.ts
 src/multi-agent/delegation-guard.ts
-src/demos/multi-agent-demo.ts
-docs/day9-multi-agent-boundary.md
+src/multi-agent/customer-analysis-agent.ts
+src/multi-agent/copywriting-agent.ts
 ```
-
-基础链路：
 
 ```text
 Coordinator
-  ↓ DelegationTask
+  ↓
 Delegation Guard
   ↓
-Delegation Runtime
-  ↓
 Specialist Agent
-  ↓ DelegationResult
-CoordinatorState
-```
-
-当前 Registry 中包含：
-
-```text
-coordinator
-customer-analysis
-copywriting
-```
-
-其中 `customer-analysis` 当前拥有：
-
-```text
-search_customer
-search_chat_history
-search_knowledge
-```
-
-而 Coordinator 本身不直接拥有这些业务 Tool。
-
-核心原则：
-
-```text
-Coordinator / LLM 可以提出委派
-Runtime 决定这个委派是否允许
-```
-
-运行：
-
-```bash
-npm run build
-npm run demo:day9
+  ↓
+Delegation Result
 ```
 
 ---
 
 # Day 10：Agent Routing
-
-Day 9 中 Coordinator 已经能做受控 Delegation，Day 10 继续去掉写死的 `toAgentId`，让系统根据 Goal 从 Agent Registry 中选择合适的 Specialist Agent。
 
 核心文件：
 
@@ -569,61 +482,19 @@ Day 9 中 Coordinator 已经能做受控 Delegation，Day 10 继续去掉写死�
 src/multi-agent/agent-selection.ts
 src/multi-agent/agent-router.ts
 src/multi-agent/agent-registry.ts
-src/multi-agent/coordinator.ts
-src/multi-agent/delegation-guard.ts
-docs/day10-agent-routing.md
 ```
 
-路由链路：
+模型负责“建议选谁”，程序负责验证：
 
 ```text
-Goal
- ↓
-Agent Registry
- ↓
-Agent Router
- ↓
-Structured AgentSelection
- ↓
-validateAgentSelection()
- ↓
-DelegationTask
- ↓
-Delegation Guard
- ↓
-Target Agent
-```
-
-当前 Router 会把候选 Agent 的：
-
-```text
-id
-role
-description
-```
-
-提供给 LLM，然后只接受结构化的 `AgentSelection`。
-
-选择结果仍然不能直接执行，必须经过：
-
-```text
-validateAgentSelection()
-Delegation Guard
-Tool Permission
-```
-
-所以：
-
-```text
-LLM 决定“建议选谁”
-程序决定“这个 Agent 是否存在、是否能被委派、拥有什么权限”
+这个 Agent 是否存在？
+是否允许被委派？
+是否真的拥有对应能力？
 ```
 
 ---
 
 # Day 11：Agent Evaluation / Regression
-
-Day 11 开始把“看起来能跑”升级为“可以重复验证”。
 
 核心文件：
 
@@ -631,12 +502,9 @@ Day 11 开始把“看起来能跑”升级为“可以重复验证”。
 src/evaluation/types.ts
 src/evaluation/routing-cases.ts
 src/evaluation/routing-evaluator.ts
-src/demos/routing-eval-demo.ts
-docs/day11-agent-evaluation.md
-docs/day11-evaluation-regression.md
 ```
 
-第一阶段先评 Agent Routing：
+目标：
 
 ```text
 Goal
@@ -648,90 +516,24 @@ Actual Agent
 Expected Agent
  ↓
 PASS / FAIL
- ↓
-Accuracy
 ```
 
-运行：
-
-```bash
-npm run build
-npm run eval:routing
-```
-
-回归流程：
-
-```text
-线上失败 / 新边界 Case
-  ↓
-分类失败原因
-  ↓
-加入永久 Eval Case
-  ↓
-修 Router / Policy
-  ↓
-重新运行数据集
-  ↓
-Case 永久保留
-```
-
-当前评测层与生产 Runtime 分离：
-
-```text
-src/multi-agent   → 生产行为
-src/evaluation    → 测试样本、期望结果、评分
-```
+线上失败 Case 可以沉淀成永久回归数据。
 
 ---
 
 # Day 12：Trajectory Evaluation
 
-Day 11 评的是：
-
-```text
-Goal → Expected Agent
-```
-
-Day 12 开始评：
-
-```text
-Goal
- ↓
-Agent
- ↓
-Tool
- ↓
-Observation
- ↓
-Final Answer
-```
-
-也就是 Agent 的完整执行路径。
-
 核心文件：
 
 ```text
-src/agent/agent-loop.ts
 src/evaluation/trajectory-types.ts
 src/evaluation/trajectory-evaluator.ts
 src/evaluation/trajectory-cases.ts
-src/demos/trajectory-eval-demo.ts
-docs/day12-trajectory-evaluation.md
-docs/day12-trajectory-instrumentation.md
-docs/day12-trajectory-regression.md
+src/agent/agent-loop.ts
 ```
 
-`runAgentLoop()` 当前已经正式返回：
-
-```ts
-trajectory: {
-  goal,
-  events,
-  totalSteps
-}
-```
-
-Trajectory 记录四类事件：
+Trajectory 关注：
 
 ```text
 llm_turn
@@ -740,9 +542,7 @@ tool_result
 final_answer
 ```
 
-Tool Call / Tool Result 通过 `toolCallId` 建立关联。
-
-当前 Evaluator 可以检查：
+当前可以检查：
 
 ```text
 requiredTools
@@ -750,267 +550,323 @@ forbiddenTools
 maxSteps
 ```
 
-运行：
-
-```bash
-npm run build
-npm run eval:trajectory
-```
-
-当前 Regression Fixtures 同时覆盖：
-
-```text
-合理轨迹 → PASS
-调用禁止 Tool send_message → FAIL
-```
-
-这一步开始明确区分：
-
-```text
-Final Answer 正确
-≠
-Agent 执行路径合理
-```
-
 ---
 
 # Day 13：Tracing / Observability
 
-Day 12 的 Trajectory 更关注：
-
-```text
-Agent 做了什么？
-```
-
-Day 13 的 Trace 更关注：
-
-```text
-这次运行在哪里花了时间？
-哪一步失败？
-这些调用属于哪一次请求？
-调用之间是什么父子关系？
-```
-
-当前已新增：
+核心文件：
 
 ```text
 src/observability/trace-types.ts
-docs/day13-tracing-observability.md
+src/observability/trace-recorder.ts
+src/observability/trace-summary.ts
+src/demos/day13-tracing-demo.ts
 ```
 
-第一版 Trace Contract：
+一次 Agent Run 现在可以形成：
 
 ```text
-AgentTrace
-TraceSpan
-TraceSpanKind
-TraceSpanStatus
+agent.run
+├── llm.turn.1
+├── tool.search_customer
+├── llm.turn.2
+└── ...
 ```
 
-`TraceSpan` 当前包含：
+Trace Summary 可汇总：
 
 ```text
-traceId
-spanId
-parentSpanId
-name
-kind
-startTime
-endTime
-durationMs
-status
-attributes
-error
-```
-
-基本关系：
-
-```text
-Trace
-└── Agent Span
-    ├── LLM Span
-    ├── Tool Span
-    ├── LLM Span
-    └── Tool Span
-```
-
-这里需要特别注意：**Day 13 早课目前只是 Contract。**
-
-当前仓库还没有把 `TraceRecorder` 真正接入 `runAgentLoop()`，也还没有实际生成完整 Agent Trace。这是 Day 13 下一阶段要继续完成的内容。
-
-目标演进：
-
-```text
-Agent Runtime
-     ↓
-Trajectory + Trace
-     ↓
-Evaluation
-     ↓
-Metrics
-     ↓
-Observability
+totalDurationMs
+llmCalls
+toolCalls
+errorCount
+slowestSpan
 ```
 
 ---
 
-# Trajectory 和 Trace 的区别
+# Day 14：Token / Cost / Budget
+
+核心文件：
 
 ```text
-Trajectory = 行为轨迹
-Trace      = 运行轨迹
+src/observability/token-usage.ts
+src/observability/model-pricing.ts
+src/observability/budget-guard.ts
+src/demos/day14-cost-budget-demo.ts
 ```
 
-Trajectory 典型问题：
+运行链：
 
 ```text
-调用了哪些 Tool？
-有没有调用禁止 Tool？
-有没有漏掉必要 Tool？
-走了多少 Step？
+LLM Response
+  ↓
+Token Usage
+  ↓
+Model Pricing
+  ↓
+Estimated Cost
+  ↓
+Budget Guard
 ```
 
-Trace 典型问题：
+支持：
 
 ```text
-整个请求耗时多少？
-哪一次 LLM 最慢？
-哪个 Tool 最慢？
-哪一步失败？
-一次请求中的调用如何关联？
+maxTokens
+maxCostUsd
 ```
 
-未来这两套数据会一起支撑 Evaluation、Debug、Metrics、Cost Analysis 和 Observability。
-
----
-
-# 关键代码位置
-
-## LLM
+Provider 没有 usage 时会使用估算值，并标记：
 
 ```text
-src/llm/
-```
-
-## Tool Calling / Agent Loop
-
-```text
-src/tools/
-src/agent/
-```
-
-## Memory
-
-```text
-src/memory/
-```
-
-## RAG
-
-```text
-src/rag/
-```
-
-## MCP
-
-```text
-src/mcp/
-official-mcp-example/
-```
-
-## Workflow
-
-```text
-src/workflow/
-```
-
-## Planning
-
-```text
-src/planning/
-```
-
-## Multi-Agent
-
-```text
-src/multi-agent/
-```
-
-## Evaluation
-
-```text
-src/evaluation/
-```
-
-## Observability
-
-```text
-src/observability/
-```
-
-## Demo / Eval Runner
-
-```text
-src/demos/
-```
-
-## Production Agent
-
-```text
-src/app/production-agent.ts
+source = estimated
 ```
 
 ---
 
-# 当前可运行命令
+# Day 15：Permission / Human Approval / Idempotency
 
-```bash
-npm run build
-npm run demo
-npm run demo:day7
-npm run demo:day8
-npm run demo:day9
-npm run eval:routing
-npm run eval:trajectory
+核心文件：
+
+```text
+src/security/tool-permission.ts
+src/security/approval-store.ts
+src/security/idempotency.ts
+src/security/secure-tool-executor.ts
+src/demos/day15-permission-approval-demo.ts
+```
+
+完整链：
+
+```text
+Tool Call
+  ↓
+Permission
+  ├── allowed
+  ├── denied
+  └── approval_required
+          ↓
+      PendingAction
+          ↓
+      Human Approval
+          ↓
+      Idempotency
+          ↓
+      Tool Execute
+```
+
+人工批准的是被冻结的 Action Snapshot，不是让模型审批后重新生成参数。
+
+---
+
+# Day 16：Authorization / Audit Trail
+
+核心文件：
+
+```text
+src/security/authorization-types.ts
+src/security/authorization-service.ts
+src/security/audit-log.ts
+src/demos/authorization-audit-demo.ts
+```
+
+一次权限判断：
+
+```text
+Actor
++
+Agent
++
+Action
++
+Resource
+↓
+authorize()
+↓
+ALLOW / DENY
+```
+
+这里同时体现 RBAC + Resource Scope / ABAC。
+
+关键顺序：
+
+```text
+Permission
+↓
+Authorization
+↓
+Approval
+```
+
+没有基础权限，不能靠人工 Approval 强行绕过。
+
+---
+
+# Day 17：Prompt Injection / Trust Boundary
+
+核心文件：
+
+```text
+src/security/trust-boundary.ts
+src/security/prompt-injection-guard.ts
+src/security/safe-tool-result.ts
+src/demos/prompt-injection-guard-demo.ts
+src/demos/safe-tool-result-demo.ts
+```
+
+核心思路：
+
+```text
+System / Runtime Policy
+→ trusted instruction
+
+User / RAG / Web / Tool Result
+→ untrusted data
+```
+
+外部内容可以作为证据，但不能自动升级为 Runtime Policy。
+
+---
+
+# Day 18：Sensitive Data / Data Leakage Boundary
+
+核心文件：
+
+```text
+src/security/sensitive-data.ts
+src/security/data-leakage-policy.ts
+src/demos/data-leakage-boundary-demo.ts
+```
+
+新增两类清洗：
+
+```text
+sanitizeForLog()
+sanitizeForLLM()
+```
+
+处理范围包括：
+
+```text
+API Key / Token / Password
+PII
+Phone
+Business Sensitive Data
+```
+
+原则：
+
+```text
+能不进 LLM 的敏感数据，就不要先进去再补救。
 ```
 
 ---
 
-# 当前阶段总结
+# Day 19：Runtime Config / Timeout / Retry / Production Runtime
 
-现在这套项目已经不再只是：
-
-```text
-Prompt → LLM → Answer
-```
-
-而是在逐步形成一套真正的 Agent Runtime：
+核心文件：
 
 ```text
-Goal
- ↓
-Router / Planner / Coordinator
- ↓
-Validation / Guardrail / Permission
- ↓
-Agent / Tool / Workflow
- ↓
-Observation
- ↓
-Trajectory / Trace
- ↓
-Evaluation / Regression
+src/config/runtime-config.ts
+src/runtime/resilience.ts
+src/runtime/llm-invoker.ts
+src/runtime/production-runtime.ts
+src/demos/runtime-config-demo.ts
+src/demos/resilience-demo.ts
 ```
 
-下一步会继续推进 Day 13：
+Runtime Config 负责把生产参数从业务代码中拆出来，例如：
 
 ```text
-TraceRecorder
-→ Agent Root Span
-→ LLM Span
-→ Tool Span
-→ durationMs
-→ status / error
+LLM timeout
+max retries
 ```
 
-然后再逐步接入更标准的 Observability 方案。
+Resilience 提供：
+
+```text
+withTimeout()
+withRetry()
+```
+
+统一入口 `ProductionAgentRuntime` 把 Day 13～19 的能力组合起来：
+
+```text
+Tracing
+Token / Cost
+Budget
+Permission
+Authorization
+Approval
+Idempotency
+Audit
+Trust Boundary
+Sensitive Data
+Timeout / Retry
+```
+
+这意味着课程已经从“会写一个 Agent Demo”开始进入真正的 Runtime 工程阶段。
+
+---
+
+## 五、核心目录
+
+```text
+src/
+├── agent/              Agent Loop / Context / Router
+├── config/             Runtime Configuration
+├── day1/               Structured Output 示例
+├── demos/              各阶段可运行 Demo
+├── evaluation/         Routing / Trajectory Evaluation
+├── llm/                LLM Provider / Client / Parser
+├── mcp/                MCP Client / Server / Catalog / Executor
+├── memory/             Memory Extract / Policy / Store / Select
+├── multi-agent/        Coordinator / Routing / Delegation
+├── observability/      Trace / Token / Cost / Budget
+├── planning/           Planner / Reflection / Validation
+├── rag/                Retrieval Pipeline
+├── runtime/            Production Runtime / Resilience
+├── security/           Permission / Auth / Audit / Injection / Data
+├── tools/              Tool Registry / Executor / Implementations
+└── workflow/           Durable Workflow / Retry / Approval
+```
+
+---
+
+## 六、文章仓库
+
+每天的早课、午练、晚练文章单独归档在：
+
+```text
+qianduandaren-oss/AIAgentAutoArticle
+```
+
+分工保持清晰：
+
+```text
+AIAgentAutoArticle
+→ 看课程正文
+
+AgentAIwechat
+→ 看课程代码和 Runtime 演进
+```
+
+---
+
+## 七、当前阶段
+
+截至 Day 19，这个仓库已经覆盖：
+
+```text
+LLM Application
+→ Single Agent
+→ Planning Agent
+→ Multi-Agent
+→ Evaluation
+→ Observability
+→ Security
+→ Production Runtime
+```
+
+后续课程继续在这套 Runtime 上演进，不重新开一套孤立工程。

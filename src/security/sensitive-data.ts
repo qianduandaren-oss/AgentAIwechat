@@ -25,26 +25,47 @@ export function maskPhone(phone: string): string {
   return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
 }
 
+const secretKeys = new Set([
+  "authorization",
+  "apiKey",
+  "api_key",
+  "token",
+  "accessToken",
+  "access_token",
+  "password",
+  "secret"
+]);
+
+const piiKeys = new Set([
+  "idCard",
+  "id_card",
+  "identityNumber",
+  "email",
+  "address"
+]);
+
 export function sanitizeForLog(value: unknown): unknown {
   if (typeof value !== "object" || value === null) return value;
-
-  const blockedKeys = new Set([
-    "authorization",
-    "apiKey",
-    "api_key",
-    "token",
-    "accessToken",
-    "access_token",
-    "password",
-    "secret"
-  ]);
-
   if (Array.isArray(value)) return value.map(item => sanitizeForLog(item));
 
   return Object.fromEntries(
     Object.entries(value).map(([key, item]) => [
       key,
-      blockedKeys.has(key) ? "[REDACTED_SECRET]" : sanitizeForLog(item)
+      secretKeys.has(key) ? "[REDACTED_SECRET]" : sanitizeForLog(item)
     ])
+  );
+}
+
+export function sanitizeForLLM(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) return value;
+  if (Array.isArray(value)) return value.map(item => sanitizeForLLM(item));
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => {
+      if (secretKeys.has(key)) return [key, "[REDACTED_SECRET]"];
+      if (piiKeys.has(key)) return [key, "[REDACTED_PII]"];
+      if (key === "phone" && typeof item === "string") return [key, maskPhone(item)];
+      return [key, sanitizeForLLM(item)];
+    })
   );
 }

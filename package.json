@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-18",
+  "name": "agent-ai-day1-19",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,8 @@
     "demo:authorization-audit": "node dist/demos/authorization-audit-demo.js",
     "demo:prompt-injection": "node dist/demos/prompt-injection-guard-demo.js",
     "demo:safe-tool-result": "node dist/demos/safe-tool-result-demo.js",
-    "demo:data-leakage": "node dist/demos/data-leakage-boundary-demo.js"
+    "demo:data-leakage": "node dist/demos/data-leakage-boundary-demo.js",
+    "demo:runtime-config": "node dist/demos/runtime-config-demo.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

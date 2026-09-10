@@ -29,6 +29,7 @@ import { sanitizeForLog } from "../security/sensitive-data.js";
 import { executeTool } from "../tools/executor.js";
 import { ToolRegistry } from "../tools/registry.js";
 import type { AgentTrajectory, TrajectoryEvent } from "../evaluation/trajectory-types.js";
+import type { AgentRunBudget } from "../runtime/run-budget.js";
 
 export type AgentLoopResult = {
   text: string;
@@ -45,6 +46,7 @@ export interface AgentLoopRuntimeOptions {
   traceRecorder?: TraceRecorder;
   pricing?: ModelPricing;
   budgetGuard?: BudgetGuard;
+  runBudget?: AgentRunBudget;
   secureToolExecutor?: SecureToolExecutor;
   approvedActionResolver?: (toolCall: AgentToolCall) => string | undefined;
   toolResultProjector?: (result: unknown, toolCall: AgentToolCall) => unknown;
@@ -67,6 +69,7 @@ export async function runAgentLoop(
 
   try {
     for (let step = 1; step <= maxSteps; step++) {
+      runtime.runBudget?.recordStep();
       events.push({ step, type: "llm_turn" });
 
       const request: LLMRequest = {
@@ -100,6 +103,7 @@ export async function runAgentLoop(
         totalTokens: turnUsage.totalTokens,
         estimatedCostUsd: turnCost.totalCostUsd
       });
+      runtime.runBudget?.recordModelCall(turnUsage, pricing);
       runtime.budgetGuard?.consume(turnUsage, pricing);
 
       const calls = extractToolCalls(raw);

@@ -30,6 +30,7 @@ import { sanitizeForLLM } from "../security/sensitive-data.js";
 import type { ToolPermissionRule } from "../security/tool-permission.js";
 import type { ToolRegistry } from "../tools/registry.js";
 import { createResilientLLMInvoker } from "./llm-invoker.js";
+import { AgentRunBudget } from "./run-budget.js";
 
 export interface ProductionRuntimeOptions {
   runtimeConfig?: RuntimeConfig;
@@ -98,16 +99,21 @@ export class ProductionAgentRuntime {
       ])
     );
     const resilientInvoker = createResilientLLMInvoker(this.config.llm);
+    const runBudget = new AgentRunBudget(this.config.agent);
+    const pricing = this.options.pricing ?? ZERO_PRICING;
 
     return runAgentLoop(
       this.provider,
       this.registry,
       userMessage,
-      this.options.maxSteps ?? 6,
+      this.options.maxSteps ?? this.config.agent.maxSteps,
       {
         traceRecorder: recorder,
-        pricing: this.options.pricing ?? ZERO_PRICING,
-        budgetGuard: new BudgetGuard(this.options.budget),
+        pricing,
+        runBudget,
+        budgetGuard: this.options.budget
+          ? new BudgetGuard(this.options.budget)
+          : undefined,
         secureToolExecutor: secureExecutor,
         approvedActionResolver: () => runOptions.approvedActionId,
         toolResultProjector: result => sanitizeForLLM(result),

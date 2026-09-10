@@ -1,5 +1,4 @@
-import type { AgentRunBudgetSnapshot } from "./run-budget.js";
-import type { AgentRunBudgetLimit } from "./run-budget.js";
+import type { AgentRunBudgetLimit, AgentRunBudgetSnapshot } from "./run-budget.js";
 
 export type BudgetState = "healthy" | "warning" | "exhausted";
 
@@ -24,38 +23,11 @@ export function evaluateBudgetPolicy(
   const usageRatio = Math.max(
     ratio(snapshot.steps, limit.maxSteps),
     ratio(snapshot.modelCalls, limit.maxModelCalls),
-    ratio(snapshot.tokenBudget.totalTokens, limit.maxTokens),
-    ratio(snapshot.tokenBudget.estimatedCostUsd, limit.maxCostUsd)
+    ratio(snapshot.tokenBudget.usage.totalTokens, limit.maxTokens),
+    ratio(snapshot.tokenBudget.costUsd, limit.maxCostUsd)
   );
 
-  if (usageRatio >= 1) {
-    return {
-      state: "exhausted",
-      usageRatio,
-      allowExtraRetrieval: false,
-      allowReflection: false,
-      preferCheaperModel: true,
-      shouldFinish: true
-    };
-  }
-
-  if (usageRatio >= warningThreshold) {
-    return {
-      state: "warning",
-      usageRatio,
-      allowExtraRetrieval: false,
-      allowReflection: false,
-      preferCheaperModel: true,
-      shouldFinish: false
-    };
-  }
-
-  return {
-    state: "healthy",
-    usageRatio,
-    allowExtraRetrieval: true,
-    allowReflection: true,
-    preferCheaperModel: false,
-    shouldFinish: false
-  };
+  if (usageRatio >= 1) return { state: "exhausted", usageRatio, allowExtraRetrieval: false, allowReflection: false, preferCheaperModel: true, shouldFinish: true };
+  if (usageRatio >= warningThreshold) return { state: "warning", usageRatio, allowExtraRetrieval: false, allowReflection: false, preferCheaperModel: true, shouldFinish: false };
+  return { state: "healthy", usageRatio, allowExtraRetrieval: true, allowReflection: true, preferCheaperModel: false, shouldFinish: false };
 }

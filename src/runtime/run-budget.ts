@@ -52,8 +52,9 @@ export class AgentRunBudget {
       throw new AgentRunBudgetExceededError("model_calls", this.limit.maxModelCalls, next);
     }
 
-    this.modelCalls = next;
     const tokenBudget = this.tokenBudget.consume(usage, pricing);
+    this.modelCalls = next;
+
     return {
       steps: this.steps,
       modelCalls: this.modelCalls,

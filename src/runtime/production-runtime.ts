@@ -41,6 +41,7 @@ export interface ProductionRuntimeOptions {
   auditSink?: AuditSink;
   systemInstruction?: string;
   maxSteps?: number;
+  budgetWarningThreshold?: number;
 }
 
 export interface ProductionRunOptions {
@@ -111,6 +112,8 @@ export class ProductionAgentRuntime {
         traceRecorder: recorder,
         pricing,
         runBudget,
+        runBudgetLimit: this.config.agent,
+        budgetWarningThreshold: this.options.budgetWarningThreshold,
         budgetGuard: this.options.budget
           ? new BudgetGuard(this.options.budget)
           : undefined,

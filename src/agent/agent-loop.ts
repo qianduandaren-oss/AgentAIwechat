@@ -29,7 +29,11 @@ import { sanitizeForLog } from "../security/sensitive-data.js";
 import { executeTool } from "../tools/executor.js";
 import { ToolRegistry } from "../tools/registry.js";
 import type { AgentTrajectory, TrajectoryEvent } from "../evaluation/trajectory-types.js";
-import type { AgentRunBudget } from "../runtime/run-budget.js";
+import type { AgentRunBudget, AgentRunBudgetLimit } from "../runtime/run-budget.js";
+import {
+  evaluateBudgetPolicy,
+  type BudgetPolicyDecision
+} from "../runtime/budget-policy.js";
 
 export type AgentLoopResult = {
   text: string;
@@ -47,10 +51,21 @@ export interface AgentLoopRuntimeOptions {
   pricing?: ModelPricing;
   budgetGuard?: BudgetGuard;
   runBudget?: AgentRunBudget;
+  runBudgetLimit?: AgentRunBudgetLimit;
+  budgetWarningThreshold?: number;
   secureToolExecutor?: SecureToolExecutor;
   approvedActionResolver?: (toolCall: AgentToolCall) => string | undefined;
   toolResultProjector?: (result: unknown, toolCall: AgentToolCall) => unknown;
   llmInvoker?: (provider: LLMProvider, request: LLMRequest) => Promise<unknown>;
+}
+
+function getBudgetDecision(runtime: AgentLoopRuntimeOptions): BudgetPolicyDecision | undefined {
+  if (!runtime.runBudget || !runtime.runBudgetLimit) return undefined;
+  return evaluateBudgetPolicy(
+    runtime.runBudget.snapshot(),
+    runtime.runBudgetLimit,
+    runtime.budgetWarningThreshold
+  );
 }
 
 export async function runAgentLoop(
@@ -72,6 +87,11 @@ export async function runAgentLoop(
       runtime.runBudget?.recordStep();
       events.push({ step, type: "llm_turn" });
 
+      const budgetBeforeLLM = getBudgetDecision(runtime);
+      if (budgetBeforeLLM?.shouldFinish) {
+        throw new Error("Agent budget policy requested finish before LLM call");
+      }
+
       const request: LLMRequest = {
         task: "agent_turn",
         messages,
@@ -80,7 +100,7 @@ export async function runAgentLoop(
       const llmSpanId = recorder.startSpan({
         name: `llm.turn.${step}`,
         kind: "llm",
-        attributes: { step }
+        attributes: { step, budgetState: budgetBeforeLLM?.state }
       });
 
       let raw: unknown;
@@ -97,14 +117,17 @@ export async function runAgentLoop(
       const turnCost = calculateCost(turnUsage, pricing);
       usage = addTokenUsage(usage, turnUsage);
       estimatedCostUsd += turnCost.totalCostUsd;
+      runtime.runBudget?.recordModelCall(turnUsage, pricing);
+      runtime.budgetGuard?.consume(turnUsage, pricing);
+      const budgetAfterLLM = getBudgetDecision(runtime);
       recorder.endSpan(llmSpanId, "ok", undefined, {
         inputTokens: turnUsage.inputTokens,
         outputTokens: turnUsage.outputTokens,
         totalTokens: turnUsage.totalTokens,
-        estimatedCostUsd: turnCost.totalCostUsd
+        estimatedCostUsd: turnCost.totalCostUsd,
+        budgetState: budgetAfterLLM?.state,
+        budgetUsageRatio: budgetAfterLLM?.usageRatio
       });
-      runtime.runBudget?.recordModelCall(turnUsage, pricing);
-      runtime.budgetGuard?.consume(turnUsage, pricing);
 
       const calls = extractToolCalls(raw);
       if (calls.length === 0) {
@@ -121,6 +144,13 @@ export async function runAgentLoop(
           usage,
           estimatedCostUsd
         };
+      }
+
+      if (budgetAfterLLM?.state === "warning" && !budgetAfterLLM.allowExtraRetrieval) {
+        throw new Error("Agent budget entered warning state; stop expanding tool calls and finish with existing context");
+      }
+      if (budgetAfterLLM?.shouldFinish) {
+        throw new Error("Agent budget policy requested finish before tool execution");
       }
 
       for (const call of calls) {

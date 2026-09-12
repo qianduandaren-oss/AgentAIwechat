@@ -31,6 +31,7 @@ import type { ToolPermissionRule } from "../security/tool-permission.js";
 import type { ToolRegistry } from "../tools/registry.js";
 import { createResilientLLMInvoker } from "./llm-invoker.js";
 import { AgentRunBudget } from "./run-budget.js";
+import { toAgentRunResult, type AgentRunResult } from "./run-result.js";
 
 export interface ProductionRuntimeOptions {
   runtimeConfig?: RuntimeConfig;
@@ -130,5 +131,21 @@ export class ProductionAgentRuntime {
           })
       }
     );
+  }
+
+  async runStructured(
+    userMessage: string,
+    runOptions: ProductionRunOptions = {}
+  ): Promise<AgentRunResult> {
+    try {
+      const result = await this.run(userMessage, runOptions);
+      return {
+        status: "completed",
+        stopReason: "completed",
+        result
+      };
+    } catch (error) {
+      return toAgentRunResult(error);
+    }
   }
 }

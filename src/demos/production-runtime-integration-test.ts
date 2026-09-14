@@ -28,10 +28,12 @@ function config(overrides: Partial<RuntimeConfig["agent"]> = {}, timeoutMs = 100
 
 class SequenceProvider implements LLMProvider {
   private index = 0;
+  readonly requests: LLMRequest[] = [];
 
   constructor(private readonly responses: MockRawLLMResponse[]) {}
 
-  async generate(_request: LLMRequest): Promise<unknown> {
+  async generate(request: LLMRequest): Promise<unknown> {
+    this.requests.push(request);
     const response = this.responses[Math.min(this.index, this.responses.length - 1)];
     this.index += 1;
     return response;
@@ -45,7 +47,7 @@ class SlowProvider implements LLMProvider {
   }
 }
 
-function createRegistry(): ToolRegistry {
+function createRegistry(onEcho?: () => void): ToolRegistry {
   const registry = new ToolRegistry();
   registry.register(
     {
@@ -57,7 +59,10 @@ function createRegistry(): ToolRegistry {
         required: ["value"]
       }
     },
-    async args => ({ value: args.value })
+    async args => {
+      onEcho?.();
+      return { value: args.value };
+    }
   );
   return registry;
 }
@@ -104,8 +109,43 @@ async function checkTimeoutStop() {
   assert(result.stopReason === "deadline_exceeded", `expected deadline_exceeded, got ${result.stopReason}`);
 }
 
+async function checkClosingMode() {
+  let echoCalls = 0;
+  const provider = new SequenceProvider([
+    {
+      output: [
+        { type: "tool_call", id: "call-1", name: "echo", arguments: { value: "known observation" } }
+      ]
+    },
+    {
+      output: [
+        { type: "tool_call", id: "call-2", name: "echo", arguments: { value: "should not run" } }
+      ]
+    },
+    { output: [{ type: "text", text: "final answer from existing observation" }] }
+  ]);
+  const runtime = new ProductionAgentRuntime(provider, createRegistry(() => { echoCalls += 1; }), {
+    runtimeConfig: config({ maxModelCalls: 3 }),
+    budgetWarningThreshold: 0.6
+  });
+
+  const result = await runtime.runStructured("use existing observations when budget gets tight");
+  assert(result.status === "completed", "closing mode should return a completed result");
+  assert(result.result.text === "final answer from existing observation", "closing mode should preserve final text");
+  assert(echoCalls === 1, `closing mode must not execute new tool calls; got ${echoCalls}`);
+  assert(provider.requests.length === 3, "closing mode should make exactly one final model call");
+  const closingRequest = provider.requests[2];
+  assert(closingRequest.task === "agent_finalize", "final call should use agent_finalize task");
+  assert((closingRequest.tools?.length ?? -1) === 0, "final call must disable tools");
+  assert(
+    closingRequest.messages.some(message => message.role === "tool" && message.content.includes("known observation")),
+    "final call should keep earlier tool observations"
+  );
+}
+
 await checkCompletedRun();
 await checkBudgetStop();
 await checkTimeoutStop();
+await checkClosingMode();
 
 console.log("Production runtime integration checks passed");

@@ -68,6 +68,16 @@ function getBudgetDecision(runtime: AgentLoopRuntimeOptions): BudgetPolicyDecisi
   );
 }
 
+async function invokeLLM(
+  provider: LLMProvider,
+  request: LLMRequest,
+  runtime: AgentLoopRuntimeOptions
+): Promise<unknown> {
+  return runtime.llmInvoker
+    ? runtime.llmInvoker(provider, request)
+    : callLLM(provider, request);
+}
+
 export async function runAgentLoop(
   provider: LLMProvider,
   registry: ToolRegistry,
@@ -81,6 +91,72 @@ export async function runAgentLoop(
   const pricing = runtime.pricing ?? ZERO_PRICING;
   let usage: TokenUsage = { ...EMPTY_TOKEN_USAGE };
   let estimatedCostUsd = 0;
+
+  const finish = (text: string, step: number): AgentLoopResult => {
+    events.push({ step, type: "final_answer", content: text });
+    const trace = recorder.finish("ok");
+    return {
+      text,
+      messages,
+      steps: step,
+      trajectory: { goal: userMessage, events, totalSteps: step },
+      trace,
+      traceSummary: summarizeTrace(trace),
+      usage,
+      estimatedCostUsd
+    };
+  };
+
+  const closeWithExistingContext = async (step: number): Promise<AgentLoopResult> => {
+    const budgetBeforeClosing = getBudgetDecision(runtime);
+    if (budgetBeforeClosing?.state === "exhausted" || budgetBeforeClosing?.shouldFinish) {
+      throw new Error("Agent budget exhausted before closing response");
+    }
+
+    const request: LLMRequest = {
+      task: "agent_finalize",
+      messages: [
+        ...messages,
+        {
+          role: "system",
+          content: "Budget is limited. Do not call tools. Answer now using only the information already available in this conversation and tool observations."
+        }
+      ],
+      tools: []
+    };
+    const spanId = recorder.startSpan({
+      name: `llm.closing.${step}`,
+      kind: "llm",
+      attributes: { step, mode: "closing", budgetState: budgetBeforeClosing?.state }
+    });
+
+    let raw: unknown;
+    try {
+      raw = await invokeLLM(provider, request, runtime);
+    } catch (error) {
+      recorder.endSpan(spanId, "error", error);
+      throw error;
+    }
+
+    const turnUsage = resolveTokenUsage(request, raw);
+    const turnCost = calculateCost(turnUsage, pricing);
+    usage = addTokenUsage(usage, turnUsage);
+    estimatedCostUsd += turnCost.totalCostUsd;
+    runtime.runBudget?.recordModelCall(turnUsage, pricing);
+    runtime.budgetGuard?.consume(turnUsage, pricing);
+    const budgetAfterClosing = getBudgetDecision(runtime);
+    recorder.endSpan(spanId, "ok", undefined, {
+      inputTokens: turnUsage.inputTokens,
+      outputTokens: turnUsage.outputTokens,
+      totalTokens: turnUsage.totalTokens,
+      estimatedCostUsd: turnCost.totalCostUsd,
+      mode: "closing",
+      budgetState: budgetAfterClosing?.state,
+      budgetUsageRatio: budgetAfterClosing?.usageRatio
+    });
+
+    return finish(extractText(raw), step);
+  };
 
   try {
     for (let step = 1; step <= maxSteps; step++) {
@@ -105,9 +181,7 @@ export async function runAgentLoop(
 
       let raw: unknown;
       try {
-        raw = runtime.llmInvoker
-          ? await runtime.llmInvoker(provider, request)
-          : await callLLM(provider, request);
+        raw = await invokeLLM(provider, request, runtime);
       } catch (error) {
         recorder.endSpan(llmSpanId, "error", error);
         throw error;
@@ -131,23 +205,11 @@ export async function runAgentLoop(
 
       const calls = extractToolCalls(raw);
       if (calls.length === 0) {
-        const text = extractText(raw);
-        events.push({ step, type: "final_answer", content: text });
-        const trace = recorder.finish("ok");
-        return {
-          text,
-          messages,
-          steps: step,
-          trajectory: { goal: userMessage, events, totalSteps: step },
-          trace,
-          traceSummary: summarizeTrace(trace),
-          usage,
-          estimatedCostUsd
-        };
+        return finish(extractText(raw), step);
       }
 
       if (budgetAfterLLM?.state === "warning" && !budgetAfterLLM.allowExtraRetrieval) {
-        throw new Error("Agent budget entered warning state; stop expanding tool calls and finish with existing context");
+        return closeWithExistingContext(step);
       }
       if (budgetAfterLLM?.shouldFinish) {
         throw new Error("Agent budget policy requested finish before tool execution");

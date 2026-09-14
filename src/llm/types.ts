@@ -29,6 +29,7 @@ export type LLMTask =
   | "lead_analysis"
   | "memory_extract"
   | "agent_turn"
+  | "agent_finalize"
   | "intent_classification"
   | "answer_with_context"
   | "planner_next_action"

@@ -125,13 +125,26 @@ export class ProductionAgentRuntime {
         secureToolExecutor: secureExecutor,
         approvedActionResolver: () => runOptions.approvedActionId,
         toolResultProjector: result => sanitizeForLLM(result),
-        llmInvoker: (_provider, request) => {
+        llmInvoker: async (_provider, request) => {
           const budget = evaluateBudgetPolicy(
             runBudget.snapshot(),
             this.config.agent,
             this.options.budgetWarningThreshold
           );
           const route = modelRouter.select(request, { budget });
+          const routeSpanId = recorder.startSpan({
+            name: `model.route.${request.task}`,
+            kind: "llm",
+            attributes: {
+              task: request.task,
+              modelTier: route.tier,
+              routeReason: route.reason,
+              budgetState: budget.state,
+              budgetUsageRatio: budget.usageRatio
+            }
+          });
+          recorder.endSpan(routeSpanId, "ok");
+
           return resilientInvoker(route.provider, {
             ...request,
             messages: [

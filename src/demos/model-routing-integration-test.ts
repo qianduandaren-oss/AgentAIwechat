@@ -77,4 +77,19 @@ assert(economy.requests.length === 1, `economy should receive one request; got $
 assert(economy.requests[0].task === "agent_finalize", "economy should receive the finalize request");
 assert((economy.requests[0].tools?.length ?? -1) === 0, "economy finalize request must keep tools disabled");
 
+const routeSpans = result.result.trace.spans.filter(span => span.name.startsWith("model.route."));
+assert(routeSpans.length === 3, `expected three model route spans; got ${routeSpans.length}`);
+assert(
+  routeSpans.filter(span => span.attributes?.modelTier === "primary").length === 2,
+  "two normal turns should be traced as primary routes"
+);
+const economyRoute = routeSpans.find(span => span.attributes?.modelTier === "economy");
+assert(economyRoute !== undefined, "finalize route should be traced as economy");
+assert(economyRoute.attributes?.task === "agent_finalize", "economy route should identify agent_finalize task");
+assert(
+  economyRoute.attributes?.routeReason === "budget policy prefers cheaper model for finalization",
+  "economy route should record the routing reason"
+);
+assert(economyRoute.attributes?.budgetState === "warning", "economy route should record warning budget state");
+
 console.log("Cost-aware model routing integration checks passed");

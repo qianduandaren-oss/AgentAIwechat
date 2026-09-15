@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-23",
+  "name": "agent-ai-day1-25",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -25,7 +25,8 @@
     "demo:run-budget": "npm run build && node dist/demos/run-budget-demo.js",
     "demo:budget-policy": "npm run build && node dist/demos/budget-policy-demo.js",
     "test:runtime-contract": "npm run build && node dist/demos/run-result-contract-test.js",
-    "test:runtime-integration": "npm run build && node dist/demos/production-runtime-integration-test.js"
+    "test:runtime-integration": "npm run build && node dist/demos/production-runtime-integration-test.js",
+    "test:model-routing": "npm run build && node dist/demos/model-routing-integration-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

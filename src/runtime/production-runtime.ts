@@ -29,7 +29,9 @@ import {
 import { sanitizeForLLM } from "../security/sensitive-data.js";
 import type { ToolPermissionRule } from "../security/tool-permission.js";
 import type { ToolRegistry } from "../tools/registry.js";
+import { evaluateBudgetPolicy } from "./budget-policy.js";
 import { createResilientLLMInvoker } from "./llm-invoker.js";
+import { CostAwareModelRouter } from "./model-router.js";
 import { AgentRunBudget } from "./run-budget.js";
 import { toAgentRunResult, type AgentRunResult } from "./run-result.js";
 
@@ -43,6 +45,7 @@ export interface ProductionRuntimeOptions {
   systemInstruction?: string;
   maxSteps?: number;
   budgetWarningThreshold?: number;
+  economyProvider?: LLMProvider;
 }
 
 export interface ProductionRunOptions {
@@ -103,6 +106,7 @@ export class ProductionAgentRuntime {
     const resilientInvoker = createResilientLLMInvoker(this.config.llm);
     const runBudget = new AgentRunBudget(this.config.agent);
     const pricing = this.options.pricing ?? ZERO_PRICING;
+    const modelRouter = new CostAwareModelRouter(this.provider, this.options.economyProvider);
 
     return runAgentLoop(
       this.provider,
@@ -121,14 +125,21 @@ export class ProductionAgentRuntime {
         secureToolExecutor: secureExecutor,
         approvedActionResolver: () => runOptions.approvedActionId,
         toolResultProjector: result => sanitizeForLLM(result),
-        llmInvoker: (provider, request) =>
-          resilientInvoker(provider, {
+        llmInvoker: (_provider, request) => {
+          const budget = evaluateBudgetPolicy(
+            runBudget.snapshot(),
+            this.config.agent,
+            this.options.budgetWarningThreshold
+          );
+          const route = modelRouter.select(request, { budget });
+          return resilientInvoker(route.provider, {
             ...request,
             messages: [
               { role: "system", content: trustedGuard },
               ...request.messages
             ]
-          })
+          });
+        }
       }
     );
   }

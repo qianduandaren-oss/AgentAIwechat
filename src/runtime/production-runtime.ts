@@ -32,6 +32,7 @@ import type { ToolRegistry } from "../tools/registry.js";
 import { evaluateBudgetPolicy } from "./budget-policy.js";
 import { createResilientLLMInvoker } from "./llm-invoker.js";
 import { CostAwareModelRouter } from "./model-router.js";
+import { invokeWithReliabilityFallback } from "./reliability-fallback.js";
 import { AgentRunBudget } from "./run-budget.js";
 import { toAgentRunResult, type AgentRunResult } from "./run-result.js";
 
@@ -46,6 +47,7 @@ export interface ProductionRuntimeOptions {
   maxSteps?: number;
   budgetWarningThreshold?: number;
   economyProvider?: LLMProvider;
+  fallbackProvider?: LLMProvider;
 }
 
 export interface ProductionRunOptions {
@@ -145,12 +147,32 @@ export class ProductionAgentRuntime {
           });
           recorder.endSpan(routeSpanId, "ok");
 
-          return resilientInvoker(route.provider, {
+          const guardedRequest = {
             ...request,
             messages: [
-              { role: "system", content: trustedGuard },
+              { role: "system" as const, content: trustedGuard },
               ...request.messages
             ]
+          };
+
+          return invokeWithReliabilityFallback(guardedRequest, {
+            primary: route.provider,
+            fallback: this.options.fallbackProvider,
+            invoke: resilientInvoker,
+            onFallback: decision => {
+              const fallbackSpanId = recorder.startSpan({
+                name: `model.fallback.${request.task}`,
+                kind: "llm",
+                attributes: {
+                  task: request.task,
+                  routeType: "reliability",
+                  fromTier: route.tier,
+                  failureKind: decision.kind,
+                  fallbackReason: decision.reason
+                }
+              });
+              recorder.endSpan(fallbackSpanId, "ok");
+            }
           });
         }
       }

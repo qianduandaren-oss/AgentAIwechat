@@ -48,6 +48,8 @@ export interface ReliabilityInvokerOptions {
   primary: LLMProvider;
   fallback?: LLMProvider;
   invoke: (provider: LLMProvider, request: LLMRequest) => Promise<unknown>;
+  onPrimarySuccess?: () => void;
+  onPrimaryFailure?: (decision: ReliabilityFallbackDecision) => void;
   onFallback?: (decision: ReliabilityFallbackDecision) => void;
 }
 
@@ -56,9 +58,12 @@ export async function invokeWithReliabilityFallback(
   options: ReliabilityInvokerOptions
 ): Promise<unknown> {
   try {
-    return await options.invoke(options.primary, request);
+    const result = await options.invoke(options.primary, request);
+    options.onPrimarySuccess?.();
+    return result;
   } catch (error) {
     const decision = classifyReliabilityFailure(error);
+    options.onPrimaryFailure?.(decision);
     if (!decision.shouldFallback || !options.fallback || options.fallback === options.primary) {
       throw error;
     }

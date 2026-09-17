@@ -32,6 +32,7 @@ import type { ToolRegistry } from "../tools/registry.js";
 import { evaluateBudgetPolicy } from "./budget-policy.js";
 import { createResilientLLMInvoker } from "./llm-invoker.js";
 import { CostAwareModelRouter } from "./model-router.js";
+import { ProviderCircuitBreaker } from "./provider-circuit-breaker.js";
 import { invokeWithReliabilityFallback } from "./reliability-fallback.js";
 import { AgentRunBudget } from "./run-budget.js";
 import { toAgentRunResult, type AgentRunResult } from "./run-result.js";
@@ -48,6 +49,8 @@ export interface ProductionRuntimeOptions {
   budgetWarningThreshold?: number;
   economyProvider?: LLMProvider;
   fallbackProvider?: LLMProvider;
+  circuitFailureThreshold?: number;
+  circuitCooldownMs?: number;
 }
 
 export interface ProductionRunOptions {
@@ -59,6 +62,7 @@ export class ProductionAgentRuntime {
   readonly idempotencyStore = new IdempotencyStore();
   readonly auditSink: AuditSink;
   private readonly config: RuntimeConfig;
+  private readonly circuitBreaker: ProviderCircuitBreaker;
 
   constructor(
     private readonly provider: LLMProvider,
@@ -67,6 +71,10 @@ export class ProductionAgentRuntime {
   ) {
     this.config = options.runtimeConfig ?? loadRuntimeConfig();
     this.auditSink = options.auditSink ?? new InMemoryAuditSink();
+    this.circuitBreaker = new ProviderCircuitBreaker({
+      failureThreshold: options.circuitFailureThreshold,
+      cooldownMs: options.circuitCooldownMs
+    });
   }
 
   approve(actionId: string, reviewerId: string, comment?: string) {
@@ -155,10 +163,46 @@ export class ProductionAgentRuntime {
             ]
           };
 
+          const circuit = this.circuitBreaker.beforeRequest(route.provider);
+          const circuitSpanId = recorder.startSpan({
+            name: `provider.circuit.${request.task}`,
+            kind: "llm",
+            attributes: {
+              task: request.task,
+              modelTier: route.tier,
+              circuitState: circuit.state,
+              circuitAllowed: circuit.allowed,
+              circuitReason: circuit.reason
+            }
+          });
+          recorder.endSpan(circuitSpanId, circuit.allowed ? "ok" : "error");
+
+          if (!circuit.allowed) {
+            const fallback = this.options.fallbackProvider;
+            if (!fallback || fallback === route.provider) {
+              throw new Error(`Provider circuit is ${circuit.state}: ${circuit.reason}`);
+            }
+            const bypassSpanId = recorder.startSpan({
+              name: `model.fallback.${request.task}`,
+              kind: "llm",
+              attributes: {
+                task: request.task,
+                routeType: "reliability",
+                fromTier: route.tier,
+                failureKind: "circuit_open",
+                fallbackReason: circuit.reason
+              }
+            });
+            recorder.endSpan(bypassSpanId, "ok");
+            return resilientInvoker(fallback, guardedRequest);
+          }
+
           return invokeWithReliabilityFallback(guardedRequest, {
             primary: route.provider,
             fallback: this.options.fallbackProvider,
             invoke: resilientInvoker,
+            onPrimarySuccess: () => this.circuitBreaker.recordSuccess(route.provider),
+            onPrimaryFailure: decision => this.circuitBreaker.recordFailure(route.provider, decision.kind),
             onFallback: decision => {
               const fallbackSpanId = recorder.startSpan({
                 name: `model.fallback.${request.task}`,

@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-26",
+  "name": "agent-ai-day1-27",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -27,7 +27,8 @@
     "test:runtime-contract": "npm run build && node dist/demos/run-result-contract-test.js",
     "test:runtime-integration": "npm run build && node dist/demos/production-runtime-integration-test.js",
     "test:model-routing": "npm run build && node dist/demos/model-routing-integration-test.js",
-    "test:reliability-fallback": "npm run build && node dist/demos/reliability-fallback-integration-test.js"
+    "test:reliability-fallback": "npm run build && node dist/demos/reliability-fallback-integration-test.js",
+    "test:circuit-breaker": "npm run build && node dist/demos/provider-circuit-breaker-integration-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -25,6 +25,7 @@ import { CostAwareModelRouter } from "./model-router.js";
 import { ProviderCircuitBreaker } from "./provider-circuit-breaker.js";
 import { assertRuntimeReady, validateRuntimeReadiness, type RuntimeReadinessReport } from "./readiness.js";
 import { invokeWithReliabilityFallback } from "./reliability-fallback.js";
+import { RunAdmissionController, type RunAdmissionSnapshot } from "./run-admission-controller.js";
 import { AgentRunBudget } from "./run-budget.js";
 import { toAgentRunResult, type AgentRunResult } from "./run-result.js";
 
@@ -42,6 +43,8 @@ export interface ProductionRuntimeOptions {
   fallbackProvider?: LLMProvider;
   circuitFailureThreshold?: number;
   circuitCooldownMs?: number;
+  maxConcurrentRuns?: number;
+  maxQueuedRuns?: number;
 }
 
 export interface ProductionRunOptions { approvedActionId?: string; }
@@ -52,6 +55,7 @@ export class ProductionAgentRuntime {
   readonly auditSink: AuditSink;
   private readonly config: RuntimeConfig;
   private readonly circuitBreaker: ProviderCircuitBreaker;
+  private readonly admissionController: RunAdmissionController;
 
   constructor(
     private readonly provider: LLMProvider,
@@ -65,14 +69,28 @@ export class ProductionAgentRuntime {
       failureThreshold: options.circuitFailureThreshold,
       cooldownMs: options.circuitCooldownMs
     });
+    this.admissionController = new RunAdmissionController({
+      maxConcurrentRuns: options.maxConcurrentRuns ?? 20,
+      maxQueuedRuns: options.maxQueuedRuns ?? 50
+    });
   }
 
   readiness(): RuntimeReadinessReport { return validateRuntimeReadiness(this.config); }
+  admission(): RunAdmissionSnapshot { return this.admissionController.snapshot(); }
   approve(actionId: string, reviewerId: string, comment?: string) { return this.approvalStore.approve(actionId, reviewerId, comment); }
   reject(actionId: string, reviewerId: string, comment?: string) { return this.approvalStore.reject(actionId, reviewerId, comment); }
   async listAuditEvents(): Promise<AuditEvent[]> { return this.auditSink.list(); }
 
   async run(userMessage: string, runOptions: ProductionRunOptions = {}): Promise<AgentLoopResult> {
+    const release = await this.admissionController.acquire();
+    try {
+      return await this.runAdmitted(userMessage, runOptions);
+    } finally {
+      release();
+    }
+  }
+
+  private async runAdmitted(userMessage: string, runOptions: ProductionRunOptions): Promise<AgentLoopResult> {
     const recorder = new TraceRecorder(userMessage);
     const secureExecutor = new SecureToolExecutor(this.registry, {
       permissionRules: this.options.permissionRules,

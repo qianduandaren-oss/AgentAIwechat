@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-28",
+  "name": "agent-ai-day1-29",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -29,7 +29,8 @@
     "test:model-routing": "npm run build && node dist/demos/model-routing-integration-test.js",
     "test:reliability-fallback": "npm run build && node dist/demos/reliability-fallback-integration-test.js",
     "test:circuit-breaker": "npm run build && node dist/demos/provider-circuit-breaker-integration-test.js",
-    "test:readiness": "npm run build && node dist/demos/readiness-integration-test.js"
+    "test:readiness": "npm run build && node dist/demos/readiness-integration-test.js",
+    "test:run-admission": "npm run build && node dist/demos/run-admission-controller-test.js"
   },
   "devDependencies": { "typescript": "^5.8.3" }
 }

@@ -1,4 +1,5 @@
 import {
+  RunAdmissionClosedError,
   RunAdmissionController,
   RunCancelledError,
   RunOverloadedError,
@@ -36,9 +37,20 @@ assert(controller.snapshot().queuedRuns === 0, "timed-out waiter must be removed
 releaseA();
 assert(controller.snapshot().activeRuns === 0, "active slot should be released without ghost waiters");
 
-const releaseD = await controller.acquire({ timeoutMs: 50 });
-assert(controller.snapshot().activeRuns === 1, "new run should still be admitted after timeout/cancel cleanup");
-releaseD();
-assert(controller.snapshot().activeRuns === 0, "all slots should be released");
+const drainingController = new RunAdmissionController({ maxConcurrentRuns: 1, maxQueuedRuns: 2 });
+const releaseRunning = await drainingController.acquire();
+const queued = drainingController.acquire();
+assert(drainingController.snapshot().queuedRuns === 1, "one run should wait before drain");
+drainingController.close();
+assert(drainingController.snapshot().accepting === false, "controller should stop accepting work");
+assert(drainingController.snapshot().queuedRuns === 0, "close should remove queued waiters");
+let queuedRejected = false;
+try { await queued; } catch (error) { queuedRejected = error instanceof RunAdmissionClosedError; }
+assert(queuedRejected, "queued run should reject when draining starts");
+let newRejected = false;
+try { await drainingController.acquire(); } catch (error) { newRejected = error instanceof RunAdmissionClosedError; }
+assert(newRejected, "new run should be rejected after close");
+releaseRunning();
+assert(drainingController.snapshot().activeRuns === 0, "active run may finish naturally while draining");
 
-console.log("run admission controller timeout/cancellation test passed");
+console.log("run admission controller timeout/cancellation/draining test passed");

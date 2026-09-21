@@ -13,6 +13,7 @@ export interface RunAdmissionSnapshot {
   queuedRuns: number;
   maxConcurrentRuns: number;
   maxQueuedRuns: number;
+  accepting: boolean;
 }
 
 export class RunOverloadedError extends Error {
@@ -39,8 +40,16 @@ export class RunCancelledError extends Error {
   }
 }
 
+export class RunAdmissionClosedError extends Error {
+  readonly code = "RUN_DRAINING";
+  constructor() {
+    super("Agent runtime is draining and no longer accepts queued runs");
+    this.name = "RunAdmissionClosedError";
+  }
+}
+
 interface Waiter {
-  state: "pending" | "admitted" | "timed_out" | "cancelled";
+  state: "pending" | "admitted" | "timed_out" | "cancelled" | "draining";
   resolve: (release: () => void) => void;
   reject: (error: Error) => void;
   timer?: ReturnType<typeof setTimeout>;
@@ -50,6 +59,7 @@ interface Waiter {
 
 export class RunAdmissionController {
   private activeRuns = 0;
+  private accepting = true;
   private readonly queue: Waiter[] = [];
 
   constructor(private readonly options: RunAdmissionControllerOptions) {
@@ -58,10 +68,23 @@ export class RunAdmissionController {
   }
 
   snapshot(): RunAdmissionSnapshot {
-    return { activeRuns: this.activeRuns, queuedRuns: this.queue.length, maxConcurrentRuns: this.options.maxConcurrentRuns, maxQueuedRuns: this.options.maxQueuedRuns };
+    return { activeRuns: this.activeRuns, queuedRuns: this.queue.length, maxConcurrentRuns: this.options.maxConcurrentRuns, maxQueuedRuns: this.options.maxQueuedRuns, accepting: this.accepting };
+  }
+
+  close(): void {
+    if (!this.accepting) return;
+    this.accepting = false;
+    const queued = this.queue.splice(0);
+    for (const waiter of queued) {
+      if (waiter.state !== "pending") continue;
+      waiter.state = "draining";
+      this.cleanupWaiter(waiter);
+      waiter.reject(new RunAdmissionClosedError());
+    }
   }
 
   async acquire(options: RunAcquireOptions = {}): Promise<() => void> {
+    if (!this.accepting) throw new RunAdmissionClosedError();
     if (options.signal?.aborted) throw new RunCancelledError();
     if (options.timeoutMs !== undefined && (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0)) throw new Error("timeoutMs must be a positive number");
 
@@ -105,7 +128,7 @@ export class RunAdmissionController {
     return () => {
       if (released) return;
       released = true;
-      while (this.queue.length > 0) {
+      while (this.accepting && this.queue.length > 0) {
         const next = this.queue.shift()!;
         if (next.state !== "pending") continue;
         next.state = "admitted";

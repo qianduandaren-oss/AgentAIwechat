@@ -20,6 +20,7 @@ import { ProviderCircuitBreaker } from "./provider-circuit-breaker.js";
 import { assertRuntimeReady, validateRuntimeReadiness, type RuntimeReadinessReport } from "./readiness.js";
 import { invokeWithReliabilityFallback } from "./reliability-fallback.js";
 import { RunAdmissionController, type RunAdmissionSnapshot } from "./run-admission-controller.js";
+import { RuntimeLifecycle, type RuntimeLifecycleState } from "./runtime-lifecycle.js";
 import { AgentRunBudget } from "./run-budget.js";
 import { toAgentRunResult, type AgentRunResult } from "./run-result.js";
 
@@ -45,6 +46,7 @@ export class ProductionAgentRuntime {
   private readonly config: RuntimeConfig;
   private readonly circuitBreaker: ProviderCircuitBreaker;
   private readonly admissionController: RunAdmissionController;
+  private readonly lifecycle = new RuntimeLifecycle();
 
   constructor(private readonly provider: LLMProvider, private readonly registry: ToolRegistry, private readonly options: ProductionRuntimeOptions = {}) {
     this.config = options.runtimeConfig ?? loadRuntimeConfig();
@@ -56,14 +58,30 @@ export class ProductionAgentRuntime {
 
   readiness(): RuntimeReadinessReport { return validateRuntimeReadiness(this.config); }
   admission(): RunAdmissionSnapshot { return this.admissionController.snapshot(); }
+  lifecycleState(): { state: RuntimeLifecycleState; activeRuns: number } { return this.lifecycle.snapshot(); }
   approve(actionId: string, reviewerId: string, comment?: string) { return this.approvalStore.approve(actionId, reviewerId, comment); }
   reject(actionId: string, reviewerId: string, comment?: string) { return this.approvalStore.reject(actionId, reviewerId, comment); }
   async listAuditEvents(): Promise<AuditEvent[]> { return this.auditSink.list(); }
 
+  beginDrain(): void {
+    this.lifecycle.beginDrain();
+    this.admissionController.close();
+  }
+
+  async drain(): Promise<void> {
+    this.beginDrain();
+    await this.lifecycle.waitForDrain();
+  }
+
   async run(userMessage: string, runOptions: ProductionRunOptions = {}): Promise<AgentLoopResult> {
-    const release = await this.admissionController.acquire({ timeoutMs: runOptions.queueTimeoutMs, signal: runOptions.signal });
-    try { return await this.runAdmitted(userMessage, runOptions); }
-    finally { release(); }
+    const leaveLifecycle = this.lifecycle.enterRun();
+    try {
+      const release = await this.admissionController.acquire({ timeoutMs: runOptions.queueTimeoutMs, signal: runOptions.signal });
+      try { return await this.runAdmitted(userMessage, runOptions); }
+      finally { release(); }
+    } finally {
+      leaveLifecycle();
+    }
   }
 
   private async runAdmitted(userMessage: string, runOptions: ProductionRunOptions): Promise<AgentLoopResult> {

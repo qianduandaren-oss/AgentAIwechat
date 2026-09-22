@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-31",
+  "name": "agent-ai-day1-32",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -31,7 +31,8 @@
     "test:circuit-breaker": "npm run build && node dist/demos/provider-circuit-breaker-integration-test.js",
     "test:readiness": "npm run build && node dist/demos/readiness-integration-test.js",
     "test:run-admission": "npm run build && node dist/demos/run-admission-controller-test.js",
-    "test:lifecycle": "npm run build && node dist/demos/runtime-lifecycle-test.js"
+    "test:lifecycle": "npm run build && node dist/demos/runtime-lifecycle-test.js",
+    "test:shutdown": "npm run build && node dist/demos/shutdown-coordinator-test.js"
   },
   "devDependencies": { "typescript": "^5.8.3" }
 }

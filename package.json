@@ -32,7 +32,8 @@
     "test:readiness": "npm run build && node dist/demos/readiness-integration-test.js",
     "test:run-admission": "npm run build && node dist/demos/run-admission-controller-test.js",
     "test:lifecycle": "npm run build && node dist/demos/runtime-lifecycle-test.js",
-    "test:shutdown": "npm run build && node dist/demos/shutdown-coordinator-test.js"
+    "test:shutdown": "npm run build && node dist/demos/shutdown-coordinator-test.js",
+    "test:signal-shutdown": "npm run build && node dist/demos/process-signal-adapter-test.js"
   },
   "devDependencies": { "typescript": "^5.8.3" }
 }

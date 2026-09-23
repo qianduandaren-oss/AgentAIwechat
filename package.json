@@ -34,7 +34,8 @@
     "test:lifecycle": "npm run build && node dist/demos/runtime-lifecycle-test.js",
     "test:shutdown": "npm run build && node dist/demos/shutdown-coordinator-test.js",
     "test:signal-shutdown": "npm run build && node dist/demos/process-signal-adapter-test.js",
-    "test:shutdown-deadline": "npm run build && node dist/demos/shutdown-deadline-runner-test.js"
+    "test:shutdown-deadline": "npm run build && node dist/demos/shutdown-deadline-runner-test.js",
+    "test:shutdown-escalation": "npm run build && node dist/demos/shutdown-escalation-policy-test.js"
   },
   "devDependencies": { "typescript": "^5.8.3" }
 }

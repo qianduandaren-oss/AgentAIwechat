@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-32",
+  "name": "agent-ai-day1-33",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -33,7 +33,8 @@
     "test:run-admission": "npm run build && node dist/demos/run-admission-controller-test.js",
     "test:lifecycle": "npm run build && node dist/demos/runtime-lifecycle-test.js",
     "test:shutdown": "npm run build && node dist/demos/shutdown-coordinator-test.js",
-    "test:signal-shutdown": "npm run build && node dist/demos/process-signal-adapter-test.js"
+    "test:signal-shutdown": "npm run build && node dist/demos/process-signal-adapter-test.js",
+    "test:shutdown-deadline": "npm run build && node dist/demos/shutdown-deadline-runner-test.js"
   },
   "devDependencies": { "typescript": "^5.8.3" }
 }

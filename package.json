@@ -36,7 +36,8 @@
     "test:signal-shutdown": "npm run build && node dist/demos/process-signal-adapter-test.js",
     "test:shutdown-deadline": "npm run build && node dist/demos/shutdown-deadline-runner-test.js",
     "test:shutdown-escalation": "npm run build && node dist/demos/shutdown-escalation-policy-test.js",
-    "test:running-cancellation": "npm run build && node dist/demos/running-cancellation-test.js"
+    "test:running-cancellation": "npm run build && node dist/demos/running-cancellation-test.js",
+    "test:inflight-cancellation": "npm run build && node dist/demos/inflight-cancellation-test.js"
   },
   "devDependencies": { "typescript": "^5.8.3" }
 }

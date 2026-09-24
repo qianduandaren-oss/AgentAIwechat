@@ -5,6 +5,7 @@ import { ToolRegistry } from "./registry.js";
 export interface ToolExecutionOptions {
   secureExecutor?: SecureToolExecutor;
   approvedActionId?: string;
+  signal?: AbortSignal;
 }
 
 export async function executeTool(
@@ -12,7 +13,13 @@ export async function executeTool(
   toolCall: AgentToolCall,
   options: ToolExecutionOptions = {}
 ): Promise<unknown> {
+  if (options.signal?.aborted) {
+    throw options.signal.reason ?? new Error("Tool execution cancelled");
+  }
+
   if (options.secureExecutor) {
+    // SecureToolExecutor does not yet expose a signal-aware contract. The
+    // surrounding Agent Loop still prevents new secure tool calls after abort.
     return options.secureExecutor.execute(toolCall, options.approvedActionId);
   }
 
@@ -20,5 +27,5 @@ export async function executeTool(
   if (!registered) {
     throw new Error(`Unknown tool: ${toolCall.name}`);
   }
-  return registered.handler(toolCall.arguments);
+  return registered.handler(toolCall.arguments, { signal: options.signal });
 }

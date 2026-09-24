@@ -33,11 +33,7 @@ export interface ProductionRuntimeOptions {
   maxConcurrentRuns?: number; maxQueuedRuns?: number;
 }
 
-export interface ProductionRunOptions {
-  approvedActionId?: string;
-  queueTimeoutMs?: number;
-  signal?: AbortSignal;
-}
+export interface ProductionRunOptions { approvedActionId?: string; queueTimeoutMs?: number; signal?: AbortSignal; }
 
 export class ProductionAgentRuntime {
   readonly approvalStore = new ApprovalStore();
@@ -63,15 +59,8 @@ export class ProductionAgentRuntime {
   reject(actionId: string, reviewerId: string, comment?: string) { return this.approvalStore.reject(actionId, reviewerId, comment); }
   async listAuditEvents(): Promise<AuditEvent[]> { return this.auditSink.list(); }
 
-  beginDrain(): void {
-    this.lifecycle.beginDrain();
-    this.admissionController.close();
-  }
-
-  async drain(): Promise<void> {
-    this.beginDrain();
-    await this.lifecycle.waitForDrain();
-  }
+  beginDrain(): void { this.lifecycle.beginDrain(); this.admissionController.close(); }
+  async drain(): Promise<void> { this.beginDrain(); await this.lifecycle.waitForDrain(); }
 
   async run(userMessage: string, runOptions: ProductionRunOptions = {}): Promise<AgentLoopResult> {
     const leaveLifecycle = this.lifecycle.enterRun();
@@ -79,9 +68,7 @@ export class ProductionAgentRuntime {
       const release = await this.admissionController.acquire({ timeoutMs: runOptions.queueTimeoutMs, signal: runOptions.signal });
       try { return await this.runAdmitted(userMessage, runOptions); }
       finally { release(); }
-    } finally {
-      leaveLifecycle();
-    }
+    } finally { leaveLifecycle(); }
   }
 
   private async runAdmitted(userMessage: string, runOptions: ProductionRunOptions): Promise<AgentLoopResult> {
@@ -94,6 +81,7 @@ export class ProductionAgentRuntime {
     const modelRouter = new CostAwareModelRouter(this.provider, this.options.economyProvider);
 
     return runAgentLoop(this.provider, this.registry, userMessage, this.options.maxSteps ?? this.config.agent.maxSteps, {
+      signal: runOptions.signal,
       traceRecorder: recorder, pricing, runBudget, runBudgetLimit: this.config.agent,
       budgetWarningThreshold: this.options.budgetWarningThreshold,
       budgetGuard: this.options.budget ? new BudgetGuard(this.options.budget) : undefined,

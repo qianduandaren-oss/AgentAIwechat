@@ -43,6 +43,10 @@ export type LLMRequest = {
   context?: Record<string, unknown>;
 };
 
+export type LLMGenerateOptions = {
+  signal?: AbortSignal;
+};
+
 export type MockRawBlock =
   | { type: "text"; text: string }
   | {
@@ -58,5 +62,5 @@ export type MockRawLLMResponse = {
 };
 
 export interface LLMProvider {
-  generate(request: LLMRequest): Promise<unknown>;
+  generate(request: LLMRequest, options?: LLMGenerateOptions): Promise<unknown>;
 }

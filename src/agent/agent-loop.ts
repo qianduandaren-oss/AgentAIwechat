@@ -1,6 +1,6 @@
 import { callLLM } from "../llm/client.js";
 import { extractText, extractToolCalls } from "../llm/response-parser.js";
-import type { AgentMessage, AgentToolCall, LLMProvider, LLMRequest } from "../llm/types.js";
+import type { AgentMessage, AgentToolCall, LLMGenerateOptions, LLMProvider, LLMRequest } from "../llm/types.js";
 import { calculateCost, type ModelPricing, ZERO_PRICING } from "../observability/model-pricing.js";
 import { BudgetGuard } from "../observability/budget-guard.js";
 import { TraceRecorder } from "../observability/trace-recorder.js";
@@ -31,7 +31,7 @@ export interface AgentLoopRuntimeOptions {
   secureToolExecutor?: SecureToolExecutor;
   approvedActionResolver?: (toolCall: AgentToolCall) => string | undefined;
   toolResultProjector?: (result: unknown, toolCall: AgentToolCall) => unknown;
-  llmInvoker?: (provider: LLMProvider, request: LLMRequest) => Promise<unknown>;
+  llmInvoker?: (provider: LLMProvider, request: LLMRequest, options?: LLMGenerateOptions) => Promise<unknown>;
   signal?: AbortSignal;
 }
 
@@ -42,7 +42,8 @@ function getBudgetDecision(runtime: AgentLoopRuntimeOptions): BudgetPolicyDecisi
 
 async function invokeLLM(provider: LLMProvider, request: LLMRequest, runtime: AgentLoopRuntimeOptions): Promise<unknown> {
   throwIfRunCancelled(runtime.signal);
-  return runtime.llmInvoker ? runtime.llmInvoker(provider, request) : callLLM(provider, request);
+  const options: LLMGenerateOptions = { signal: runtime.signal };
+  return runtime.llmInvoker ? runtime.llmInvoker(provider, request, options) : callLLM(provider, request, options);
 }
 
 export async function runAgentLoop(provider: LLMProvider, registry: ToolRegistry, userMessage: string, maxSteps = 6, runtime: AgentLoopRuntimeOptions = {}): Promise<AgentLoopResult> {
@@ -108,7 +109,7 @@ export async function runAgentLoop(provider: LLMProvider, registry: ToolRegistry
         const toolSpanId = recorder.startSpan({ name: `tool.${call.name}`, kind: "tool", attributes: { step, tool: call.name } });
         let result: unknown;
         try {
-          result = await executeTool(registry, call, { secureExecutor: runtime.secureToolExecutor, approvedActionId: runtime.approvedActionResolver?.(call) });
+          result = await executeTool(registry, call, { secureExecutor: runtime.secureToolExecutor, approvedActionId: runtime.approvedActionResolver?.(call), signal: runtime.signal });
           recorder.endSpan(toolSpanId, "ok");
         } catch (error) { recorder.endSpan(toolSpanId, "error", error); throw error; }
         throwIfRunCancelled(runtime.signal);

@@ -8,7 +8,12 @@ function makeSnapshot(steps: number, modelCalls: number, totalTokens: number, co
     steps,
     modelCalls,
     tokenBudget: {
-      usage: { inputTokens: totalTokens, outputTokens: 0, totalTokens },
+      usage: {
+        inputTokens: totalTokens,
+        outputTokens: 0,
+        totalTokens,
+        source: "provider"
+      },
       costUsd,
       remainingTokens: Math.max(0, limit.maxTokens - totalTokens),
       remainingCostUsd: Math.max(0, limit.maxCostUsd - costUsd)

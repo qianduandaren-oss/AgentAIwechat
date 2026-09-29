@@ -18,9 +18,11 @@ export async function executeTool(
   }
 
   if (options.secureExecutor) {
-    // SecureToolExecutor does not yet expose a signal-aware contract. The
-    // surrounding Agent Loop still prevents new secure tool calls after abort.
-    return options.secureExecutor.execute(toolCall, options.approvedActionId);
+    return options.secureExecutor.execute(
+      toolCall,
+      options.approvedActionId,
+      { signal: options.signal }
+    );
   }
 
   const registered = registry.get(toolCall.name);

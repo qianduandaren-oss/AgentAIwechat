@@ -39,7 +39,7 @@ async function testDeadlineDoesNotCancelUnderlyingShutdown(): Promise<void> {
   finish();
   await pending;
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  assert(completed === true, "underlying shutdown should still be able to finish");
+  assert(Boolean(completed), "underlying shutdown should still be able to finish");
 }
 
 await testCompleted();

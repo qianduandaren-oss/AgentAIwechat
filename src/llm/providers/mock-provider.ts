@@ -27,11 +27,27 @@ export class MockLLMProvider implements LLMProvider {
       case "lead_analysis": return this.leadAnalysis(request);
       case "memory_extract": return this.memoryExtract(request);
       case "agent_turn": return this.agentTurn(request);
+      case "agent_finalize": return this.agentFinalize(request);
       case "intent_classification": return this.intentClassification(request);
       case "answer_with_context": return this.answerWithContext(request);
       case "planner_next_action": return this.plannerNextAction(request);
       case "agent_routing": return this.agentRouting(request);
     }
+  }
+
+  private agentFinalize(request: LLMRequest): MockRawLLMResponse {
+    const latestToolResult = [...request.messages]
+      .reverse()
+      .find(message => message.role === "tool")?.content;
+
+    return {
+      output: [{
+        type: "text",
+        text: latestToolResult
+          ? `已根据现有上下文完成回答：${latestToolResult}`
+          : "已根据现有上下文完成回答。"
+      }]
+    };
   }
 
   private agentRouting(request: LLMRequest): MockRawLLMResponse {

@@ -91,7 +91,7 @@ async function checkBudgetStop() {
     { output: [{ type: "text", text: "second model call" }] }
   ]);
   const runtime = new ProductionAgentRuntime(provider, createRegistry(), {
-    runtimeConfig: config({ maxModelCalls: 1 })
+    runtimeConfig: config({ maxSteps: 1, maxModelCalls: 1 })
   });
 
   const result = await runtime.runStructured("use echo then answer");
@@ -125,7 +125,7 @@ async function checkClosingMode() {
     { output: [{ type: "text", text: "final answer from existing observation" }] }
   ]);
   const runtime = new ProductionAgentRuntime(provider, createRegistry(() => { echoCalls += 1; }), {
-    runtimeConfig: config({ maxModelCalls: 3 }),
+    runtimeConfig: config({ maxSteps: 3, maxModelCalls: 3 }),
     budgetWarningThreshold: 0.6
   });
 

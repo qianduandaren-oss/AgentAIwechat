@@ -10,6 +10,8 @@ export function toAgentHttpStatus(result: AgentRunResult): number {
   switch (result.stopReason) {
     case "completed":
       return 200;
+    case "cancelled":
+      return 499;
     case "permission_denied":
       return 403;
     case "deadline_exceeded":

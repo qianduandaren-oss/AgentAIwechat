@@ -2,6 +2,7 @@ import type { LLMProvider, LLMRequest, MockRawLLMResponse } from "../llm/types.j
 import type { RuntimeConfig } from "../config/runtime-config.js";
 import { ProductionAgentRuntime } from "../runtime/production-runtime.js";
 import { ToolRegistry } from "../tools/registry.js";
+import type { ToolPermissionRule } from "../security/tool-permission.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`Integration check failed: ${message}`);
@@ -47,6 +48,15 @@ class SlowProvider implements LLMProvider {
   }
 }
 
+const ECHO_PERMISSION_RULES: ToolPermissionRule[] = [
+  {
+    toolName: "echo",
+    riskLevel: "low",
+    sideEffect: "none",
+    requiresApproval: false
+  }
+];
+
 function createRegistry(onEcho?: () => void): ToolRegistry {
   const registry = new ToolRegistry();
   registry.register(
@@ -72,7 +82,8 @@ async function checkCompletedRun() {
     { output: [{ type: "text", text: "runtime ok" }] }
   ]);
   const runtime = new ProductionAgentRuntime(provider, createRegistry(), {
-    runtimeConfig: config()
+    runtimeConfig: config(),
+    permissionRules: ECHO_PERMISSION_RULES
   });
 
   const result = await runtime.runStructured("say hello");
@@ -91,7 +102,8 @@ async function checkBudgetStop() {
     { output: [{ type: "text", text: "second model call" }] }
   ]);
   const runtime = new ProductionAgentRuntime(provider, createRegistry(), {
-    runtimeConfig: config({ maxSteps: 1, maxModelCalls: 1 })
+    runtimeConfig: config({ maxSteps: 1, maxModelCalls: 1 }),
+    permissionRules: ECHO_PERMISSION_RULES
   });
 
   const result = await runtime.runStructured("use echo then answer");
@@ -101,7 +113,8 @@ async function checkBudgetStop() {
 
 async function checkTimeoutStop() {
   const runtime = new ProductionAgentRuntime(new SlowProvider(), createRegistry(), {
-    runtimeConfig: config({}, 100)
+    runtimeConfig: config({}, 100),
+    permissionRules: ECHO_PERMISSION_RULES
   });
 
   const result = await runtime.runStructured("wait too long");
@@ -126,6 +139,7 @@ async function checkClosingMode() {
   ]);
   const runtime = new ProductionAgentRuntime(provider, createRegistry(() => { echoCalls += 1; }), {
     runtimeConfig: config({ maxSteps: 3, maxModelCalls: 3 }),
+    permissionRules: ECHO_PERMISSION_RULES,
     budgetWarningThreshold: 0.6
   });
 

@@ -2,6 +2,7 @@ import type { ToolDefinition } from "../llm/types.js";
 
 export type ToolExecutionContext = {
   signal?: AbortSignal;
+  idempotencyKey?: string;
 };
 
 export type ToolHandler = (

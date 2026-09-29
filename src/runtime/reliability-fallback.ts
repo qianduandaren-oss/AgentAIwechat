@@ -1,4 +1,8 @@
-import type { LLMProvider, LLMRequest } from "../llm/types.js";
+import type {
+  LLMGenerateOptions,
+  LLMProvider,
+  LLMRequest
+} from "../llm/types.js";
 import { TimeoutError } from "./resilience.js";
 
 export type ReliabilityFailureKind =
@@ -47,28 +51,52 @@ export function classifyReliabilityFailure(error: unknown): ReliabilityFallbackD
 export interface ReliabilityInvokerOptions {
   primary: LLMProvider;
   fallback?: LLMProvider;
-  invoke: (provider: LLMProvider, request: LLMRequest) => Promise<unknown>;
+  invoke: (
+    provider: LLMProvider,
+    request: LLMRequest,
+    options?: LLMGenerateOptions
+  ) => Promise<unknown>;
   onPrimarySuccess?: () => void;
   onPrimaryFailure?: (decision: ReliabilityFallbackDecision) => void;
   onFallback?: (decision: ReliabilityFallbackDecision) => void;
 }
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw signal.reason ?? new Error("LLM request cancelled");
+  }
+}
+
 export async function invokeWithReliabilityFallback(
   request: LLMRequest,
-  options: ReliabilityInvokerOptions
+  options: ReliabilityInvokerOptions,
+  generateOptions: LLMGenerateOptions = {}
 ): Promise<unknown> {
+  throwIfAborted(generateOptions.signal);
+
   try {
-    const result = await options.invoke(options.primary, request);
+    const result = await options.invoke(
+      options.primary,
+      request,
+      generateOptions
+    );
     options.onPrimarySuccess?.();
     return result;
   } catch (error) {
+    throwIfAborted(generateOptions.signal);
+
     const decision = classifyReliabilityFailure(error);
     options.onPrimaryFailure?.(decision);
     if (!decision.shouldFallback || !options.fallback || options.fallback === options.primary) {
       throw error;
     }
 
+    throwIfAborted(generateOptions.signal);
     options.onFallback?.(decision);
-    return options.invoke(options.fallback, request);
+    return options.invoke(
+      options.fallback,
+      request,
+      generateOptions
+    );
   }
 }

@@ -65,7 +65,7 @@ export async function runAgentLoop(provider: LLMProvider, registry: ToolRegistry
     const budgetBeforeClosing = getBudgetDecision(runtime);
     if (budgetBeforeClosing?.state === "exhausted" || budgetBeforeClosing?.shouldFinish) throw new Error("Agent budget exhausted before closing response");
     const request: LLMRequest = { task: "agent_finalize", messages: [...messages, { role: "system", content: "Budget is limited. Do not call tools. Answer now using only the information already available in this conversation and tool observations." }], tools: [] };
-    const spanId = recorder.startSpan({ name: `llm.closing.${step}`, kind: "llm", attributes: { step, mode: "closing", budgetState: budgetBeforeClosing?.state } });
+    const spanId = recorder.startSpan({ name: `llm.closing.${step}`, kind: "llm", attributes: { step, mode: "closing", budgetState: budgetBeforeClosing?.state ?? "unknown" } });
     let raw: unknown;
     try { raw = await invokeLLM(provider, request, runtime); }
     catch (error) { recorder.endSpan(spanId, "error", error); throw error; }
@@ -75,7 +75,7 @@ export async function runAgentLoop(provider: LLMProvider, registry: ToolRegistry
     usage = addTokenUsage(usage, turnUsage); estimatedCostUsd += turnCost.totalCostUsd;
     runtime.runBudget?.recordModelCall(turnUsage, pricing); runtime.budgetGuard?.consume(turnUsage, pricing);
     const budgetAfterClosing = getBudgetDecision(runtime);
-    recorder.endSpan(spanId, "ok", undefined, { inputTokens: turnUsage.inputTokens, outputTokens: turnUsage.outputTokens, totalTokens: turnUsage.totalTokens, estimatedCostUsd: turnCost.totalCostUsd, mode: "closing", budgetState: budgetAfterClosing?.state, budgetUsageRatio: budgetAfterClosing?.usageRatio });
+    recorder.endSpan(spanId, "ok", undefined, { inputTokens: turnUsage.inputTokens, outputTokens: turnUsage.outputTokens, totalTokens: turnUsage.totalTokens, estimatedCostUsd: turnCost.totalCostUsd, mode: "closing", budgetState: budgetAfterClosing?.state ?? "unknown", budgetUsageRatio: budgetAfterClosing?.usageRatio ?? 0 });
     return finish(extractText(raw), step);
   };
 
@@ -87,7 +87,7 @@ export async function runAgentLoop(provider: LLMProvider, registry: ToolRegistry
       const budgetBeforeLLM = getBudgetDecision(runtime);
       if (budgetBeforeLLM?.shouldFinish) throw new Error("Agent budget policy requested finish before LLM call");
       const request: LLMRequest = { task: "agent_turn", messages, tools: registry.listDefinitions() };
-      const llmSpanId = recorder.startSpan({ name: `llm.turn.${step}`, kind: "llm", attributes: { step, budgetState: budgetBeforeLLM?.state } });
+      const llmSpanId = recorder.startSpan({ name: `llm.turn.${step}`, kind: "llm", attributes: { step, budgetState: budgetBeforeLLM?.state ?? "unknown" } });
       let raw: unknown;
       try { raw = await invokeLLM(provider, request, runtime); }
       catch (error) { recorder.endSpan(llmSpanId, "error", error); throw error; }
@@ -97,7 +97,7 @@ export async function runAgentLoop(provider: LLMProvider, registry: ToolRegistry
       usage = addTokenUsage(usage, turnUsage); estimatedCostUsd += turnCost.totalCostUsd;
       runtime.runBudget?.recordModelCall(turnUsage, pricing); runtime.budgetGuard?.consume(turnUsage, pricing);
       const budgetAfterLLM = getBudgetDecision(runtime);
-      recorder.endSpan(llmSpanId, "ok", undefined, { inputTokens: turnUsage.inputTokens, outputTokens: turnUsage.outputTokens, totalTokens: turnUsage.totalTokens, estimatedCostUsd: turnCost.totalCostUsd, budgetState: budgetAfterLLM?.state, budgetUsageRatio: budgetAfterLLM?.usageRatio });
+      recorder.endSpan(llmSpanId, "ok", undefined, { inputTokens: turnUsage.inputTokens, outputTokens: turnUsage.outputTokens, totalTokens: turnUsage.totalTokens, estimatedCostUsd: turnCost.totalCostUsd, budgetState: budgetAfterLLM?.state ?? "unknown", budgetUsageRatio: budgetAfterLLM?.usageRatio ?? 0 });
       const calls = extractToolCalls(raw);
       if (calls.length === 0) return finish(extractText(raw), step);
       if (budgetAfterLLM?.state === "warning" && !budgetAfterLLM.allowExtraRetrieval) return closeWithExistingContext(step);

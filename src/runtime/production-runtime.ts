@@ -88,7 +88,7 @@ export class ProductionAgentRuntime {
       secureToolExecutor: secureExecutor,
       approvedActionResolver: () => runOptions.approvedActionId,
       toolResultProjector: result => sanitizeForLLM(result),
-      llmInvoker: async (_provider, request) => {
+      llmInvoker: async (_provider, request, llmOptions = {}) => {
         const budget = evaluateBudgetPolicy(runBudget.snapshot(), this.config.agent, this.options.budgetWarningThreshold);
         const route = modelRouter.select(request, { budget });
         const routeSpanId = recorder.startSpan({ name: `model.route.${request.task}`, kind: "llm", attributes: { task: request.task, modelTier: route.tier, routeReason: route.reason, budgetState: budget.state, budgetUsageRatio: budget.usageRatio } });
@@ -102,7 +102,7 @@ export class ProductionAgentRuntime {
           if (!fallback || fallback === route.provider) throw new Error(`Provider circuit is ${circuit.state}: ${circuit.reason}`);
           const bypassSpanId = recorder.startSpan({ name: `model.fallback.${request.task}`, kind: "llm", attributes: { task: request.task, routeType: "reliability", fromTier: route.tier, failureKind: "circuit_open", fallbackReason: circuit.reason } });
           recorder.endSpan(bypassSpanId, "ok");
-          return resilientInvoker(fallback, guardedRequest);
+          return resilientInvoker(fallback, guardedRequest, llmOptions);
         }
         return invokeWithReliabilityFallback(guardedRequest, {
           primary: route.provider, fallback: this.options.fallbackProvider, invoke: resilientInvoker,
@@ -112,7 +112,7 @@ export class ProductionAgentRuntime {
             const fallbackSpanId = recorder.startSpan({ name: `model.fallback.${request.task}`, kind: "llm", attributes: { task: request.task, routeType: "reliability", fromTier: route.tier, failureKind: decision.kind, fallbackReason: decision.reason } });
             recorder.endSpan(fallbackSpanId, "ok");
           }
-        });
+        }, llmOptions);
       }
     });
   }

@@ -31,3 +31,9 @@ jobs:
 
       - name: Production runtime integration checks
         run: node dist/demos/production-runtime-integration-test.js
+
+      - name: Resilient cancellation regression
+        run: node dist/demos/resilient-cancellation-test.js
+
+      - name: Durable recovery regression
+        run: node dist/demos/durable-recovery-test.js

@@ -37,7 +37,16 @@ export function toAgentRunResult(error: unknown): AgentRunStopped {
   }
 
   const normalized = message.toLowerCase();
-  if (normalized.includes("budget") && (normalized.includes("exceed") || normalized.includes("exhaust"))) return { status: "stopped", stopReason: "budget_exceeded", message, cause: error };
+  if (
+    normalized.includes("budget") &&
+    (
+      normalized.includes("exceed") ||
+      normalized.includes("exhaust") ||
+      normalized.includes("requested finish")
+    )
+  ) {
+    return { status: "stopped", stopReason: "budget_exceeded", message, cause: error };
+  }
   if (normalized.includes("permission") || normalized.includes("authorization") || normalized.includes("denied")) return { status: "stopped", stopReason: "permission_denied", message, cause: error };
   if (normalized.includes("maxsteps") || normalized.includes("max steps")) return { status: "stopped", stopReason: "max_steps_reached", message, cause: error };
   return { status: "failed", stopReason: "runtime_error", message, cause: error };

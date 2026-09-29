@@ -6,4 +6,6 @@ declare namespace NodeJS {
 
 declare const process: {
   env: NodeJS.ProcessEnv;
+  exitCode?: number;
+  once(signal: "SIGTERM" | "SIGINT", listener: () => void): void;
 };

@@ -1,5 +1,6 @@
 import type { AgentToolCall } from "../llm/types.js";
 import type { ToolRegistry } from "../tools/registry.js";
+import type { ToolExecutionContext } from "../tools/types.js";
 import {
   ApprovalStore,
   type PendingAction
@@ -84,6 +85,12 @@ function sameToolCall(a: AgentToolCall, b: AgentToolCall): boolean {
   return a.name === b.name && JSON.stringify(a.arguments) === JSON.stringify(b.arguments);
 }
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw signal.reason ?? new Error("Tool execution cancelled");
+  }
+}
+
 export class SecureToolExecutor {
   readonly approvalStore: ApprovalStore;
   readonly idempotencyStore: IdempotencyStore;
@@ -102,8 +109,11 @@ export class SecureToolExecutor {
 
   async execute(
     toolCall: AgentToolCall,
-    approvedActionId?: string
+    approvedActionId?: string,
+    executionContext: Pick<ToolExecutionContext, "signal"> = {}
   ): Promise<SecureToolExecutionResult> {
+    throwIfAborted(executionContext.signal);
+
     const permission = decideToolPermission(toolCall.name, this.permissionRules);
     if (permission.status === "denied") {
       await this.audit(toolCall, "denied", permission.reason);
@@ -148,6 +158,8 @@ export class SecureToolExecutor {
       }
     }
 
+    throwIfAborted(executionContext.signal);
+
     const idempotencyKey = createIdempotencyKey(toolCall, action?.id);
     const cached = this.idempotencyStore.get(idempotencyKey);
     if (cached) {
@@ -166,7 +178,11 @@ export class SecureToolExecutor {
     }
 
     try {
-      const result = await registered.handler(toolCall.arguments);
+      throwIfAborted(executionContext.signal);
+      const result = await registered.handler(toolCall.arguments, {
+        signal: executionContext.signal,
+        idempotencyKey
+      });
       this.idempotencyStore.save(idempotencyKey, result);
       if (action?.status === "approved") {
         this.approvalStore.markExecuted(action.id);

@@ -42,7 +42,7 @@ class SequenceProvider implements LLMProvider {
 
 class SlowProvider implements LLMProvider {
   async generate(_request: LLMRequest): Promise<unknown> {
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 200));
     return { output: [{ type: "text", text: "too late" }] } satisfies MockRawLLMResponse;
   }
 }
@@ -101,7 +101,7 @@ async function checkBudgetStop() {
 
 async function checkTimeoutStop() {
   const runtime = new ProductionAgentRuntime(new SlowProvider(), createRegistry(), {
-    runtimeConfig: config({}, 10)
+    runtimeConfig: config({}, 100)
   });
 
   const result = await runtime.runStructured("wait too long");

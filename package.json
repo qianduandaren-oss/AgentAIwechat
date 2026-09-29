@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-34",
+  "name": "agent-ai-day1-39",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -37,7 +37,9 @@
     "test:shutdown-deadline": "npm run build && node dist/demos/shutdown-deadline-runner-test.js",
     "test:shutdown-escalation": "npm run build && node dist/demos/shutdown-escalation-policy-test.js",
     "test:running-cancellation": "npm run build && node dist/demos/running-cancellation-test.js",
-    "test:inflight-cancellation": "npm run build && node dist/demos/inflight-cancellation-test.js"
+    "test:inflight-cancellation": "npm run build && node dist/demos/inflight-cancellation-test.js",
+    "test:resilient-cancellation": "npm run build && node dist/demos/resilient-cancellation-test.js",
+    "test:durable-recovery": "npm run build && node dist/demos/durable-recovery-test.js"
   },
   "devDependencies": { "typescript": "^5.8.3" }
 }

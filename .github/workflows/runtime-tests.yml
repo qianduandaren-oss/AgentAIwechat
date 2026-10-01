@@ -37,3 +37,12 @@ jobs:
 
       - name: Durable recovery regression
         run: node dist/demos/durable-recovery-test.js
+
+      - name: Checkpoint conflict recovery regression
+        run: node dist/demos/checkpoint-recovery-coordinator-test.js
+
+      - name: Persistent checkpoint restart and CAS
+        run: node dist/demos/persistent-checkpoint-test.js
+
+      - name: Transactional checkpoint multi-instance CAS
+        run: node dist/demos/transactional-checkpoint-test.js

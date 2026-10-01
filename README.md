@@ -1,10 +1,10 @@
-# Agent AI 工程师 · Day 1–39 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–41 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 39**。
+当前课程代码进度：**Day 41**。
 
 ---
 
@@ -43,6 +43,10 @@ Durable Tool Execution
 ↓
 Checkpoint + Version / CAS
 ↓
+Persistent / Transactional Checkpoint Store
+↓
+Recovery Coordinator
+↓
 Recovery Planner
 ↓
 Reconciler
@@ -60,7 +64,7 @@ src/runtime/production-runtime.ts
 
 ---
 
-## Day 1～39 能力演进
+## Day 1～41 能力演进
 
 ### 1. Agent 基础
 
@@ -191,7 +195,7 @@ src/agent/agent-loop.ts
 
 ---
 
-# Day 35～39：Durable Agent Runtime
+# Day 35～41：Durable Agent Runtime
 
 这几天的重点已经从“失败以后抛异常”转向：
 
@@ -458,6 +462,69 @@ skip / retry / reconcile / suspend
 
 ---
 
+## Day 40～41：Persistent / Transactional Checkpoint
+
+Day 40 让 Checkpoint 第一次离开 `new Map()`：
+
+```text
+FileCheckpointStore
+↓
+write temporary file
+↓
+rename
+↓
+new Store instance
+↓
+load checkpoint
+```
+
+它验证的是：
+
+```text
+Process / Store Restart
+↓
+Checkpoint 仍然存在
+```
+
+Day 41 进一步把 CAS 语义下沉到共享存储 Contract：
+
+```text
+TransactionalCheckpointStore
+↓
+insertIfAbsent
+updateIfVersion
+↓
+Storage-level atomic compare + write
+```
+
+同时新增 `CheckpointRecoveryCoordinator`，把：
+
+```text
+Conflict
+↓
+reload
+↓
+re-plan
+```
+
+正式封装进 Recovery Runtime。
+
+相关实现：
+
+```text
+src/runtime/checkpoint-recovery-coordinator.ts
+src/runtime/file-checkpoint-store.ts
+src/runtime/transactional-checkpoint-store.ts
+
+src/demos/checkpoint-recovery-coordinator-test.ts
+src/demos/persistent-checkpoint-test.ts
+src/demos/transactional-checkpoint-test.ts
+```
+
+重要边界仍然保留：当前仓库还没有真正连接 PostgreSQL/SQLite，因此生产级跨进程 CAS 由 `TransactionalCheckpointDatabase` Contract 表达，还需要后续数据库 Adapter 落地。
+
+---
+
 # Deployment Boundary
 
 目前 Deployment Runtime 已包含：
@@ -542,6 +609,9 @@ src/
 │   ├── budget-policy.ts
 │   ├── checkpoint.ts
 │   ├── checkpoint-store.ts
+│   ├── file-checkpoint-store.ts
+│   ├── transactional-checkpoint-store.ts
+│   ├── checkpoint-recovery-coordinator.ts
 │   ├── durable-tool-executor.ts
 │   ├── recovery-planner.ts
 │   ├── reconciler.ts
@@ -600,6 +670,9 @@ npm run test:inflight-cancellation
 npm run test:resilient-cancellation
 
 npm run test:durable-recovery
+npm run test:checkpoint-recovery
+npm run test:persistent-checkpoint
+npm run test:transactional-checkpoint
 ```
 
 ---
@@ -624,6 +697,12 @@ Production Runtime Integration
 Resilient Cancellation
 ↓
 Durable Recovery
+↓
+Checkpoint Conflict Recovery
+↓
+Persistent Checkpoint Restart/CAS
+↓
+Transactional Multi-instance CAS
 ```
 
 当前最新代码已经通过以上检查。
@@ -636,29 +715,32 @@ Durable Recovery
 
 目前明确没有假装完成的部分：
 
-### 1. Checkpoint 还没有真正持久化到数据库
+### 1. 已有 File 持久化原型，但生产数据库 Adapter 还没接入
 
-目前：
+当前已经有：
 
 ```text
 InMemoryCheckpointStore
+FileCheckpointStore
+TransactionalCheckpointStore
 ```
 
-接下来应该实现：
+其中 `FileCheckpointStore` 用于验证 Restart Contract：新的 Store 实例仍能读回 Checkpoint；它只在同一 Node.js 进程内串行化文件读写，**不冒充跨进程原子 CAS**。
+
+`TransactionalCheckpointStore` 已把生产级存储需要的原子语义抽象出来：
 
 ```text
-PostgreSQL / SQLite / Redis Adapter
+insertIfAbsent
+updateIfVersion
 ```
 
-让 Agent 在：
+下一步仍需要接入真正的：
 
 ```text
-Process Crash
-Container Restart
-Server Restart
+PostgreSQL / SQLite
 ```
 
-之后还能读取之前的 Checkpoint。
+由共享存储执行原子的 Conditional Update。
 
 ### 2. Recovery 还需要真正接入业务 Tool
 

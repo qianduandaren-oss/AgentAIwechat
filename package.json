@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-39",
+  "name": "agent-ai-day1-41",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -39,7 +39,12 @@
     "test:running-cancellation": "npm run build && node dist/demos/running-cancellation-test.js",
     "test:inflight-cancellation": "npm run build && node dist/demos/inflight-cancellation-test.js",
     "test:resilient-cancellation": "npm run build && node dist/demos/resilient-cancellation-test.js",
-    "test:durable-recovery": "npm run build && node dist/demos/durable-recovery-test.js"
+    "test:durable-recovery": "npm run build && node dist/demos/durable-recovery-test.js",
+    "test:checkpoint-recovery": "npm run build && node dist/demos/checkpoint-recovery-coordinator-test.js",
+    "test:persistent-checkpoint": "npm run build && node dist/demos/persistent-checkpoint-test.js",
+    "test:transactional-checkpoint": "npm run build && node dist/demos/transactional-checkpoint-test.js"
   },
-  "devDependencies": { "typescript": "^5.8.3" }
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
 }

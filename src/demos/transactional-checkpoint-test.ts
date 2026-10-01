@@ -1,9 +1,18 @@
 import {
-  createInitialCheckpoint
+  createInitialCheckpoint,
+  upsertToolExecution,
+  type AgentRunCheckpoint
 } from "../runtime/checkpoint.js";
 import {
-  CheckpointConflictError
+  CheckpointConflictError,
+  type CheckpointStore
 } from "../runtime/checkpoint-store.js";
+import {
+  CheckpointRecoveryCoordinator
+} from "../runtime/checkpoint-recovery-coordinator.js";
+import {
+  ReconcilerRegistry
+} from "../runtime/reconciler.js";
 import {
   TransactionalCheckpointStore,
   type CheckpointRow,
@@ -220,6 +229,185 @@ assert(
   "expectedVersion=0 must conflict when run already exists"
 );
 
+/**
+ * Evening integration:
+ * two recovery workers can both reconcile the same persisted v1,
+ * but only one recovery state transition may commit.
+ */
+class InterleavingStore
+  implements CheckpointStore {
+
+  private interleaved = false;
+
+  constructor(
+    private readonly base:
+      TransactionalCheckpointStore,
+    private readonly beforeFirstSave:
+      () => Promise<void>
+  ) {}
+
+  load(
+    runId: string
+  ): Promise<AgentRunCheckpoint | undefined> {
+    return this.base.load(runId);
+  }
+
+  async save(
+    checkpoint: AgentRunCheckpoint,
+    expectedVersion: number
+  ): Promise<AgentRunCheckpoint> {
+    if (!this.interleaved) {
+      this.interleaved = true;
+      await this.beforeFirstSave();
+    }
+
+    return this.base.save(
+      checkpoint,
+      expectedVersion
+    );
+  }
+}
+
+const recoveryDatabase =
+  new InMemoryTransactionalDatabase();
+
+const recoveryStoreA =
+  new TransactionalCheckpointStore(
+    recoveryDatabase
+  );
+
+const recoveryStoreBBase =
+  new TransactionalCheckpointStore(
+    recoveryDatabase
+  );
+
+const crashCheckpoint =
+  upsertToolExecution(
+    {
+      ...createInitialCheckpoint(
+        "run-transactional-recovery"
+      ),
+      step: 3,
+      boundary: "reconciling_tool"
+    },
+    {
+      toolCallId: "external-action-1",
+      toolName: "execute_refund",
+      outcome: "started",
+      idempotencyKey: "effect-001",
+      sideEffect:
+        "external_side_effect",
+      retrySafe: false
+    }
+  );
+
+const persistedCrash =
+  await recoveryStoreA.save(
+    crashCheckpoint,
+    0
+  );
+
+assert(
+  persistedCrash.version === 1,
+  "crash checkpoint should be persisted as v1"
+);
+
+let reconcileCalls = 0;
+
+function createRegistry():
+  ReconcilerRegistry {
+  const registry =
+    new ReconcilerRegistry();
+
+  registry.register(
+    "execute_refund",
+    {
+      async reconcile() {
+        reconcileCalls += 1;
+        return "executed";
+      }
+    }
+  );
+
+  return registry;
+}
+
+const recoveryWorkerA =
+  new CheckpointRecoveryCoordinator(
+    recoveryStoreA,
+    createRegistry()
+  );
+
+let workerARecoveredVersion = 0;
+
+const recoveryStoreB =
+  new InterleavingStore(
+    recoveryStoreBBase,
+    async () => {
+      const result =
+        await recoveryWorkerA.recover(
+          "run-transactional-recovery"
+        );
+
+      workerARecoveredVersion =
+        result.checkpoint.version;
+    }
+  );
+
+const recoveryWorkerB =
+  new CheckpointRecoveryCoordinator(
+    recoveryStoreB,
+    createRegistry()
+  );
+
+const workerBRecoveryResult =
+  await recoveryWorkerB.recover(
+    "run-transactional-recovery"
+  );
+
+assert(
+  workerARecoveredVersion === 2,
+  "worker A should win the recovery transition and create v2"
+);
+
+assert(
+  workerBRecoveryResult.conflicts === 1,
+  "worker B should observe one transactional CAS conflict"
+);
+
+assert(
+  workerBRecoveryResult.checkpoint.version === 2,
+  "worker B should reload v2 after conflict"
+);
+
+assert(
+  workerBRecoveryResult.checkpoint.boundary ===
+    "ready_for_next_step",
+  "reloaded v2 should already be advanced"
+);
+
+assert(
+  workerBRecoveryResult.checkpoint
+    .toolExecutions[0]?.outcome ===
+    "executed",
+  "reloaded v2 should preserve reconciled outcome"
+);
+
+assert(
+  reconcileCalls === 2,
+  "both workers may query reality, but only one transition may commit"
+);
+
+const recoveryLatest =
+  await recoveryStoreA.load(
+    "run-transactional-recovery"
+  );
+
+assert(
+  recoveryLatest?.version === 2,
+  "shared storage should contain exactly one committed recovery transition"
+);
+
 console.log(
-  "transactional checkpoint multi-instance CAS tests passed"
+  "transactional checkpoint and crash recovery tests passed"
 );

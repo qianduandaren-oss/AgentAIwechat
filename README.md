@@ -1,10 +1,10 @@
-# Agent AI 工程师 · Day 1–41 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–42 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 41**。
+当前课程代码进度：**Day 42**。
 
 ---
 
@@ -64,7 +64,7 @@ src/runtime/production-runtime.ts
 
 ---
 
-## Day 1～41 能力演进
+## Day 1～42 能力演进
 
 ### 1. Agent 基础
 
@@ -522,6 +522,37 @@ src/demos/transactional-checkpoint-test.ts
 ```
 
 重要边界仍然保留：当前仓库还没有真正连接 PostgreSQL/SQLite，因此生产级跨进程 CAS 由 `TransactionalCheckpointDatabase` Contract 表达，还需要后续数据库 Adapter 落地。
+
+---
+
+## Day 42：SQLite Checkpoint Store
+
+Day 41 已经把原子持久化需要的接口稳定为：
+
+```text
+load
+insertIfAbsent
+updateIfVersion
+```
+
+Day 42 开始把这套 Contract 接到真正的数据库语义。早课先固化 SQLite 表结构和 CAS SQL：
+
+```text
+src/runtime/sqlite-checkpoint-sql.ts
+docs/day42-sqlite-checkpoint-store.md
+```
+
+重点不是“用了 SQLite 就自动安全”，而是让：
+
+```text
+Compare
++
+Write
+```
+
+真正由数据库引擎原子执行。
+
+Day 42 午练会继续补 SQLite Adapter，并用独立连接验证 Restart + CAS。
 
 ---
 

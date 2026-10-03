@@ -2,7 +2,7 @@ name: Runtime Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, day43-noon-ci]
   pull_request:
 
 jobs:
@@ -46,3 +46,13 @@ jobs:
 
       - name: Transactional checkpoint multi-instance CAS
         run: node dist/demos/transactional-checkpoint-test.js
+
+
+      - name: SQLite checkpoint restart and CAS
+        run: node dist/demos/sqlite-checkpoint-test.js
+
+      - name: SQLite crash recovery integration
+        run: node dist/demos/sqlite-recovery-integration-test.js
+
+      - name: Recovery observability regression
+        run: node dist/demos/recovery-observability-test.js

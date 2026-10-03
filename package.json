@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-41",
+  "name": "agent-ai-day1-43",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -42,7 +42,10 @@
     "test:durable-recovery": "npm run build && node dist/demos/durable-recovery-test.js",
     "test:checkpoint-recovery": "npm run build && node dist/demos/checkpoint-recovery-coordinator-test.js",
     "test:persistent-checkpoint": "npm run build && node dist/demos/persistent-checkpoint-test.js",
-    "test:transactional-checkpoint": "npm run build && node dist/demos/transactional-checkpoint-test.js"
+    "test:transactional-checkpoint": "npm run build && node dist/demos/transactional-checkpoint-test.js",
+    "test:sqlite-checkpoint": "npm run build && node dist/demos/sqlite-checkpoint-test.js",
+    "test:sqlite-recovery": "npm run build && node dist/demos/sqlite-recovery-integration-test.js",
+    "test:recovery-observability": "npm run build && node dist/demos/recovery-observability-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

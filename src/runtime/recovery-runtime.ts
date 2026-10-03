@@ -23,6 +23,22 @@ export type RecoveryPolicyResolver = (
   toolName: string
 ) => ToolEffectPolicy;
 
+export interface RecoveryRuntimeHooks {
+  onPlanDecided?(
+    plan: RecoveryPlan,
+    record: ToolExecutionRecord
+  ): Promise<void> | void;
+
+  onReconciliationStarted?(
+    record: ToolExecutionRecord
+  ): Promise<void> | void;
+
+  onReconciliationCompleted?(
+    outcome: ReconciliationOutcome,
+    record: ToolExecutionRecord
+  ): Promise<void> | void;
+}
+
 function buildPlan(
   record: ToolExecutionRecord,
   policy: ToolEffectPolicy,
@@ -40,10 +56,13 @@ function buildPlan(
 export async function recoverToolExecution(
   record: ToolExecutionRecord,
   registry: ReconcilerRegistry,
-  policyResolver: RecoveryPolicyResolver = getToolEffectPolicy
+  policyResolver: RecoveryPolicyResolver = getToolEffectPolicy,
+  hooks: RecoveryRuntimeHooks = {}
 ): Promise<RecoveryResolution> {
   const policy = policyResolver(record.toolName);
   const plan = buildPlan(record, policy, registry);
+
+  await hooks.onPlanDecided?.(plan, record);
 
   if (plan.action !== "reconcile") {
     return { plan };
@@ -59,10 +78,17 @@ export async function recoverToolExecution(
     };
   }
 
+  await hooks.onReconciliationStarted?.(record);
+
   const reconciliationOutcome = await reconciler.reconcile({
     toolName: record.toolName,
     idempotencyKey: record.idempotencyKey
   });
+
+  await hooks.onReconciliationCompleted?.(
+    reconciliationOutcome,
+    record
+  );
 
   if (reconciliationOutcome === "executed") {
     return {

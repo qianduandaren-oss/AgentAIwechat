@@ -2,7 +2,7 @@ name: Runtime Tests
 
 on:
   push:
-    branches: [main, day43-noon-ci]
+    branches: [main, day43-noon-ci, day44-noon-ready]
   pull_request:
 
 jobs:
@@ -56,3 +56,6 @@ jobs:
 
       - name: Recovery observability regression
         run: node dist/demos/recovery-observability-test.js
+
+      - name: Recovery operation service regression
+        run: node dist/demos/recovery-operations-test.js

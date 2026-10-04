@@ -1,5 +1,5 @@
 {
-  "name": "agent-ai-day1-43",
+  "name": "agent-ai-day1-44",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -45,7 +45,8 @@
     "test:transactional-checkpoint": "npm run build && node dist/demos/transactional-checkpoint-test.js",
     "test:sqlite-checkpoint": "npm run build && node dist/demos/sqlite-checkpoint-test.js",
     "test:sqlite-recovery": "npm run build && node dist/demos/sqlite-recovery-integration-test.js",
-    "test:recovery-observability": "npm run build && node dist/demos/recovery-observability-test.js"
+    "test:recovery-observability": "npm run build && node dist/demos/recovery-observability-test.js",
+    "test:recovery-operations": "npm run build && node dist/demos/recovery-operations-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

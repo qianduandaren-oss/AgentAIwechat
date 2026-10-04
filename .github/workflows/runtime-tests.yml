@@ -2,7 +2,7 @@ name: Runtime Tests
 
 on:
   push:
-    branches: [main, day43-noon-ci, day44-noon-ready]
+    branches: [main, day43-noon-ci, day44-noon-ready, day44-evening-ops]
   pull_request:
 
 jobs:

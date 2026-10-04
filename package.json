@@ -46,7 +46,8 @@
     "test:sqlite-checkpoint": "npm run build && node dist/demos/sqlite-checkpoint-test.js",
     "test:sqlite-recovery": "npm run build && node dist/demos/sqlite-recovery-integration-test.js",
     "test:recovery-observability": "npm run build && node dist/demos/recovery-observability-test.js",
-    "test:recovery-operations": "npm run build && node dist/demos/recovery-operations-test.js"
+    "test:recovery-operations": "npm run build && node dist/demos/recovery-operations-test.js",
+    "test:recovery-operation-lifecycle": "npm run build && node dist/demos/recovery-operation-lifecycle-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

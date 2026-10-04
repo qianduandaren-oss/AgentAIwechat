@@ -16,7 +16,10 @@ import {
 export type RecoveryOperation =
   | "retry_recovery"
   | "reconcile_again"
-  | "quarantine";
+  | "quarantine"
+  | "release_quarantine"
+  | "resume"
+  | "dead_letter";
 
 export interface RecoveryOperationCommand {
   runId: string;
@@ -24,6 +27,7 @@ export interface RecoveryOperationCommand {
   requestedBy: string;
   reason: string;
   expectedCheckpointVersion: number;
+  expectedControlVersion?: number;
 }
 
 export interface RecoveryAuthorizationDecision {
@@ -68,14 +72,32 @@ export class StaticRecoveryOperationAuthorizer
 
 export type RecoveryOperationalStatus =
   | "active"
-  | "quarantined";
+  | "quarantined"
+  | "dead_lettered";
 
 export interface RecoveryControlState {
   runId: string;
+  version: number;
   status: RecoveryOperationalStatus;
   reason?: string;
   updatedBy?: string;
   updatedAt: string;
+}
+
+export class RecoveryControlConflictError
+  extends Error {
+
+  constructor(
+    public readonly runId: string,
+    public readonly expectedVersion: number,
+    public readonly actualVersion: number
+  ) {
+    super(
+      `Recovery control conflict for ${runId}: expected version ${expectedVersion}, actual version ${actualVersion}`
+    );
+    this.name =
+      "RecoveryControlConflictError";
+  }
 }
 
 export interface RecoveryControlStore {
@@ -84,8 +106,15 @@ export interface RecoveryControlStore {
   ): Promise<RecoveryControlState | undefined>;
 
   save(
-    state: RecoveryControlState
-  ): Promise<void>;
+    state: RecoveryControlState,
+    expectedVersion: number
+  ): Promise<RecoveryControlState>;
+}
+
+function cloneControlState(
+  state: RecoveryControlState
+): RecoveryControlState {
+  return structuredClone(state);
 }
 
 export class InMemoryRecoveryControlStore
@@ -99,17 +128,42 @@ export class InMemoryRecoveryControlStore
   ): Promise<RecoveryControlState | undefined> {
     const state = this.states.get(runId);
     return state
-      ? structuredClone(state)
+      ? cloneControlState(state)
       : undefined;
   }
 
   async save(
-    state: RecoveryControlState
-  ): Promise<void> {
+    state: RecoveryControlState,
+    expectedVersion: number
+  ): Promise<RecoveryControlState> {
+    const current =
+      this.states.get(state.runId);
+
+    const actualVersion =
+      current?.version ?? 0;
+
+    if (
+      actualVersion !==
+      expectedVersion
+    ) {
+      throw new RecoveryControlConflictError(
+        state.runId,
+        expectedVersion,
+        actualVersion
+      );
+    }
+
+    const saved: RecoveryControlState = {
+      ...cloneControlState(state),
+      version: actualVersion + 1
+    };
+
     this.states.set(
-      state.runId,
-      structuredClone(state)
+      saved.runId,
+      cloneControlState(saved)
     );
+
+    return cloneControlState(saved);
   }
 }
 
@@ -117,12 +171,15 @@ export type RecoveryOperationResultStatus =
   | "executed"
   | "rejected"
   | "quarantined"
+  | "released"
+  | "dead_lettered"
   | "no_op";
 
 export interface RecoveryOperationResult {
   status: RecoveryOperationResultStatus;
   reason: string;
   checkpoint: AgentRunCheckpoint;
+  controlState: RecoveryControlState;
   recovery?: RecoveryCoordinatorResult;
 }
 
@@ -172,6 +229,11 @@ export class RecoveryOperationService {
         command.runId
       );
 
+    const control =
+      await this.loadControlState(
+        command.runId
+      );
+
     if (!decision.allowed) {
       await this.audit(
         command,
@@ -182,7 +244,8 @@ export class RecoveryOperationService {
       return {
         status: "rejected",
         reason: decision.reason,
-        checkpoint
+        checkpoint,
+        controlState: control
       };
     }
 
@@ -200,7 +263,30 @@ export class RecoveryOperationService {
         status: "rejected",
         reason:
           "checkpoint_version_conflict",
-        checkpoint
+        checkpoint,
+        controlState: control
+      };
+    }
+
+    const expectedControlVersion =
+      command.expectedControlVersion ?? 0;
+
+    if (
+      control.version !==
+      expectedControlVersion
+    ) {
+      await this.audit(
+        command,
+        "denied",
+        "control_version_conflict"
+      );
+
+      return {
+        status: "rejected",
+        reason:
+          "control_version_conflict",
+        checkpoint,
+        controlState: control
       };
     }
 
@@ -218,43 +304,63 @@ export class RecoveryOperationService {
         status: "no_op",
         reason:
           "checkpoint_already_completed",
-        checkpoint
+        checkpoint,
+        controlState: control
       };
     }
 
-    const control =
-      await this.controlStore.load(
-        command.runId
-      );
-
     if (
-      control?.status === "quarantined" &&
-      command.operation !== "quarantine"
+      control.status ===
+      "dead_lettered"
     ) {
       await this.audit(
         command,
         "denied",
-        "run_quarantined"
+        "run_dead_lettered"
       );
 
       return {
         status: "rejected",
-        reason: "run_quarantined",
-        checkpoint
+        reason: "run_dead_lettered",
+        checkpoint,
+        controlState: control
       };
     }
 
     if (
       command.operation === "quarantine"
     ) {
-      await this.controlStore.save({
-        runId: command.runId,
-        status: "quarantined",
-        reason: command.reason,
-        updatedBy:
-          command.requestedBy,
-        updatedAt: this.now()
-      });
+      if (
+        control.status ===
+        "quarantined"
+      ) {
+        await this.audit(
+          command,
+          "executed",
+          "run_already_quarantined_noop"
+        );
+
+        return {
+          status: "no_op",
+          reason:
+            "run_already_quarantined",
+          checkpoint,
+          controlState: control
+        };
+      }
+
+      const nextControl =
+        await this.controlStore.save(
+          {
+            ...control,
+            status: "quarantined",
+            reason: command.reason,
+            updatedBy:
+              command.requestedBy,
+            updatedAt: this.now()
+          },
+          control.version
+        );
 
       await this.audit(
         command,
@@ -265,10 +371,161 @@ export class RecoveryOperationService {
       return {
         status: "quarantined",
         reason: "run_quarantined",
-        checkpoint
+        checkpoint,
+        controlState: nextControl
       };
     }
 
+    if (
+      command.operation ===
+      "release_quarantine"
+    ) {
+      if (
+        control.status !==
+        "quarantined"
+      ) {
+        await this.audit(
+          command,
+          "denied",
+          "release_requires_quarantine"
+        );
+
+        return {
+          status: "rejected",
+          reason:
+            "release_requires_quarantine",
+          checkpoint,
+          controlState: control
+        };
+      }
+
+      const nextControl =
+        await this.controlStore.save(
+          {
+            ...control,
+            status: "active",
+            reason: command.reason,
+            updatedBy:
+              command.requestedBy,
+            updatedAt: this.now()
+          },
+          control.version
+        );
+
+      await this.audit(
+        command,
+        "executed",
+        "run_released"
+      );
+
+      return {
+        status: "released",
+        reason: "run_released",
+        checkpoint,
+        controlState: nextControl
+      };
+    }
+
+    if (
+      command.operation ===
+      "dead_letter"
+    ) {
+      const nextControl =
+        await this.controlStore.save(
+          {
+            ...control,
+            status:
+              "dead_lettered",
+            reason: command.reason,
+            updatedBy:
+              command.requestedBy,
+            updatedAt: this.now()
+          },
+          control.version
+        );
+
+      await this.audit(
+        command,
+        "executed",
+        "run_dead_lettered"
+      );
+
+      return {
+        status: "dead_lettered",
+        reason: "run_dead_lettered",
+        checkpoint,
+        controlState: nextControl
+      };
+    }
+
+    if (
+      command.operation === "resume"
+    ) {
+      if (
+        control.status !==
+        "quarantined"
+      ) {
+        await this.audit(
+          command,
+          "denied",
+          "resume_requires_quarantine"
+        );
+
+        return {
+          status: "rejected",
+          reason:
+            "resume_requires_quarantine",
+          checkpoint,
+          controlState: control
+        };
+      }
+
+      const released =
+        await this.controlStore.save(
+          {
+            ...control,
+            status: "active",
+            reason: command.reason,
+            updatedBy:
+              command.requestedBy,
+            updatedAt: this.now()
+          },
+          control.version
+        );
+
+      return this.runRecovery(
+        command,
+        released
+      );
+    }
+
+    if (
+      control.status === "quarantined"
+    ) {
+      await this.audit(
+        command,
+        "denied",
+        "run_quarantined"
+      );
+
+      return {
+        status: "rejected",
+        reason: "run_quarantined",
+        checkpoint,
+        controlState: control
+      };
+    }
+
+    return this.runRecovery(
+      command,
+      control
+    );
+  }
+
+  private async runRecovery(
+    command: RecoveryOperationCommand,
+    controlState: RecoveryControlState
+  ): Promise<RecoveryOperationResult> {
     try {
       const recovery =
         await this.coordinator.recover(
@@ -287,6 +544,7 @@ export class RecoveryOperationService {
           `recovery_${recovery.status}`,
         checkpoint:
           recovery.checkpoint,
+        controlState,
         recovery
       };
     } catch (error) {
@@ -299,6 +557,26 @@ export class RecoveryOperationService {
       );
       throw error;
     }
+  }
+
+  private async loadControlState(
+    runId: string
+  ): Promise<RecoveryControlState> {
+    const state =
+      await this.controlStore.load(
+        runId
+      );
+
+    if (state) {
+      return state;
+    }
+
+    return {
+      runId,
+      version: 0,
+      status: "active",
+      updatedAt: this.now()
+    };
   }
 
   private async requireCheckpoint(

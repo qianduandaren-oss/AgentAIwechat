@@ -1,10 +1,10 @@
-# Agent AI 工程师 · Day 1–41 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–44 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 41**。
+当前课程代码进度：**Day 44**。
 
 ---
 
@@ -64,7 +64,7 @@ src/runtime/production-runtime.ts
 
 ---
 
-## Day 1～41 能力演进
+## Day 1～44 能力演进
 
 ### 1. Agent 基础
 
@@ -801,4 +801,54 @@ Reasoning
 
 ```text
 docs/
+```
+
+
+---
+
+## Day 42～44：SQLite、Recovery Observability 与人工恢复
+
+这一阶段把 Durable Agent 从“能恢复”继续推进到“能持久化、能观测、能运营”。
+
+核心链路：
+
+```text
+SQLite-backed Checkpoint
+↓
+Crash Recovery
+↓
+Recovery Event
+↓
+Metrics / Suspended Runs
+↓
+RecoveryOperationService
+↓
+Authorization + Audit
+↓
+Checkpoint Version + Control Version
+↓
+quarantine / release / resume / dead-letter
+```
+
+Day 44 额外引入独立的 Operational Control Version。它和 `checkpoint.version` 解决的是两个不同维度的并发问题：
+
+```text
+checkpoint.version
+→ Runtime 状态是否过期
+
+control.version
+→ 运营控制状态是否过期
+```
+
+人工操作仍然不能直接调用副作用 Tool。所有 retry / reconcile / resume 都必须重新进入 Recovery Coordinator，由 ToolEffectPolicy、Reconciler、Idempotency 和 CAS 共同决定下一步。
+
+对应实现：
+
+```text
+src/runtime/recovery-operations.ts
+src/runtime/recovery-metrics.ts
+src/runtime/suspended-run-registry.ts
+
+src/demos/recovery-operations-test.ts
+src/demos/recovery-operation-lifecycle-test.ts
 ```

@@ -48,7 +48,8 @@
     "test:recovery-observability": "npm run build && node dist/demos/recovery-observability-test.js",
     "test:recovery-operations": "npm run build && node dist/demos/recovery-operations-test.js",
     "test:recovery-operation-lifecycle": "npm run build && node dist/demos/recovery-operation-lifecycle-test.js",
-    "test:recovery-command-outbox": "npm run build && node dist/demos/recovery-command-outbox-test.js"
+    "test:recovery-command-outbox": "npm run build && node dist/demos/recovery-command-outbox-test.js",
+    "test:recovery-unit-of-work": "npm run build && node dist/demos/sqlite-recovery-unit-of-work-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

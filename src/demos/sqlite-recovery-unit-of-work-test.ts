@@ -1,4 +1,4 @@
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import {
   createInitialCheckpoint,
   upsertToolExecution
@@ -230,9 +230,6 @@ assert(
 );
 
 uow.close();
-await rm(databasePath, { force: true });
-await rm(`${databasePath}-shm`, { force: true });
-await rm(`${databasePath}-wal`, { force: true });
 
 console.log(
   "sqlite recovery finalization unit-of-work tests passed"

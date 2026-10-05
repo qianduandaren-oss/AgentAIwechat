@@ -1,10 +1,10 @@
-# Agent AI 工程师 · Day 1–44 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–45 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 44**。
+当前课程代码进度：**Day 45**。
 
 ---
 
@@ -852,3 +852,18 @@ src/runtime/suspended-run-registry.ts
 src/demos/recovery-operations-test.ts
 src/demos/recovery-operation-lifecycle-test.ts
 ```
+
+
+## Day 45：Durable Command + Outbox
+
+Human Recovery 继续从“有操作按钮”推进到“命令本身可恢复”。
+
+新增：
+
+- Durable Recovery Command Record：稳定 commandId、状态机和 version/OCC
+- In-memory Command Store：insertIfAbsent + updateIfVersion
+- Recovery Outbox：pending / dispatched、attempts、version
+- Outbox Dispatcher：按 at-least-once 语义重试投递
+- Consumer Idempotency：通过 eventId / commandId 抵抗重复事件
+
+当前 Day 45 午练仍然是 Contract / In-memory Prototype，用来验证命令幂等与 Outbox 重投语义；它还没有冒充数据库事务。下一步会把 RecoveryOperationService、Checkpoint / Control 变化、Command Record 与 Outbox Record 放进同一个 SQLite/PostgreSQL 事务边界。

@@ -203,3 +203,5 @@ assert(
 );
 
 console.log("recovery command and outbox tests passed");
+
+await import("./sqlite-recovery-unit-of-work-test.js");

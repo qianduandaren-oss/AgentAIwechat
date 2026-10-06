@@ -1,8 +1,6 @@
 import { createId } from "../shared/utils.js";
-import {
-  type AgentRunCheckpoint,
-  type ToolExecutionRecord,
-  upsertToolExecution
+import type {
+  AgentRunCheckpoint
 } from "./checkpoint.js";
 import {
   CheckpointConflictError,
@@ -12,11 +10,17 @@ import type {
   RecoveryEvent,
   RecoveryEventSink
 } from "./recovery-observability.js";
-import { ReconcilerRegistry } from "./reconciler.js";
 import {
-  recoverToolExecution,
-  type RecoveryResolution
+  prepareRecoveryTransition
+} from "./recovery-preparation.js";
+import { ReconcilerRegistry } from "./reconciler.js";
+import type {
+  RecoveryResolution
 } from "./recovery-runtime.js";
+import {
+  CheckpointStoreRecoveryTransitionCommitter,
+  type RecoveryTransitionCommitter
+} from "./recovery-transition-committer.js";
 
 export type RecoveryCoordinatorStatus =
   | "completed"
@@ -38,93 +42,7 @@ export interface CheckpointRecoveryCoordinatorOptions {
   eventSink?: RecoveryEventSink;
   attemptIdFactory?: () => string;
   now?: () => string;
-}
-
-function findRecoveryRecord(
-  checkpoint: AgentRunCheckpoint
-): ToolExecutionRecord | undefined {
-  return [...checkpoint.toolExecutions]
-    .reverse()
-    .find(record =>
-      record.outcome === "started" ||
-      record.outcome === "unknown" ||
-      record.outcome === "failed" ||
-      record.outcome === "never_executed" ||
-      record.outcome === "executed"
-    );
-}
-
-function applyResolution(
-  checkpoint: AgentRunCheckpoint,
-  record: ToolExecutionRecord,
-  resolution: RecoveryResolution
-): {
-  checkpoint: AgentRunCheckpoint;
-  status: RecoveryCoordinatorStatus;
-  shouldPersist: boolean;
-} {
-  const action = resolution.nextPlan?.action ?? resolution.plan.action;
-
-  if (resolution.resolvedOutcome === "executed" || action === "skip") {
-    const executed: ToolExecutionRecord = {
-      ...record,
-      outcome: "executed",
-      finishedAt: record.finishedAt ?? new Date().toISOString()
-    };
-
-    return {
-      checkpoint: upsertToolExecution(
-        { ...checkpoint, boundary: "ready_for_next_step" },
-        executed
-      ),
-      status: "advanced",
-      shouldPersist:
-        record.outcome !== "executed" ||
-        checkpoint.boundary !== "ready_for_next_step"
-    };
-  }
-
-  if (resolution.resolvedOutcome === "never_executed" || action === "retry") {
-    const retryable: ToolExecutionRecord = {
-      ...record,
-      outcome: "never_executed"
-    };
-
-    return {
-      checkpoint: upsertToolExecution(
-        { ...checkpoint, boundary: "ready_for_tool" },
-        retryable
-      ),
-      status: "retry_required",
-      shouldPersist:
-        record.outcome !== "never_executed" ||
-        checkpoint.boundary !== "ready_for_tool"
-    };
-  }
-
-  if (resolution.resolvedOutcome === "unknown" || action === "suspend") {
-    const suspended: ToolExecutionRecord = {
-      ...record,
-      outcome: resolution.resolvedOutcome ?? record.outcome
-    };
-
-    return {
-      checkpoint: upsertToolExecution(
-        { ...checkpoint, boundary: "reconciling_tool" },
-        suspended
-      ),
-      status: "suspended",
-      shouldPersist:
-        suspended.outcome !== record.outcome ||
-        checkpoint.boundary !== "reconciling_tool"
-    };
-  }
-
-  return {
-    checkpoint,
-    status: "suspended",
-    shouldPersist: false
-  };
+  committer?: RecoveryTransitionCommitter;
 }
 
 export class CheckpointRecoveryCoordinator {
@@ -132,6 +50,8 @@ export class CheckpointRecoveryCoordinator {
   private readonly eventSink?: RecoveryEventSink;
   private readonly attemptIdFactory: () => string;
   private readonly now: () => string;
+  private readonly committer:
+    RecoveryTransitionCommitter;
 
   constructor(
     private readonly checkpointStore: CheckpointStore,
@@ -141,8 +61,16 @@ export class CheckpointRecoveryCoordinator {
     this.maxConflicts = options.maxConflicts ?? 5;
     this.eventSink = options.eventSink;
     this.attemptIdFactory =
-      options.attemptIdFactory ?? (() => createId("recovery"));
-    this.now = options.now ?? (() => new Date().toISOString());
+      options.attemptIdFactory ??
+      (() => createId("recovery"));
+    this.now =
+      options.now ??
+      (() => new Date().toISOString());
+    this.committer =
+      options.committer ??
+      new CheckpointStoreRecoveryTransitionCommitter(
+        checkpointStore
+      );
   }
 
   private async record(
@@ -160,9 +88,12 @@ export class CheckpointRecoveryCoordinator {
     }
   }
 
-  async recover(runId: string): Promise<RecoveryCoordinatorResult> {
+  async recover(
+    runId: string
+  ): Promise<RecoveryCoordinatorResult> {
     let conflicts = 0;
-    const recoveryAttemptId = this.attemptIdFactory();
+    const recoveryAttemptId =
+      this.attemptIdFactory();
 
     await this.record({
       type: "recovery_started",
@@ -171,9 +102,13 @@ export class CheckpointRecoveryCoordinator {
     });
 
     while (true) {
-      const checkpoint = await this.checkpointStore.load(runId);
+      const checkpoint =
+        await this.checkpointStore.load(runId);
+
       if (!checkpoint) {
-        throw new Error(`Checkpoint not found: ${runId}`);
+        throw new Error(
+          `Checkpoint not found: ${runId}`
+        );
       }
 
       await this.record({
@@ -185,111 +120,139 @@ export class CheckpointRecoveryCoordinator {
         conflictCount: conflicts
       });
 
-      if (checkpoint.boundary === "completed") {
-        await this.record({
-          type: "recovery_completed",
-          runId,
-          recoveryAttemptId,
-          checkpointVersion: checkpoint.version,
-          boundary: checkpoint.boundary,
-          reason: "checkpoint_already_completed",
-          conflictCount: conflicts
-        });
-
-        return {
-          status: "completed",
+      const prepared =
+        await prepareRecoveryTransition(
           checkpoint,
-          conflicts,
-          recoveryAttemptId
-        };
-      }
-
-      const record = findRecoveryRecord(checkpoint);
-      if (!record) {
-        await this.record({
-          type: "recovery_completed",
-          runId,
-          recoveryAttemptId,
-          checkpointVersion: checkpoint.version,
-          boundary: checkpoint.boundary,
-          reason: "no_pending_tool_execution",
-          conflictCount: conflicts
-        });
-
-        return {
-          status: "no_pending_tool",
-          checkpoint,
-          conflicts,
-          recoveryAttemptId
-        };
-      }
-
-      const resolution = await recoverToolExecution(
-        record,
-        this.reconcilerRegistry,
-        undefined,
-        {
-          onPlanDecided: async plan => {
-            await this.record({
-              type: "plan_decided",
-              runId,
-              recoveryAttemptId,
-              checkpointVersion: checkpoint.version,
-              toolCallId: record.toolCallId,
-              toolName: record.toolName,
-              action: plan.action,
-              reason: plan.reason,
-              conflictCount: conflicts
-            });
-          },
-          onReconciliationStarted: async () => {
-            await this.record({
-              type: "reconciliation_started",
-              runId,
-              recoveryAttemptId,
-              checkpointVersion: checkpoint.version,
-              toolCallId: record.toolCallId,
-              toolName: record.toolName,
-              conflictCount: conflicts
-            });
-          },
-          onReconciliationCompleted: async outcome => {
-            await this.record({
-              type: "reconciliation_completed",
-              runId,
-              recoveryAttemptId,
-              checkpointVersion: checkpoint.version,
-              toolCallId: record.toolCallId,
-              toolName: record.toolName,
-              reconciliationOutcome: outcome,
-              conflictCount: conflicts
-            });
+          this.reconcilerRegistry,
+          {
+            now: this.now,
+            hooks: {
+              onPlanDecided:
+                async (plan, record) => {
+                  await this.record({
+                    type: "plan_decided",
+                    runId,
+                    recoveryAttemptId,
+                    checkpointVersion:
+                      checkpoint.version,
+                    toolCallId:
+                      record.toolCallId,
+                    toolName:
+                      record.toolName,
+                    action: plan.action,
+                    reason: plan.reason,
+                    conflictCount:
+                      conflicts
+                  });
+                },
+              onReconciliationStarted:
+                async record => {
+                  await this.record({
+                    type:
+                      "reconciliation_started",
+                    runId,
+                    recoveryAttemptId,
+                    checkpointVersion:
+                      checkpoint.version,
+                    toolCallId:
+                      record.toolCallId,
+                    toolName:
+                      record.toolName,
+                    conflictCount:
+                      conflicts
+                  });
+                },
+              onReconciliationCompleted:
+                async (outcome, record) => {
+                  await this.record({
+                    type:
+                      "reconciliation_completed",
+                    runId,
+                    recoveryAttemptId,
+                    checkpointVersion:
+                      checkpoint.version,
+                    toolCallId:
+                      record.toolCallId,
+                    toolName:
+                      record.toolName,
+                    reconciliationOutcome:
+                      outcome,
+                    conflictCount:
+                      conflicts
+                  });
+                }
+            }
           }
-        }
-      );
+        );
 
-      const applied = applyResolution(checkpoint, record, resolution);
+      if (
+        prepared.status === "completed" ||
+        prepared.status ===
+          "no_pending_tool"
+      ) {
+        await this.record({
+          type: "recovery_completed",
+          runId,
+          recoveryAttemptId,
+          checkpointVersion:
+            checkpoint.version,
+          boundary:
+            prepared.nextCheckpoint.boundary,
+          reason:
+            prepared.status === "completed"
+              ? "checkpoint_already_completed"
+              : "no_pending_tool_execution",
+          conflictCount: conflicts
+        });
 
-      if (!applied.shouldPersist) {
+        return {
+          status: prepared.status,
+          checkpoint:
+            prepared.nextCheckpoint,
+          conflicts,
+          recoveryAttemptId
+        };
+      }
+
+      const record = prepared.record;
+      const resolution =
+        prepared.resolution;
+
+      if (!record || !resolution) {
+        throw new Error(
+          `Recovery preparation missing decision data for ${runId}`
+        );
+      }
+
+      if (!prepared.shouldPersist) {
         await this.record({
           type:
-            applied.status === "suspended"
+            prepared.status === "suspended"
               ? "recovery_suspended"
               : "recovery_completed",
           runId,
           recoveryAttemptId,
-          checkpointVersion: checkpoint.version,
-          boundary: applied.checkpoint.boundary,
-          toolCallId: record.toolCallId,
-          toolName: record.toolName,
-          action: resolution.nextPlan?.action ?? resolution.plan.action,
-          reason: resolution.nextPlan?.reason ?? resolution.plan.reason,
+          checkpointVersion:
+            checkpoint.version,
+          boundary:
+            prepared.nextCheckpoint.boundary,
+          toolCallId:
+            record.toolCallId,
+          toolName:
+            record.toolName,
+          action:
+            resolution.nextPlan?.action ??
+            resolution.plan.action,
+          reason:
+            resolution.nextPlan?.reason ??
+            resolution.plan.reason,
           conflictCount: conflicts
         });
 
         return {
-          status: applied.status,
-          checkpoint: applied.checkpoint,
+          status: prepared.status,
+          checkpoint:
+            prepared.nextCheckpoint,
           conflicts,
           recoveryAttemptId,
           resolution
@@ -297,47 +260,62 @@ export class CheckpointRecoveryCoordinator {
       }
 
       try {
-        const saved = await this.checkpointStore.save(
-          applied.checkpoint,
-          checkpoint.version
-        );
+        const saved =
+          await this.committer.commit(
+            prepared
+          );
 
         await this.record({
           type: "checkpoint_saved",
           runId,
           recoveryAttemptId,
-          checkpointVersion: saved.version,
+          checkpointVersion:
+            saved.version,
           boundary: saved.boundary,
-          toolCallId: record.toolCallId,
-          toolName: record.toolName,
+          toolCallId:
+            record.toolCallId,
+          toolName:
+            record.toolName,
           conflictCount: conflicts
         });
 
         await this.record({
           type:
-            applied.status === "suspended"
+            prepared.status === "suspended"
               ? "recovery_suspended"
               : "recovery_completed",
           runId,
           recoveryAttemptId,
-          checkpointVersion: saved.version,
+          checkpointVersion:
+            saved.version,
           boundary: saved.boundary,
-          toolCallId: record.toolCallId,
-          toolName: record.toolName,
-          action: resolution.nextPlan?.action ?? resolution.plan.action,
-          reason: resolution.nextPlan?.reason ?? resolution.plan.reason,
+          toolCallId:
+            record.toolCallId,
+          toolName:
+            record.toolName,
+          action:
+            resolution.nextPlan?.action ??
+            resolution.plan.action,
+          reason:
+            resolution.nextPlan?.reason ??
+            resolution.plan.reason,
           conflictCount: conflicts
         });
 
         return {
-          status: applied.status,
+          status: prepared.status,
           checkpoint: saved,
           conflicts,
           recoveryAttemptId,
           resolution
         };
       } catch (error) {
-        if (!(error instanceof CheckpointConflictError)) {
+        if (
+          !(
+            error instanceof
+            CheckpointConflictError
+          )
+        ) {
           throw error;
         }
 
@@ -347,15 +325,22 @@ export class CheckpointRecoveryCoordinator {
           type: "checkpoint_conflict",
           runId,
           recoveryAttemptId,
-          checkpointVersion: checkpoint.version,
-          boundary: checkpoint.boundary,
-          toolCallId: record.toolCallId,
-          toolName: record.toolName,
+          checkpointVersion:
+            checkpoint.version,
+          boundary:
+            checkpoint.boundary,
+          toolCallId:
+            record.toolCallId,
+          toolName:
+            record.toolName,
           reason: error.message,
           conflictCount: conflicts
         });
 
-        if (conflicts > this.maxConflicts) {
+        if (
+          conflicts >
+          this.maxConflicts
+        ) {
           throw new Error(
             `Checkpoint recovery exceeded max conflicts for ${runId}: ${this.maxConflicts}`
           );

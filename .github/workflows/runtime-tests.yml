@@ -2,7 +2,7 @@ name: Runtime Tests
 
 on:
   push:
-    branches: [main, day43-noon-ci, day44-noon-ready, day44-evening-ops, day44-evening-ci, day45-morning-outbox, day45-noon-ci]
+    branches: [main, day43-noon-ci, day44-noon-ready, day44-evening-ops, day44-evening-ci, day45-morning-outbox, day45-noon-ci, day46-noon-committer]
   pull_request:
 
 jobs:
@@ -65,6 +65,9 @@ jobs:
 
       - name: Recovery preparation regression
         run: npm run test:recovery-preparation
+
+      - name: Recovery transition committer regression
+        run: npm run test:recovery-committer
 
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js

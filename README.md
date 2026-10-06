@@ -1,10 +1,10 @@
-# Agent AI 工程师 · Day 1–45 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–46 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 45**。
+当前课程代码进度：**Day 46**。
 
 ---
 
@@ -867,3 +867,22 @@ Human Recovery 继续从“有操作按钮”推进到“命令本身可恢复�
 - Consumer Idempotency：通过 eventId / commandId 抵抗重复事件
 
 当前 Day 45 午练仍然是 Contract / In-memory Prototype，用来验证命令幂等与 Outbox 重投语义；它还没有冒充数据库事务。下一步会把 RecoveryOperationService、Checkpoint / Control 变化、Command Record 与 Outbox Record 放进同一个 SQLite/PostgreSQL 事务边界。
+
+
+## Day 46：Prepare / Commit 分离
+
+Day 45 已经有 SQLite Recovery Finalization Unit of Work。Day 46 开始把 Recovery 决策和持久化提交拆开：
+
+```text
+Prepare
+→ Planner / Reconciler
+→ PreparedRecoveryTransition
+→ 不写数据库
+
+Commit
+→ expected versions
+→ Checkpoint / Control / Command / Outbox
+→ 单事务落库
+```
+
+Morning 新增 `src/runtime/recovery-preparation.ts`，先建立 persistence-free preparation contract。它保留 observed checkpoint version，计算 next checkpoint，但不自行递增版本或保存状态。后续会逐步把 Coordinator / RecoveryOperationService 接到这一边界。

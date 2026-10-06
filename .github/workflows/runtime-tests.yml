@@ -63,5 +63,8 @@ jobs:
       - name: Recovery operation lifecycle regression
         run: node dist/demos/recovery-operation-lifecycle-test.js
 
+      - name: Recovery preparation regression
+        run: npm run test:recovery-preparation
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js

@@ -886,3 +886,49 @@ Commit
 ```
 
 Morning 新增 `src/runtime/recovery-preparation.ts`，先建立 persistence-free preparation contract。它保留 observed checkpoint version，计算 next checkpoint，但不自行递增版本或保存状态。后续会逐步把 Coordinator / RecoveryOperationService 接到这一边界。
+
+
+---
+
+## Day 46：Prepare / Commit + Transaction-aware Committer
+
+Recovery 现在开始把“决策”和“持久化提交”拆开：
+
+```text
+CheckpointRecoveryCoordinator
+↓
+prepareRecoveryTransition()
+↓
+PreparedRecoveryTransition
+↓
+RecoveryTransitionCommitter
+```
+
+默认 Committer 仍可使用 `CheckpointStore`，而 SQLite 事务版本通过：
+
+```text
+src/runtime/sqlite-recovery-transition-committer.ts
+```
+
+桥接到 Day 45 的 `SQLiteRecoveryFinalizationUnitOfWork`。
+
+一次需要持久化的恢复现在可以把：
+
+```text
+Checkpoint
++ Recovery Control
++ Durable Command
++ Outbox
+```
+
+放进同一个 SQLite Transaction 中提交。
+
+对应回归测试：
+
+```text
+npm run test:recovery-preparation
+npm run test:recovery-committer
+npm run test:sqlite-recovery-committer
+```
+
+注意：复合事务的冲突可能来自 checkpoint / control / command / outbox。只有 checkpoint-only conflict 适合在 Coordinator 内部直接 reload + re-prepare；复合冲突需要更外层的 Human Recovery Orchestrator 重新加载整组事实。

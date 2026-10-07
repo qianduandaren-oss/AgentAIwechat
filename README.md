@@ -932,3 +932,32 @@ npm run test:sqlite-recovery-committer
 ```
 
 注意：复合事务的冲突可能来自 checkpoint / control / command / outbox。只有 checkpoint-only conflict 适合在 Coordinator 内部直接 reload + re-prepare；复合冲突需要更外层的 Human Recovery Orchestrator 重新加载整组事实。
+
+
+## Day 47：Durable Recovery Operation Orchestrator
+
+Day 47 开始把 Durable Command、Human Recovery 和 Day 46 的事务化 Commit 组装成一条可重复调用、可崩溃恢复的命令处理链。
+
+Morning 先固定 command identity 与 replay 语义：
+
+```text
+commandId 不存在
+→ accept_new
+
+terminal command
+→ replay_terminal
+→ 不重新执行 Recovery
+
+accepted / executing
+→ resume_in_flight
+→ 重新读取事实后恢复，不盲目重放 handler
+```
+
+新增：
+
+```text
+src/runtime/durable-recovery-operation-orchestrator.ts
+docs/day47-durable-recovery-operation-orchestrator.md
+```
+
+同时 Durable Command Record 增加可选 `resultSnapshot` Contract，为后续稳定重放 terminal response 做准备。

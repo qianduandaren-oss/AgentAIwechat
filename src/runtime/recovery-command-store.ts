@@ -1,7 +1,17 @@
-import type { RecoveryOperation } from "./recovery-operations.js";
+import type {
+  RecoveryOperation,
+  RecoveryOperationResultStatus
+} from "./recovery-operations.js";
 
 export type RecoveryCommandStatus =
   | "accepted" | "executing" | "succeeded" | "rejected" | "failed";
+
+export interface RecoveryCommandResultSnapshot {
+  status: RecoveryOperationResultStatus;
+  reason: string;
+  checkpointVersion: number;
+  controlVersion: number;
+}
 
 export interface DurableRecoveryCommandRecord {
   commandId: string;
@@ -16,6 +26,7 @@ export interface DurableRecoveryCommandRecord {
   createdAt: string;
   updatedAt: string;
   resultReason?: string;
+  resultSnapshot?: RecoveryCommandResultSnapshot;
 }
 
 export class RecoveryCommandConflictError extends Error {

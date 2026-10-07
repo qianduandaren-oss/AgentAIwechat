@@ -1,10 +1,10 @@
-# Agent AI 工程师 · Day 1–46 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–47 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 46**。
+当前课程代码进度：**Day 47**。
 
 ---
 
@@ -961,3 +961,36 @@ docs/day47-durable-recovery-operation-orchestrator.md
 ```
 
 同时 Durable Command Record 增加可选 `resultSnapshot` Contract，为后续稳定重放 terminal response 做准备。
+
+
+### Day 47 午练：Durable Command 真正进入执行入口
+
+Morning 只固定了 command identity 与 replay 判断，Noon 进一步实现：
+
+```text
+commandId 不存在
+→ accepted
+→ executing
+→ RecoveryOperationExecutor
+→ succeeded / rejected / failed
+→ resultSnapshot
+
+terminal command
+→ replay stored result
+→ 不重新执行 Recovery
+
+accepted / executing
+→ reload Checkpoint + Recovery Control
+→ resume_in_flight
+→ 不盲目重跑 handler
+```
+
+对应实现：
+
+```text
+src/runtime/durable-recovery-operation-orchestrator.ts
+src/demos/durable-recovery-operation-orchestrator-test.ts
+docs/day47-noon-durable-recovery-operation-orchestrator.md
+```
+
+当前这一版故意把 `resume_in_flight` 停在“重新读取 durable facts”这一步，不把 executing 误判成“上次没执行”。下一步会把这条 in-flight path 接到 Day 46 的 transaction-aware Recovery Commit，让崩溃恢复重新加载 Checkpoint / Control / Command 后再决定下一步。

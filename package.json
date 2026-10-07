@@ -52,7 +52,8 @@
     "test:recovery-unit-of-work": "npm run build && node dist/demos/sqlite-recovery-unit-of-work-test.js",
     "test:recovery-preparation": "npm run build && node dist/demos/recovery-preparation-test.js",
     "test:recovery-committer": "npm run build && node dist/demos/recovery-transition-committer-test.js",
-    "test:sqlite-recovery-committer": "npm run build && node dist/demos/sqlite-recovery-transition-committer-test.js"
+    "test:sqlite-recovery-committer": "npm run build && node dist/demos/sqlite-recovery-transition-committer-test.js",
+    "test:durable-recovery-operation": "npm run build && node dist/demos/durable-recovery-operation-orchestrator-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

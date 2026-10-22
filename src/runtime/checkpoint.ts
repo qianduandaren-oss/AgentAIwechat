@@ -34,6 +34,7 @@ export interface AgentRunCheckpoint {
   step: number;
   boundary: ResumeBoundary;
   toolExecutions: ToolExecutionRecord[];
+  causedByCommandId?: string;
   updatedAt: string;
 }
 

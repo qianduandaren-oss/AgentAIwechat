@@ -72,6 +72,15 @@ jobs:
       - name: SQLite transactional recovery committer regression
         run: npm run test:sqlite-recovery-committer
 
+      - name: Day 63 compatibility contract structure
+        run: node scripts/day63-contract-landing.mjs .
+
+      - name: Day 63 compatibility contract regression
+        run: node --test scripts/tests/day63-contract-landing.test.mjs
+
+      - name: SQLite recovery finalization unit-of-work regression
+        run: npm run test:recovery-unit-of-work
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

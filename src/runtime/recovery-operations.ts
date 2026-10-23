@@ -81,6 +81,7 @@ export interface RecoveryControlState {
   status: RecoveryOperationalStatus;
   reason?: string;
   updatedBy?: string;
+  causedByCommandId?: string;
   updatedAt: string;
 }
 

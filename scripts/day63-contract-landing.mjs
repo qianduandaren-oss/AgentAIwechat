@@ -28,7 +28,7 @@ export function inspectCompatibility(root) {
     && !sql.includes("this.db.exec(SCHEMA);");
   const tables = ["recovery_controls", "recovery_commands", "recovery_outbox"]
     .every(t => sql.includes(`CREATE TABLE IF NOT EXISTS ${t}`));
-  const unique = /event_id\\s+TEXT\\s+NOT\\s+NULL\\s+UNIQUE/.test(sql);
+  const unique = /event_id\s+TEXT\s+NOT\s+NULL\s+UNIQUE/.test(sql);
   const status = !ck || !tables || !unique ? "BLOCKED"
     : ctl && updated && !old ? "PATCHED_STRUCTURE"
     : !control.includes("causedByCommandId") && old && !updated ? "READY_TO_PATCH"

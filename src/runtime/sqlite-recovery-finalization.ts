@@ -8,7 +8,7 @@ import {
   SQLITE_CHECKPOINT_SCHEMA
 } from "./sqlite-checkpoint-sql.js";
 
-const SCHEMA = `
+export const RECOVERY_FINALIZATION_SCHEMA = `
 CREATE TABLE IF NOT EXISTS recovery_controls (
   run_id TEXT PRIMARY KEY,
   version INTEGER NOT NULL,
@@ -61,7 +61,7 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
       this.db.exec(pragma);
     }
     this.db.exec(SQLITE_CHECKPOINT_SCHEMA);
-    this.db.exec(SCHEMA);
+    this.db.exec(RECOVERY_FINALIZATION_SCHEMA);
   }
 
   insertCommandIfAbsent(

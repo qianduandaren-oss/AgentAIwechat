@@ -23,7 +23,7 @@ Day 63 已合入 Control 可选来源字段、`RECOVERY_FINALIZATION_SCHEMA` 共
 
 `.github/workflows/runtime-tests.yml` 在原有步骤基础上增加上述三步，不删除旧测试。此变更提交为 `7c353f53c835be77c3940acf31a374127fdf9080`。
 
-验证新提交时必须使用**对应 commit SHA 的 GitHub Actions 结果**；不能拿上一个 commit 的绿色标志替代这次新增检查。任何新增检查失败都属于修复阻塞项，而非跳过或直接开 Feature Flag 的理由。
+**本轮已核验新 CI：**工作流扩展提交 `7c353f53c835be77c3940acf31a374127fdf9080` 对应 Runtime Tests Run `40042467983` 为 `completed/success`，新增兼容扫描器、七项回归和 `test:recovery-unit-of-work` 步骤均成功。证据链接：[Run 40042467983](https://github.com/qianduandaren-oss/AgentAIwechat/actions/runs/40042467983)。此证据绑定该 commit，不自动外推到后续 commit。
 
 ## 尚未具备的 Atomic Recovery 条件
 
@@ -32,7 +32,7 @@ Day 63 已合入 Control 可选来源字段、`RECOVERY_FINALIZATION_SCHEMA` 共
 - `RecoveryOperationService.execute()` 可在新 Finalizer 外独立保存 Control；旧 Orchestrator 在 `executor.execute()` 后仍有 terminal CAS。
 - 同库约束、正式入口异常注入、COMMIT 丢响应的 ResultSnapshot replay 与单终态写入所有权尚未验收。
 
-**状态：兼容层 CI BASELINE PASS（旧 SHA）；新 CI 扩展待按新 SHA 验收；Atomic Cutover NO_GO。**
+**状态：兼容层 CI BASELINE PASS（旧 SHA）；新 CI 扩展 PASS（7c353f53）；Atomic Cutover NO_GO。**
 
 ## 验证用命令（针对完整 main checkout）
 

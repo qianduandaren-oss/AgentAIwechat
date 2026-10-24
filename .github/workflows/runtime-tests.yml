@@ -87,6 +87,9 @@ jobs:
       - name: Day 64 pure Control preparation + SQLite transaction
         run: node dist/demos/day64-control-preparation-test.js
 
+      - name: Day 65 atomic route decision contract
+        run: node dist/demos/day65-atomic-route-decision-test.js
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

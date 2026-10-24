@@ -3,6 +3,7 @@ import type { AgentRunCheckpoint } from "./checkpoint.js";
 import type { DurableRecoveryCommandRecord } from "./recovery-command-store.js";
 import type { RecoveryOutboxRecord } from "./recovery-outbox.js";
 import type { RecoveryControlState } from "./recovery-operations.js";
+import type { RecoveryWriteSet } from "./recovery-write-set.js";
 import {
   SQLITE_CHECKPOINT_PRAGMAS,
   SQLITE_CHECKPOINT_SCHEMA
@@ -46,6 +47,8 @@ export interface RecoveryFinalizationInput {
   command: DurableRecoveryCommandRecord;
   expectedCommandVersion: number;
   outbox: RecoveryOutboxRecord[];
+  /** Omission preserves the original dual-update contract. */
+  writeSet?: RecoveryWriteSet;
 }
 
 export class SQLiteRecoveryFinalizationUnitOfWork {
@@ -89,55 +92,147 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
   commit(input: RecoveryFinalizationInput) {
     this.db.exec("BEGIN IMMEDIATE;");
     try {
-      const checkpoint = {
-        ...structuredClone(input.checkpoint),
-        version: input.expectedCheckpointVersion + 1,
-        updatedAt: this.now()
-      };
-      const checkpointWrite = this.db.prepare(`
-        UPDATE agent_checkpoints
-        SET version = ?, payload = ?, updated_at = ?
-        WHERE run_id = ? AND version = ?;
-      `).run(
-        checkpoint.version,
-        JSON.stringify(checkpoint),
-        checkpoint.updatedAt,
-        checkpoint.runId,
-        input.expectedCheckpointVersion
-      );
-      this.mustWrite(checkpointWrite.changes, "checkpoint");
+      // Legacy callers that omit writeSet continue to update both state rows.
+      const writes = input.writeSet ?? {
+        checkpoint: "cas_update",
+        control: "cas_update",
+        command: "terminal_cas",
+        outbox: "append_prepared_events"
+      } as RecoveryWriteSet;
+      if (
+        !["compare", "cas_update"].includes(writes.checkpoint) ||
+        !["compare", "cas_update"].includes(writes.control) ||
+        writes.command !== "terminal_cas" ||
+        writes.outbox !== "append_prepared_events"
+      ) {
+        throw new RecoveryFinalizationConflictError("write_set");
+      }
+      if (
+        input.checkpoint.runId !== input.command.runId ||
+        input.control.runId !== input.command.runId
+      ) {
+        throw new RecoveryFinalizationConflictError("run_identity");
+      }
 
-      const control = {
-        ...structuredClone(input.control),
-        version: input.expectedControlVersion + 1,
-        updatedAt: this.now()
-      };
-      const controlWrite =
-        input.expectedControlVersion === 0
-          ? this.db.prepare(`
-              INSERT INTO recovery_controls (
-                run_id, version, payload, updated_at
+      // Even compare-only state belongs to the transaction's Read Set.
+      const checkpointRow = this.db.prepare(`
+        SELECT version, payload
+        FROM agent_checkpoints WHERE run_id = ?;
+      `).get(input.checkpoint.runId) as
+        { version: number; payload: string } | undefined;
+      if (
+        !checkpointRow ||
+        Number(checkpointRow.version) !== input.expectedCheckpointVersion
+      ) {
+        throw new RecoveryFinalizationConflictError("checkpoint");
+      }
+      let checkpoint: AgentRunCheckpoint =
+        JSON.parse(checkpointRow.payload) as AgentRunCheckpoint;
+
+      if (writes.checkpoint === "cas_update") {
+        checkpoint = {
+          ...structuredClone(input.checkpoint),
+          version: input.expectedCheckpointVersion + 1,
+          updatedAt: this.now()
+        };
+        const checkpointWrite = this.db.prepare(`
+          UPDATE agent_checkpoints
+          SET version = ?, payload = ?, updated_at = ?
+          WHERE run_id = ? AND version = ?;
+        `).run(
+          checkpoint.version,
+          JSON.stringify(checkpoint),
+          checkpoint.updatedAt,
+          checkpoint.runId,
+          input.expectedCheckpointVersion
+        );
+        this.mustWrite(checkpointWrite.changes, "checkpoint");
+      }
+
+      const controlRow = this.db.prepare(`
+        SELECT version, payload
+        FROM recovery_controls WHERE run_id = ?;
+      `).get(input.control.runId) as
+        { version: number; payload: string } | undefined;
+      if (
+        Number(controlRow?.version ?? 0) !== input.expectedControlVersion
+      ) {
+        throw new RecoveryFinalizationConflictError("control");
+      }
+      // With no stored Control row, v0 is a derived default, NOT an insert.
+      let control: RecoveryControlState = controlRow
+        ? JSON.parse(controlRow.payload) as RecoveryControlState
+        : { ...structuredClone(input.control), version: 0 };
+
+      if (writes.control === "cas_update") {
+        control = {
+          ...structuredClone(input.control),
+          version: input.expectedControlVersion + 1,
+          updatedAt: this.now()
+        };
+        const controlWrite =
+          input.expectedControlVersion === 0
+            ? this.db.prepare(`
+                INSERT INTO recovery_controls (
+                  run_id, version, payload, updated_at
+                )
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(run_id) DO NOTHING;
+              `).run(
+                control.runId,
+                control.version,
+                JSON.stringify(control),
+                control.updatedAt
               )
-              VALUES (?, ?, ?, ?)
-              ON CONFLICT(run_id) DO NOTHING;
-            `).run(
-              control.runId,
-              control.version,
-              JSON.stringify(control),
-              control.updatedAt
-            )
-          : this.db.prepare(`
-              UPDATE recovery_controls
-              SET version = ?, payload = ?, updated_at = ?
-              WHERE run_id = ? AND version = ?;
-            `).run(
-              control.version,
-              JSON.stringify(control),
-              control.updatedAt,
-              control.runId,
-              input.expectedControlVersion
-            );
-      this.mustWrite(controlWrite.changes, "control");
+            : this.db.prepare(`
+                UPDATE recovery_controls
+                SET version = ?, payload = ?, updated_at = ?
+                WHERE run_id = ? AND version = ?;
+              `).run(
+                control.version,
+                JSON.stringify(control),
+                control.updatedAt,
+                control.runId,
+                input.expectedControlVersion
+              );
+        this.mustWrite(controlWrite.changes, "control");
+      }
+
+      // A matching version alone is not sufficient: a terminal draft must
+      // match the immutable identity of an executing persisted command.
+      const commandRow = this.db.prepare(`
+        SELECT version, payload FROM recovery_commands WHERE command_id = ?;
+      `).get(input.command.commandId) as
+        { version: number; payload: string } | undefined;
+      const persistedCommand = commandRow
+        ? JSON.parse(commandRow.payload) as DurableRecoveryCommandRecord
+        : undefined;
+      const identityKeys = [
+        "commandId", "runId", "operation", "requestedBy", "reason",
+        "expectedCheckpointVersion", "expectedControlVersion"
+      ] as const;
+
+      if (
+        !persistedCommand ||
+        Number(commandRow?.version) !== input.expectedCommandVersion ||
+        persistedCommand.status !== "executing" ||
+        !identityKeys.every(
+          key => persistedCommand[key] === input.command[key]
+        ) ||
+        !["succeeded", "rejected", "failed"].includes(input.command.status)
+      ) {
+        throw new RecoveryFinalizationConflictError(
+          "command_identity_or_status"
+        );
+      }
+      if (
+        input.outbox.some(event =>
+          event.commandId !== input.command.commandId ||
+          event.runId !== input.command.runId
+        )
+      ) {
+        throw new RecoveryFinalizationConflictError("outbox_identity");
+      }
 
       const command = {
         ...structuredClone(input.command),

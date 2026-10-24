@@ -81,6 +81,9 @@ jobs:
       - name: SQLite recovery finalization unit-of-work regression
         run: npm run test:recovery-unit-of-work
 
+      - name: Day 64 selective Finalizer SQLite integration
+        run: npm run test:selective-recovery-unit-of-work
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

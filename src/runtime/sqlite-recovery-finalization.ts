@@ -385,14 +385,20 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
       }
       const checkpoint = this.loadCheckpoint(runId);
       const control = this.loadControl(runId);
-      const rows = this.db.prepare(
-        "SELECT event_id FROM recovery_outbox WHERE command_id = ? ORDER BY event_id;"
-      ).all(commandId) as Array<{ event_id: string }>;
+      // Existing Node SQLite typings expose get/run, not StatementSync.all.
+      // A JSON aggregate also keeps the read inside the same snapshot.
+      const eventRow = this.db.prepare(`
+        SELECT json_group_array(event_id) AS events
+        FROM (
+          SELECT event_id FROM recovery_outbox
+          WHERE command_id = ? ORDER BY event_id
+        );
+      `).get(commandId) as { events: string } | undefined;
       const result: RecoveryInFlightEvidence = {
         command,
         checkpoint,
         control,
-        outboxEventIds: rows.map(row => row.event_id)
+        outboxEventIds: JSON.parse(eventRow?.events ?? "[]") as string[]
       };
       this.db.exec("COMMIT;");
       return result;

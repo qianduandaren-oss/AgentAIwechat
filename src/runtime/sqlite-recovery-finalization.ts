@@ -56,6 +56,17 @@ export interface RecoveryFinalizationInput {
   writeSet?: RecoveryWriteSet;
 }
 
+/**
+ * Consistent, read-only facts for operator investigation after a crash.
+ * This is NOT permission to retry a command or infer that an effect ran.
+ */
+export interface RecoveryInFlightEvidence {
+  command?: DurableRecoveryCommandRecord;
+  checkpoint?: AgentRunCheckpoint;
+  control?: RecoveryControlState;
+  outboxEventIds: string[];
+}
+
 export class SQLiteRecoveryFinalizationUnitOfWork {
   private readonly db: DatabaseSync;
 
@@ -350,6 +361,41 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
 
       this.db.exec("COMMIT;");
       return { checkpoint, control, command };
+    } catch (error) {
+      this.db.exec("ROLLBACK;");
+      throw error;
+    }
+  }
+
+  /**
+   * Day 65 evening: read Command, Checkpoint, Control and Outbox from ONE
+   * SQLite read transaction. Never changes accepted/executing/terminal state.
+   * The caller must still verify immutable request identity separately.
+   * An executing command with no event is AMBIGUOUS, not safe to retry.
+   */
+  inspectInFlightEvidence(
+    commandId: string,
+    runId: string
+  ): RecoveryInFlightEvidence {
+    this.db.exec("BEGIN;");
+    try {
+      const command = this.loadCommand(commandId);
+      if (command && command.runId !== runId) {
+        throw new RecoveryFinalizationConflictError("evidence_run_identity");
+      }
+      const checkpoint = this.loadCheckpoint(runId);
+      const control = this.loadControl(runId);
+      const rows = this.db.prepare(
+        "SELECT event_id FROM recovery_outbox WHERE command_id = ? ORDER BY event_id;"
+      ).all(commandId) as Array<{ event_id: string }>;
+      const result: RecoveryInFlightEvidence = {
+        command,
+        checkpoint,
+        control,
+        outboxEventIds: rows.map(row => row.event_id)
+      };
+      this.db.exec("COMMIT;");
+      return result;
     } catch (error) {
       this.db.exec("ROLLBACK;");
       throw error;

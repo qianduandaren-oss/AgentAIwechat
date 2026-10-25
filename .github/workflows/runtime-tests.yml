@@ -90,6 +90,9 @@ jobs:
       - name: Day 65 atomic route decision contract
         run: node dist/demos/day65-atomic-route-decision-test.js
 
+      - name: Day 65 same-DB atomic Control-only integration
+        run: node dist/demos/day65-atomic-control-only-integration-test.js
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

@@ -4,6 +4,11 @@ import type { DurableRecoveryCommandRecord } from "./recovery-command-store.js";
 import type { RecoveryOutboxRecord } from "./recovery-outbox.js";
 import type { RecoveryControlState } from "./recovery-operations.js";
 import type { RecoveryWriteSet } from "./recovery-write-set.js";
+import type { DurableRecoveryOperationCommand } from "./durable-recovery-operation-orchestrator.js";
+import {
+  selectAtomicRecoveryRoute,
+  type AtomicRecoveryRouteDecision
+} from "./recovery-atomic-route-decision.js";
 import {
   SQLITE_CHECKPOINT_PRAGMAS,
   SQLITE_CHECKPOINT_SCHEMA
@@ -65,6 +70,74 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
     }
     this.db.exec(SQLITE_CHECKPOINT_SCHEMA);
     this.db.exec(RECOVERY_FINALIZATION_SCHEMA);
+  }
+
+  /**
+   * Day 65: Admission and accepted -> executing CAS share THIS SQLite file.
+   * No legacy executor is invoked; a repeated command is never re-claimed.
+   * This is an opt-in building block, NOT a production route switch.
+   */
+  admitControlOnlyCommand(
+    request: DurableRecoveryOperationCommand
+  ): AtomicRecoveryRouteDecision | {
+    action: "admitted_executing";
+    record: DurableRecoveryCommandRecord;
+  } {
+    this.db.exec("BEGIN IMMEDIATE;");
+    try {
+      const existing = this.loadCommand(request.commandId);
+      const decision = selectAtomicRecoveryRoute({
+        atomicControlOnlyEnabled: true,
+        command: request,
+        existing
+      });
+      if (decision.action !== "admit_new_control_only") {
+        this.db.exec("COMMIT;");
+        return decision;
+      }
+
+      const timestamp = this.now();
+      const accepted: DurableRecoveryCommandRecord = {
+        commandId: request.commandId,
+        runId: request.runId,
+        operation: request.operation,
+        requestedBy: request.requestedBy,
+        reason: request.reason,
+        expectedCheckpointVersion: request.expectedCheckpointVersion,
+        expectedControlVersion: request.expectedControlVersion,
+        status: "accepted",
+        version: 1,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      const insert = this.db.prepare(`
+        INSERT INTO recovery_commands (command_id, version, payload, updated_at)
+        VALUES (?, 1, ?, ?) ON CONFLICT(command_id) DO NOTHING;
+      `).run(
+        accepted.commandId, JSON.stringify(accepted), timestamp
+      );
+      this.mustWrite(insert.changes, "admission_insert");
+
+      const executing: DurableRecoveryCommandRecord = {
+        ...accepted,
+        status: "executing",
+        version: 2
+      };
+      const claim = this.db.prepare(`
+        UPDATE recovery_commands
+        SET version = 2, payload = ?, updated_at = ?
+        WHERE command_id = ? AND version = 1
+          AND json_extract(payload, '$.status') = 'accepted';
+      `).run(
+        JSON.stringify(executing), timestamp, request.commandId
+      );
+      this.mustWrite(claim.changes, "admission_claim");
+      this.db.exec("COMMIT;");
+      return { action: "admitted_executing", record: structuredClone(executing) };
+    } catch (error) {
+      this.db.exec("ROLLBACK;");
+      throw error;
+    }
   }
 
   insertCommandIfAbsent(

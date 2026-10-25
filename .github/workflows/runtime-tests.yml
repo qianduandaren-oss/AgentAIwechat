@@ -93,6 +93,9 @@ jobs:
       - name: Day 65 same-DB atomic Control-only integration
         run: node dist/demos/day65-atomic-control-only-integration-test.js
 
+      - name: Day 65 in-flight recovery evidence and replay
+        run: npm run test:recovery-inflight-evidence
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

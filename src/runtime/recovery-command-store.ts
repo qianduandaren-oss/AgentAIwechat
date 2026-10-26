@@ -27,6 +27,8 @@ export interface DurableRecoveryCommandRecord {
   updatedAt: string;
   resultReason?: string;
   resultSnapshot?: RecoveryCommandResultSnapshot;
+  /** Durable route owner for new records; undefined means historical/unknown. */
+  executionOwner?: "legacy" | "atomic_control_only";
 }
 
 export class RecoveryCommandConflictError extends Error {

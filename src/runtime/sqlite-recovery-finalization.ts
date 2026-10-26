@@ -116,6 +116,7 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
         reason: request.reason,
         expectedCheckpointVersion: request.expectedCheckpointVersion,
         expectedControlVersion: request.expectedControlVersion,
+        executionOwner: "atomic_control_only",
         status: "accepted",
         version: 1,
         createdAt: timestamp,

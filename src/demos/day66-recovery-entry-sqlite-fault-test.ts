@@ -177,7 +177,6 @@ async function fixture() {
   const authorizer = { authorize: async () => {
     authorizations++;
     throw new Error("authorization_unavailable");
-    return { allowed: false, reason: "unreachable" };
   } };
   try {
     const dispatcher = new RecoveryEntryDispatcher({
@@ -208,7 +207,6 @@ async function fixture() {
   const f = await fixture();
   const authorizer = { authorize: async () => {
     throw new Error("authorization must not run");
-    return { allowed: false, reason: "unreachable" };
   } };
   try {
     const dispatcher = new RecoveryEntryDispatcher({
@@ -230,7 +228,6 @@ async function fixture() {
   const f = await fixture();
   const authorizer = { authorize: async () => {
     throw new Error("must not re-authorize terminal command");
-    return { allowed: false, reason: "unreachable" };
   } };
   try {
     assert(f.finalizer.insertCommandIfAbsent({

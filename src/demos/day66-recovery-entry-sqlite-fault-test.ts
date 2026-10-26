@@ -4,7 +4,7 @@ import { SQLiteTransactionalCheckpointDatabase } from "../runtime/sqlite-checkpo
 import { TransactionalCheckpointStore } from "../runtime/transactional-checkpoint-store.js";
 import { SQLiteRecoveryFinalizationUnitOfWork } from "../runtime/sqlite-recovery-finalization.js";
 import { AtomicRecoveryControlOnlyAdapter } from "../runtime/recovery-atomic-control-only-adapter.js";
-import { RecoveryEntryDispatcher, AtomicRecoveryOperationUnsupportedError } from "../runtime/recovery-entry-dispatcher.js";
+import { RecoveryEntryDispatcher, AtomicRecoveryOperationUnsupportedError, RecoveryEntryOwnershipConflictError } from "../runtime/recovery-entry-dispatcher.js";
 import { RecoveryCommandIdentityConflictError, type DurableRecoveryOperationCommand, type DurableRecoveryOperationExecution } from "../runtime/durable-recovery-operation-orchestrator.js";
 import { RecoveryTerminalSnapshotMissingError } from "../runtime/recovery-atomic-route-decision.js";
 import type { DurableRecoveryCommandRecord } from "../runtime/recovery-command-store.js";
@@ -250,4 +250,155 @@ async function fixture() {
   } finally { f.finalizer.close(); }
 }
 
-console.log(`Day 66 entry-to-SQLite fault injection: ${passed}/6 passed`);
+// 7. Once admitted by atomic route, disabling the flag cannot give the same
+// command to the legacy terminal writer after COMMIT.
+{
+  const f = await fixture();
+  let authorizations = 0;
+  const authorizer = { authorize: async () => {
+    authorizations++;
+    return { allowed: true, reason: "allowed" };
+  } };
+  try {
+    const guardedOn = new RecoveryEntryDispatcher({
+      legacy: f.legacy,
+      atomic: new AtomicRecoveryControlOnlyAdapter(f.finalizer, authorizer, now)
+    }, true, f.finalizer);
+    const executed = await guardedOn.execute(f.command);
+    assert(executed.route === "atomic_control_only" &&
+      executed.execution.action === "executed_new", "guarded first admission uses atomic");
+    assert(f.finalizer.loadCommand(f.command.commandId)?.executionOwner ===
+      "atomic_control_only", "atomic ownership is persisted with Command");
+    const guardedOff = new RecoveryEntryDispatcher({
+      legacy: f.legacy,
+      atomic: new AtomicRecoveryControlOnlyAdapter(f.finalizer, authorizer, now)
+    }, false, f.finalizer);
+    let blocked = false;
+    try { await guardedOff.execute(f.command); }
+    catch (e) { blocked = e instanceof RecoveryEntryOwnershipConflictError; }
+    assert(blocked && f.legacyCalls() === 0 && authorizations === 1 &&
+      f.finalizer.countOutbox() === 1,
+      "flag OFF refuses atomic terminal replay through legacy");
+    const replay = await guardedOn.execute(f.command);
+    assert(replay.route === "atomic_control_only" &&
+      replay.execution.action === "replayed_terminal", "same-owner retry replays");
+    passed++;
+  } finally { f.finalizer.close(); }
+}
+
+// 8. A flag flip during an executing v2 command cannot give away ownership.
+{
+  const f = await fixture();
+  let authorizations = 0;
+  const authorizer = { authorize: async () => {
+    authorizations++;
+    throw new Error("auth_unavailable");
+  } };
+  try {
+    const guardedOn = new RecoveryEntryDispatcher({
+      legacy: f.legacy,
+      atomic: new AtomicRecoveryControlOnlyAdapter(f.finalizer, authorizer, now)
+    }, true, f.finalizer);
+    let failed = false;
+    try { await guardedOn.execute(f.command); }
+    catch (e) { failed = e instanceof Error && e.message === "auth_unavailable"; }
+    assert(failed && f.finalizer.loadCommand(f.command.commandId)?.status ===
+      "executing", "atomic in-flight survives failure");
+    const guardedOff = new RecoveryEntryDispatcher({
+      legacy: f.legacy,
+      atomic: new AtomicRecoveryControlOnlyAdapter(f.finalizer, authorizer, now)
+    }, false, f.finalizer);
+    let blocked = false;
+    try { await guardedOff.execute(f.command); }
+    catch (e) { blocked = e instanceof RecoveryEntryOwnershipConflictError; }
+    assert(blocked && f.legacyCalls() === 0 && authorizations === 1,
+      "flag flip cannot hand in-flight work to legacy");
+    passed++;
+  } finally { f.finalizer.close(); }
+}
+
+// 9. Old records without owner markers are ambiguous; fail closed rather
+// than guess which route owns a command.
+{
+  const f = await fixture();
+  try {
+    assert(f.finalizer.insertCommandIfAbsent({
+      ...f.command, status: "executing", version: 0,
+      createdAt: now(), updatedAt: now()
+    }), "seed historical ownerless command");
+    const authorizer = { authorize: async () => {
+      throw new Error("unexpected authorization");
+    } };
+    for (const enabled of [false, true]) {
+      const dispatcher = new RecoveryEntryDispatcher({
+        legacy: f.legacy,
+        atomic: new AtomicRecoveryControlOnlyAdapter(f.finalizer, authorizer, now)
+      }, enabled, f.finalizer);
+      let blocked = false;
+      try { await dispatcher.execute(f.command); }
+      catch (e) { blocked = e instanceof RecoveryEntryOwnershipConflictError; }
+      assert(blocked && f.legacyCalls() === 0, "unknown historical owner fails closed");
+    }
+    assert(f.finalizer.loadCommand(f.command.commandId)?.status ===
+      "executing" && f.finalizer.countOutbox() === 0,
+      "unknown owner was not altered by guard");
+    passed++;
+  } finally { f.finalizer.close(); }
+}
+
+// 10. When an existing explicit legacy owner is present, the guard permits
+// legacy only under OFF; ON is a conflict before admission.
+{
+  const f = await fixture();
+  try {
+    assert(f.finalizer.insertCommandIfAbsent({
+      ...f.command, executionOwner: "legacy",
+      status: "executing", version: 0,
+      createdAt: now(), updatedAt: now()
+    }), "seed explicitly legacy-owned command");
+    const authorizer = { authorize: async () => {
+      throw new Error("unexpected authorization");
+    } };
+    const handlers = {
+      legacy: f.legacy,
+      atomic: new AtomicRecoveryControlOnlyAdapter(f.finalizer, authorizer, now)
+    };
+    const off = await new RecoveryEntryDispatcher(handlers, false, f.finalizer)
+      .execute(f.command);
+    assert(off.route === "legacy" && f.legacyCalls() === 1,
+      "existing legacy owner stays on legacy");
+    let blocked = false;
+    try {
+      await new RecoveryEntryDispatcher(handlers, true, f.finalizer)
+        .execute(f.command);
+    } catch (e) { blocked = e instanceof RecoveryEntryOwnershipConflictError; }
+    assert(blocked && f.legacyCalls() === 1 &&
+      f.finalizer.countOutbox() === 0, "ON cannot steal legacy-owned command");
+    passed++;
+  } finally { f.finalizer.close(); }
+}
+
+// 11. Immutable request identity is checked BEFORE either handler is entered.
+{
+  const f = await fixture();
+  const authorizer = { authorize: async () =>
+    ({ allowed: true, reason: "allowed" }) };
+  try {
+    const handlers = {
+      legacy: f.legacy,
+      atomic: new AtomicRecoveryControlOnlyAdapter(f.finalizer, authorizer, now)
+    };
+    await new RecoveryEntryDispatcher(handlers, true, f.finalizer)
+      .execute(f.command);
+    let rejected = false;
+    try {
+      await new RecoveryEntryDispatcher(handlers, false, f.finalizer)
+        .execute({ ...f.command, reason: "changed reason" });
+    } catch (e) { rejected = e instanceof RecoveryCommandIdentityConflictError; }
+    assert(rejected && f.legacyCalls() === 0 &&
+      f.finalizer.countOutbox() === 1, "identity cannot be changed by flag flip");
+    passed++;
+  } finally { f.finalizer.close(); }
+}
+
+console.log(`Day 66 entry-to-SQLite fault injection & owner flip: ${passed}/11 passed`);

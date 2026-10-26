@@ -96,6 +96,9 @@ jobs:
       - name: Day 65 in-flight recovery evidence and replay
         run: npm run test:recovery-inflight-evidence
 
+      - name: Day 66 exclusive Recovery entry ownership regression
+        run: node dist/demos/day66-recovery-entry-dispatcher-test.js
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

@@ -99,7 +99,7 @@ jobs:
       - name: Day 66 exclusive Recovery entry ownership regression
         run: node dist/demos/day66-recovery-entry-dispatcher-test.js
 
-      - name: Day 66 entry-to-SQLite fault injection
+      - name: Day 66 SQLite fault injection and durable owner flip
         run: npm run test:recovery-entry-sqlite-fault
 
       - name: Durable recovery command and outbox regression

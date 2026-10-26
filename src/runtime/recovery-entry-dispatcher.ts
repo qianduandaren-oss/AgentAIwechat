@@ -1,7 +1,9 @@
-import type {
-  DurableRecoveryOperationCommand,
-  DurableRecoveryOperationExecution
+import {
+  decideDurableRecoveryOperation,
+  type DurableRecoveryOperationCommand,
+  type DurableRecoveryOperationExecution
 } from "./durable-recovery-operation-orchestrator.js";
+import type { DurableRecoveryCommandRecord } from "./recovery-command-store.js";
 import type { AtomicControlOnlyExecution } from "./recovery-atomic-control-only-adapter.js";
 
 /**
@@ -31,6 +33,24 @@ export type RecoveryEntryExecution =
       >;
     };
 
+/** A durable owner read must use the SAME command store as both routes. */
+export interface RecoveryEntryOwnershipReader {
+  loadCommand(
+    commandId: string
+  ): DurableRecoveryCommandRecord | undefined | Promise<DurableRecoveryCommandRecord | undefined>;
+}
+
+export class RecoveryEntryOwnershipConflictError extends Error {
+  constructor(
+    public readonly commandId: string,
+    public readonly selectedOwner: "legacy" | "atomic_control_only",
+    public readonly persistedOwner: "legacy" | "atomic_control_only" | undefined
+  ) {
+    super(`Recovery route ownership conflict for ${commandId}: selected ${selectedOwner}, persisted ${persistedOwner ?? "unknown"}`);
+    this.name = "RecoveryEntryOwnershipConflictError";
+  }
+}
+
 export class AtomicRecoveryOperationUnsupportedError extends Error {
   constructor(operation: DurableRecoveryOperationCommand["operation"]) {
     super(`Atomic Control-only entry does not support operation: ${operation}`);
@@ -55,10 +75,31 @@ function isAtomicControlOnly(
 export class RecoveryEntryDispatcher {
   constructor(
     private readonly handlers: RecoveryEntryHandlers,
-    private readonly atomicControlOnlyEnabled: boolean
+    private readonly atomicControlOnlyEnabled: boolean,
+    /** Optional guard for migration callers. Required before any production cutover. */
+    private readonly ownershipReader?: RecoveryEntryOwnershipReader
   ) {}
 
   async execute(command: DurableRecoveryOperationCommand): Promise<RecoveryEntryExecution> {
+    // A fresh flag does not erase the owner recorded when a command was admitted.
+    // Unknown historical ownership is fail-closed when this guard is installed.
+    // This read is PRE-FLIGHT only: production still needs a shared transactional
+    // ownership/admission boundary to remove cross-process TOCTOU races.
+    if (this.ownershipReader) {
+      const existing = await this.ownershipReader.loadCommand(command.commandId);
+      if (existing) {
+        decideDurableRecoveryOperation(existing, command);
+        const selectedOwner = this.atomicControlOnlyEnabled
+          ? "atomic_control_only" as const
+          : "legacy" as const;
+        if (existing.executionOwner !== selectedOwner) {
+          throw new RecoveryEntryOwnershipConflictError(
+            command.commandId, selectedOwner, existing.executionOwner
+          );
+        }
+      }
+    }
+
     if (!this.atomicControlOnlyEnabled) {
       return {
         route: "legacy",

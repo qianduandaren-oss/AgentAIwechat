@@ -181,6 +181,7 @@ export class DurableRecoveryOperationOrchestrator {
         reason: command.reason,
         expectedCheckpointVersion: command.expectedCheckpointVersion,
         expectedControlVersion: command.expectedControlVersion,
+        executionOwner: "legacy",
         status: "accepted",
         version: 0,
         createdAt: timestamp,

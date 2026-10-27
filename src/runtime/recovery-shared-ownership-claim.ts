@@ -5,9 +5,9 @@ import type {
 } from "./recovery-command-store.js";
 
 /**
- * Day 67 morning: API contract ONLY. No runtime claim implementation is
- * provided by this file. It MUST NOT be wired into production until BOTH
- * legacy and atomic admissions share one SQLite transactional authority.
+ * Day 67: opt-in candidate shared Claim contract. Implementation is
+ * provided by SQLiteRecoveryFinalizationUnitOfWork. Both
+ * routes MUST use the same transactional authority.
  */
 export type RecoveryClaimOwner =
   NonNullable<DurableRecoveryCommandRecord["executionOwner"]>;
@@ -36,7 +36,7 @@ export type SharedRecoveryOwnershipClaim =
     };
 
 /**
- * Future transactional boundary. Implementations MUST:
+ * Transactional boundary. Implementations MUST:
  * - use the SAME durable command table/database for BOTH routes;
  * - check immutable request identity and executionOwner INSIDE BEGIN IMMEDIATE;
  * - never infer legacy ownership from an absent executionOwner;
@@ -52,4 +52,16 @@ export interface SharedRecoveryOwnershipClaimer {
     command: DurableRecoveryOperationCommand,
     owner: RecoveryClaimOwner
   ): Promise<SharedRecoveryOwnershipClaim>;
+}
+
+/** A different or unrecorded execution owner is not a retry opportunity. */
+export class RecoverySharedOwnershipConflictError extends Error {
+  constructor(
+    public readonly commandId: string,
+    public readonly requestedOwner: RecoveryClaimOwner,
+    public readonly storedOwner: RecoveryClaimOwner | undefined
+  ) {
+    super(`Recovery command ${commandId} belongs to ${storedOwner ?? "unknown"}, not ${requestedOwner}`);
+    this.name = "RecoverySharedOwnershipConflictError";
+  }
 }

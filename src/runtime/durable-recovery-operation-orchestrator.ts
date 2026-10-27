@@ -1,6 +1,10 @@
 import type {
   AgentRunCheckpoint
 } from "./checkpoint.js";
+import {
+  RecoverySharedOwnershipConflictError,
+  type SharedRecoveryOwnershipClaim
+} from "./recovery-shared-ownership-claim.js";
 import type {
   CheckpointStore
 } from "./checkpoint-store.js";
@@ -141,6 +145,43 @@ export class DurableRecoveryOperationOrchestrator {
     return this.routeExisting(existing, command);
   }
 
+
+  /**
+   * Candidate ingress: the SAME SQLite Claimer has already inserted accepted
+   * and committed executing v2. Never insert / admit again in this path.
+   * Production callers must inject a CommandStore backed by that SQLite DB.
+   */
+  async executeClaimed(
+    command: DurableRecoveryOperationCommand,
+    claim: SharedRecoveryOwnershipClaim
+  ): Promise<DurableRecoveryOperationExecution> {
+    if (claim.owner !== "legacy" ||
+        claim.record.executionOwner !== "legacy") {
+      throw new RecoverySharedOwnershipConflictError(
+        command.commandId, "legacy", claim.record.executionOwner
+      );
+    }
+    decideDurableRecoveryOperation(claim.record, command);
+    if (claim.action === "replayed_terminal") {
+      return {
+        action: "replayed_terminal",
+        record: claim.record,
+        resultSnapshot: structuredClone(claim.resultSnapshot)
+      };
+    }
+    if (claim.action === "suspend_in_flight") {
+      return {
+        action: "resume_in_flight",
+        record: claim.record,
+        facts: await this.loadCurrentFacts(command.runId)
+      };
+    }
+    if (claim.record.status !== "executing" || claim.record.version !== 2) {
+      throw new Error("Shared legacy claim is not executing v2");
+    }
+    return this.executeAlreadyClaimed(command, claim.record);
+  }
+
   private async routeExisting(
     existing: DurableRecoveryCommandRecord | undefined,
     command: DurableRecoveryOperationCommand
@@ -218,6 +259,13 @@ export class DurableRecoveryOperationOrchestrator {
       throw error;
     }
 
+    return this.executeAlreadyClaimed(command, current);
+  }
+
+  private async executeAlreadyClaimed(
+    command: DurableRecoveryOperationCommand,
+    current: DurableRecoveryCommandRecord
+  ): Promise<DurableRecoveryOperationExecution> {
     try {
       const result =
         await this.executor.execute(

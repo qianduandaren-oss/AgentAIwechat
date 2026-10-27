@@ -1,10 +1,24 @@
 import { DatabaseSync } from "node:sqlite";
 import type { AgentRunCheckpoint } from "./checkpoint.js";
-import type { DurableRecoveryCommandRecord } from "./recovery-command-store.js";
+import {
+  RecoveryCommandConflictError,
+  type DurableRecoveryCommandRecord,
+  type RecoveryCommandStore
+} from "./recovery-command-store.js";
 import type { RecoveryOutboxRecord } from "./recovery-outbox.js";
 import type { RecoveryControlState } from "./recovery-operations.js";
 import type { RecoveryWriteSet } from "./recovery-write-set.js";
-import type { DurableRecoveryOperationCommand } from "./durable-recovery-operation-orchestrator.js";
+import {
+  decideDurableRecoveryOperation,
+  type DurableRecoveryOperationCommand
+} from "./durable-recovery-operation-orchestrator.js";
+import {
+  RecoverySharedOwnershipConflictError,
+  type RecoveryClaimOwner,
+  type SharedRecoveryOwnershipClaim,
+  type SharedRecoveryOwnershipClaimer
+} from "./recovery-shared-ownership-claim.js";
+import { RecoveryTerminalSnapshotMissingError } from "./recovery-atomic-route-decision.js";
 import {
   selectAtomicRecoveryRoute,
   type AtomicRecoveryRouteDecision
@@ -81,6 +95,163 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
     }
     this.db.exec(SQLITE_CHECKPOINT_SCHEMA);
     this.db.exec(RECOVERY_FINALIZATION_SCHEMA);
+  }
+
+
+  /**
+   * Day 67 shared transactional Claim, used by BOTH candidate owners.
+   * Unlike the old preflight guard, lookup + owner check + CAS are one
+   * BEGIN IMMEDIATE transaction. Nothing is executed while SQLite is locked.
+   */
+  async claim(
+    request: DurableRecoveryOperationCommand,
+    owner: RecoveryClaimOwner
+  ): Promise<SharedRecoveryOwnershipClaim> {
+    if (!request.commandId.trim() ||
+        !request.runId.trim() ||
+        !request.requestedBy.trim()) {
+      throw new Error("Shared recovery claim requires nonempty identity");
+    }
+    if (owner === "atomic_control_only" &&
+        !["quarantine", "release_quarantine", "dead_letter"].includes(request.operation)) {
+      throw new Error("Atomic ownership only supports Control-only operations");
+    }
+    this.db.exec("BEGIN IMMEDIATE;");
+    try {
+      const existing = this.loadCommand(request.commandId);
+      const decision = decideDurableRecoveryOperation(existing, request);
+      if (existing) {
+        if (existing.executionOwner !== owner) {
+          throw new RecoverySharedOwnershipConflictError(
+            request.commandId, owner, existing.executionOwner
+          );
+        }
+        if (decision.action === "replay_terminal") {
+          if (!decision.record.resultSnapshot) {
+            throw new RecoveryTerminalSnapshotMissingError(request.commandId);
+          }
+          const result: SharedRecoveryOwnershipClaim = {
+            action: "replayed_terminal",
+            owner, record: decision.record,
+            resultSnapshot: structuredClone(decision.record.resultSnapshot)
+          };
+          this.db.exec("COMMIT;");
+          return result;
+        }
+        const result: SharedRecoveryOwnershipClaim = {
+          action: "suspend_in_flight", owner,
+          record: structuredClone(existing)
+        };
+        this.db.exec("COMMIT;");
+        return result;
+      }
+
+      const timestamp = this.now();
+      const accepted: DurableRecoveryCommandRecord = {
+        commandId: request.commandId,
+        runId: request.runId,
+        operation: request.operation,
+        requestedBy: request.requestedBy,
+        reason: request.reason,
+        expectedCheckpointVersion: request.expectedCheckpointVersion,
+        expectedControlVersion: request.expectedControlVersion,
+        executionOwner: owner,
+        status: "accepted",
+        version: 1,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      const insert = this.db.prepare(`
+        INSERT INTO recovery_commands (command_id, version, payload, updated_at)
+        VALUES (?, 1, ?, ?) ON CONFLICT(command_id) DO NOTHING;
+      `).run(accepted.commandId, JSON.stringify(accepted), timestamp);
+      this.mustWrite(insert.changes, "shared_claim_insert");
+      const executing: DurableRecoveryCommandRecord = {
+        ...accepted, status: "executing", version: 2
+      };
+      const cas = this.db.prepare(`
+        UPDATE recovery_commands SET version = 2, payload = ?, updated_at = ?
+        WHERE command_id = ? AND version = 1
+          AND json_extract(payload, '$.status') = 'accepted'
+          AND json_extract(payload, '$.executionOwner') = ?;
+      `).run(
+        JSON.stringify(executing), timestamp, request.commandId, owner
+      );
+      this.mustWrite(cas.changes, "shared_claim_cas");
+      this.db.exec("COMMIT;");
+      return { action: "claimed_executing", owner, record: structuredClone(executing) };
+    } catch (error) {
+      this.db.exec("ROLLBACK;");
+      throw error;
+    }
+  }
+
+  /**
+   * Candidate legacy bridge to the SAME recovery_commands table.
+   * Used only with claim-aware Orchestrator; no independent Map/DB authority.
+   */
+  asLegacyCommandStore(): RecoveryCommandStore {
+    return {
+      load: async commandId => this.loadCommand(commandId),
+      insertIfAbsent: async record => {
+        if (record.executionOwner !== "legacy") {
+          throw new RecoverySharedOwnershipConflictError(
+            record.commandId, "legacy", record.executionOwner
+          );
+        }
+        return this.insertCommandIfAbsent(record);
+      },
+      updateIfVersion: async (record, expectedVersion) =>
+        this.updateLegacyCommandIfVersion(record, expectedVersion)
+    };
+  }
+
+  private updateLegacyCommandIfVersion(
+    proposed: DurableRecoveryCommandRecord,
+    expectedVersion: number
+  ): DurableRecoveryCommandRecord {
+    this.db.exec("BEGIN IMMEDIATE;");
+    try {
+      const previous = this.loadCommand(proposed.commandId);
+      const actual = previous?.version ?? 0;
+      if (!previous || actual !== expectedVersion) {
+        throw new RecoveryCommandConflictError(
+          proposed.commandId, expectedVersion, actual
+        );
+      }
+      if (previous.executionOwner !== "legacy" ||
+          proposed.executionOwner !== "legacy") {
+        throw new RecoverySharedOwnershipConflictError(
+          proposed.commandId, "legacy", previous.executionOwner
+        );
+      }
+      decideDurableRecoveryOperation(previous, proposed);
+      const transition =
+        (previous.status === "accepted" && proposed.status === "executing") ||
+        (previous.status === "executing" &&
+          ["succeeded", "rejected", "failed"].includes(proposed.status));
+      if (!transition) {
+        throw new RecoveryFinalizationConflictError("legacy_command_transition");
+      }
+      const saved = {
+        ...structuredClone(proposed), version: actual + 1
+      };
+      const write = this.db.prepare(`
+        UPDATE recovery_commands
+        SET version = ?, payload = ?, updated_at = ?
+        WHERE command_id = ? AND version = ?
+          AND json_extract(payload, '$.executionOwner') = 'legacy';
+      `).run(
+        saved.version, JSON.stringify(saved), saved.updatedAt,
+        saved.commandId, expectedVersion
+      );
+      this.mustWrite(write.changes, "legacy_terminal_cas");
+      this.db.exec("COMMIT;");
+      return saved;
+    } catch (error) {
+      this.db.exec("ROLLBACK;");
+      throw error;
+    }
   }
 
   /**
@@ -304,6 +475,7 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
         !identityKeys.every(
           key => persistedCommand[key] === input.command[key]
         ) ||
+        persistedCommand.executionOwner !== input.command.executionOwner ||
         !["succeeded", "rejected", "failed"].includes(input.command.status)
       ) {
         throw new RecoveryFinalizationConflictError(

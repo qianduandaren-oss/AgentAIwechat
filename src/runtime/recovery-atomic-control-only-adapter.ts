@@ -1,4 +1,11 @@
-import type { DurableRecoveryOperationCommand } from "./durable-recovery-operation-orchestrator.js";
+import {
+  decideDurableRecoveryOperation,
+  type DurableRecoveryOperationCommand
+} from "./durable-recovery-operation-orchestrator.js";
+import {
+  RecoverySharedOwnershipConflictError,
+  type SharedRecoveryOwnershipClaim
+} from "./recovery-shared-ownership-claim.js";
 import type {
   DurableRecoveryCommandRecord,
   RecoveryCommandResultSnapshot
@@ -34,6 +41,37 @@ export class AtomicRecoveryControlOnlyAdapter {
     /** Test-only injection, called AFTER commit to emulate a lost reply. */
     private readonly afterCommit?: () => void
   ) {}
+
+
+  /**
+   * Candidate shared-Claim route: executing v2 already belongs to this owner.
+   * Skips BOTH the preflight admission and admitControlOnlyCommand.
+   */
+  async executeClaimed(
+    command: DurableRecoveryOperationCommand,
+    claim: SharedRecoveryOwnershipClaim
+  ): Promise<AtomicControlOnlyExecution> {
+    if (claim.owner !== "atomic_control_only" ||
+        claim.record.executionOwner !== "atomic_control_only") {
+      throw new RecoverySharedOwnershipConflictError(
+        command.commandId, "atomic_control_only", claim.record.executionOwner
+      );
+    }
+    decideDurableRecoveryOperation(claim.record, command);
+    if (claim.action === "replayed_terminal") {
+      return {
+        action: "replayed_terminal", record: claim.record,
+        resultSnapshot: structuredClone(claim.resultSnapshot)
+      };
+    }
+    if (claim.action === "suspend_in_flight") {
+      return { action: "suspend_in_flight", record: claim.record };
+    }
+    if (claim.record.status !== "executing" || claim.record.version !== 2) {
+      throw new Error("Shared atomic claim is not executing v2");
+    }
+    return this.executeAlreadyAdmitted(command, claim.record);
+  }
 
   async execute(
     command: DurableRecoveryOperationCommand,
@@ -79,7 +117,13 @@ export class AtomicRecoveryControlOnlyAdapter {
       throw new Error("Unexpected atomic admission decision");
     }
 
-    const executing = admission.record;
+    return this.executeAlreadyAdmitted(command, admission.record);
+  }
+
+  private async executeAlreadyAdmitted(
+    command: DurableRecoveryOperationCommand,
+    executing: DurableRecoveryCommandRecord
+  ): Promise<AtomicControlOnlyExecution> {
     const checkpoint = this.finalizer.loadCheckpoint(command.runId);
     if (!checkpoint) {
       // Durable in-flight fact remains for explicit reconciliation.

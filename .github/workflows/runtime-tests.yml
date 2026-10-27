@@ -102,6 +102,9 @@ jobs:
       - name: Day 66 SQLite fault injection and durable owner flip
         run: npm run test:recovery-entry-sqlite-fault
 
+      - name: Day 67 shared transactional owner Claim and mixed-route SQLite race
+        run: npm run test:shared-recovery-claim
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

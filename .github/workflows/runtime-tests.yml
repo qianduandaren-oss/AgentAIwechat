@@ -105,6 +105,9 @@ jobs:
       - name: Day 67 shared transactional owner Claim and mixed-route SQLite race
         run: npm run test:shared-recovery-claim
 
+      - name: Day 67 evening competing Run CAS and claim-required entry
+        run: npm run test:recovery-run-level-cas
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

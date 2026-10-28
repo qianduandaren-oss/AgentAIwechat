@@ -1,7 +1,7 @@
 import type { DurableRecoveryCommandRecord } from "../runtime/recovery-command-store.js";
 import { RecoveryIngressGate, type RecoveryIngressExecutor } from "../runtime/recovery-ingress-gate.js";
 import { handleRecoveryIngressResponse } from "../runtime/recovery-ingress-response.js";
-import { RecoveryEntryOwnershipConflictError } from "../runtime/recovery-entry-dispatcher.js";
+import { RecoveryEntryOwnershipConflictError, type RecoveryEntryExecution } from "../runtime/recovery-entry-dispatcher.js";
 
 function check(value: unknown, label: string): asserts value {
   if (!value) throw new Error("Day 68 evening contract: " + label);
@@ -61,13 +61,15 @@ const entry: RecoveryIngressExecutor = {
       };
     }
     if (mode === "snapshot_missing") {
+      // Deliberately model corrupted persisted data from JS/old versions:
+      // TypeScript correctly forbids this shape in the healthy execution union.
       return {
         route: "atomic_control_only",
         execution: {
           action: "replayed_terminal",
           record: { ...terminal, resultSnapshot: undefined }
         }
-      };
+      } as unknown as RecoveryEntryExecution;
     }
     return {
       route: "atomic_control_only",

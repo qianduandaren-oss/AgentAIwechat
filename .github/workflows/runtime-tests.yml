@@ -108,6 +108,9 @@ jobs:
       - name: Day 67 evening competing Run CAS and claim-required entry
         run: npm run test:recovery-run-level-cas
 
+      - name: Day 68 authenticated recovery ingress guard regression
+        run: node dist/demos/day68-recovery-ingress-gate-test.js
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

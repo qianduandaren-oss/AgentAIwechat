@@ -111,6 +111,9 @@ jobs:
       - name: Day 68 authenticated recovery ingress guard regression
         run: node dist/demos/day68-recovery-ingress-gate-test.js
 
+      - name: Day 68 noon ingress authorization and replay on real SQLite
+        run: npm run test:recovery-ingress-sqlite
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

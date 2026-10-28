@@ -20,7 +20,7 @@ const request: RecoveryIngressRequest = {
 let executionCount = 0;
 let lookupCount = 0;
 let permissionCount = 0;
-let observed: DurableRecoveryOperationCommand | undefined;
+let observedActor = "";
 const response: RecoveryEntryExecution = {
   route: "atomic_control_only",
   execution: {
@@ -44,7 +44,7 @@ const gate = new RecoveryIngressGate(
   {
     async execute(command) {
       executionCount++;
-      observed = command;
+      observedActor = command.requestedBy;
       return response;
     }
   },
@@ -83,7 +83,7 @@ async function rejected(
 
 const first = await gate.execute(request, principal);
 assert.equal(first.route, "atomic_control_only");
-assert.equal(observed?.requestedBy, principal.actorId);
+assert.equal(observedActor, principal.actorId);
 assert.equal(executionCount, 1);
 assert.equal(lookupCount, 1);
 assert.equal(permissionCount, 1);

@@ -1,8 +1,15 @@
-function assert(value: unknown, message: string): asserts value { if (!value) throw new Error("Day 68 ingress: " + message); }
-assert.equal = (actual: unknown, expected: unknown, message = "equal") => assert(actual === expected, message);
-assert.rejects = async (fn: () => Promise<unknown>, predicate: (error: unknown) => boolean) => {
-  try { await fn(); } catch (error) { assert(predicate(error), "unexpected rejection"); return; }
-  throw new Error("expected rejection");
+const assert = {
+  equal(actual: unknown, expected: unknown, message = "equal"): void {
+    if (actual !== expected) throw new Error("Day 68 ingress: " + message);
+  },
+  async rejects(fn: () => Promise<unknown>, predicate: (error: unknown) => boolean): Promise<void> {
+    try { await fn(); }
+    catch (error) {
+      if (!predicate(error)) throw new Error("Day 68 ingress: unexpected rejection");
+      return;
+    }
+    throw new Error("Day 68 ingress: expected rejection");
+  }
 };
 import {
   RecoveryIngressDeniedError,

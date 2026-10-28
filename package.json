@@ -59,7 +59,8 @@
     "test:recovery-inflight-evidence": "npm run build && node dist/demos/day65-evening-inflight-evidence-test.js",
     "test:recovery-entry-sqlite-fault": "npm run build && node dist/demos/day66-recovery-entry-sqlite-fault-test.js",
     "test:shared-recovery-claim": "npm run build && node dist/demos/day67-shared-ownership-claim-test.js",
-    "test:recovery-run-level-cas": "npm run build && node dist/demos/day67-evening-run-level-cas-test.js"
+    "test:recovery-run-level-cas": "npm run build && node dist/demos/day67-evening-run-level-cas-test.js",
+    "test:recovery-ingress-sqlite": "npm run build && node dist/demos/day68-noon-ingress-sqlite-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -114,6 +114,9 @@ jobs:
       - name: Day 68 noon ingress authorization and replay on real SQLite
         run: npm run test:recovery-ingress-sqlite
 
+      - name: Day 68 evening ingress replay and safe response contracts
+        run: npm run test:recovery-ingress-evening
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

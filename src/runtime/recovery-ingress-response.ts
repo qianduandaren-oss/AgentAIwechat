@@ -8,7 +8,10 @@ import { RecoveryCommandIdentityConflictError } from "./durable-recovery-operati
 import { RecoverySharedOwnershipConflictError } from "./recovery-shared-ownership-claim.js";
 import { RecoveryFinalizationConflictError } from "./sqlite-recovery-finalization.js";
 import { RecoveryTerminalSnapshotMissingError } from "./recovery-atomic-route-decision.js";
-import { AtomicRecoveryOperationUnsupportedError } from "./recovery-entry-dispatcher.js";
+import {
+  AtomicRecoveryOperationUnsupportedError,
+  RecoveryEntryOwnershipConflictError
+} from "./recovery-entry-dispatcher.js";
 
 /**
  * Day 68 noon: framework-independent, sanitized HTTP RESPONSE CONTRACT.
@@ -76,6 +79,7 @@ export async function handleRecoveryIngressResponse(
       return failure(400, "UNSUPPORTED_OPERATION");
     }
     if (error instanceof RecoveryCommandIdentityConflictError ||
+        error instanceof RecoveryEntryOwnershipConflictError ||
         error instanceof RecoverySharedOwnershipConflictError ||
         error instanceof RecoveryFinalizationConflictError) {
       return failure(409, "RECOVERY_CONFLICT");

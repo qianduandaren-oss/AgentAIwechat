@@ -1,4 +1,9 @@
-import { strict as assert } from "node:assert";
+function assert(value: unknown, message: string): asserts value { if (!value) throw new Error("Day 68 ingress: " + message); }
+assert.equal = (actual: unknown, expected: unknown, message = "equal") => assert(actual === expected, message);
+assert.rejects = async (fn: () => Promise<unknown>, predicate: (error: unknown) => boolean) => {
+  try { await fn(); } catch (error) { assert(predicate(error), "unexpected rejection"); return; }
+  throw new Error("expected rejection");
+};
 import {
   RecoveryIngressDeniedError,
   RecoveryIngressGate,

@@ -62,7 +62,8 @@
     "test:recovery-run-level-cas": "npm run build && node dist/demos/day67-evening-run-level-cas-test.js",
     "test:recovery-ingress-sqlite": "npm run build && node dist/demos/day68-noon-ingress-sqlite-test.js",
     "test:recovery-ingress-evening": "npm run build && node dist/demos/day68-evening-ingress-contract-test.js",
-    "test:recovery-authorization-evidence": "npm run build && node dist/demos/day69-morning-authorization-evidence-test.js"
+    "test:recovery-authorization-evidence": "npm run build && node dist/demos/day69-morning-authorization-evidence-test.js",
+    "test:recovery-authorized-claim": "npm run build && node dist/demos/day69-noon-authorized-claim-sqlite-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

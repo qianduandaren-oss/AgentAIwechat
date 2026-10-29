@@ -7,6 +7,7 @@ import {
 import { RecoveryCommandIdentityConflictError } from "./durable-recovery-operation-orchestrator.js";
 import { RecoverySharedOwnershipConflictError } from "./recovery-shared-ownership-claim.js";
 import { RecoveryFinalizationConflictError } from "./sqlite-recovery-finalization.js";
+import { RecoveryAuthorizationEvidenceConflictError } from "./recovery-authorization-evidence.js";
 import { RecoveryTerminalSnapshotMissingError } from "./recovery-atomic-route-decision.js";
 import {
   AtomicRecoveryOperationUnsupportedError,
@@ -78,7 +79,8 @@ export async function handleRecoveryIngressResponse(
     if (error instanceof AtomicRecoveryOperationUnsupportedError) {
       return failure(400, "UNSUPPORTED_OPERATION");
     }
-    if (error instanceof RecoveryCommandIdentityConflictError ||
+    if (error instanceof RecoveryAuthorizationEvidenceConflictError ||
+        error instanceof RecoveryCommandIdentityConflictError ||
         error instanceof RecoveryEntryOwnershipConflictError ||
         error instanceof RecoverySharedOwnershipConflictError ||
         error instanceof RecoveryFinalizationConflictError) {

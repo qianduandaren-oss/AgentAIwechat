@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS recovery_authority_run_permissions (
 );
 `;
 
-export class SQLiteRecoveryFinalizationUnitOfWork {
+export class SQLiteRecoveryFinalizationUnitOfWork implements TransactionalAuthorizedRecoveryClaimer, SharedRecoveryOwnershipClaimer {
   private readonly db: DatabaseSync;
 
   constructor(

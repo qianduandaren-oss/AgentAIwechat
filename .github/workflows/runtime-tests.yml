@@ -123,6 +123,9 @@ jobs:
       - name: Day 69 noon ACL drift same-SQLite authorized Claim
         run: npm run test:recovery-authorized-claim
 
+      - name: Day 69 evening revocation-after-Claim Finalizer authorization fence
+        run: npm run test:recovery-authorization-finalize-fence
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

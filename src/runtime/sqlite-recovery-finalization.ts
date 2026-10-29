@@ -73,6 +73,8 @@ export interface RecoveryFinalizationInput {
   command: DurableRecoveryCommandRecord;
   expectedCommandVersion: number;
   outbox: RecoveryOutboxRecord[];
+  /** Optional for legacy tests; REQUIRED if persisted Command is same_sqlite fenced. */
+  authorizationEvidence?: RecoveryAuthorizationEvidence;
   /** Omission preserves the original dual-update contract. */
   writeSet?: RecoveryWriteSet;
 }
@@ -195,6 +197,7 @@ export class SQLiteRecoveryFinalizationUnitOfWork implements TransactionalAuthor
         expectedCheckpointVersion: request.expectedCheckpointVersion,
         expectedControlVersion: request.expectedControlVersion,
         executionOwner: owner,
+        ...(evidence ? { authorizationFence: "same_sqlite" as const } : {}),
         status: "accepted",
         version: 1,
         createdAt: timestamp,
@@ -218,7 +221,10 @@ export class SQLiteRecoveryFinalizationUnitOfWork implements TransactionalAuthor
       );
       this.mustWrite(cas.changes, "shared_claim_cas");
       this.db.exec("COMMIT;");
-      return { action: "claimed_executing", owner, record: structuredClone(executing) };
+      return {
+        action: "claimed_executing", owner, record: structuredClone(executing),
+        ...(evidence ? { authorizationEvidence: structuredClone(evidence) } : {})
+      };
     } catch (error) {
       this.db.exec("ROLLBACK;");
       throw error;
@@ -445,6 +451,21 @@ export class SQLiteRecoveryFinalizationUnitOfWork implements TransactionalAuthor
   commit(input: RecoveryFinalizationInput) {
     this.db.exec("BEGIN IMMEDIATE;");
     try {
+      // Day 69 evening: Claim-time authorization is NOT enough. Fence the
+      // terminal Control/Outbox write against current SAME-SQLite ACL facts.
+      // Check before any state writes; transaction makes check + commit atomic.
+      // Unfenced old commands retain compatibility but are NOT production-safe.
+      const claimed = this.loadCommand(input.command.commandId);
+      if (claimed?.authorizationFence === "same_sqlite") {
+        if (!input.authorizationEvidence) {
+          throw new RecoveryAuthorizationEvidenceConflictError();
+        }
+        this.assertAuthorizedEvidenceInTransaction(
+          input.command, input.authorizationEvidence
+        );
+      } else if (input.authorizationEvidence) {
+        throw new RecoveryAuthorizationEvidenceConflictError();
+      }
       // Legacy callers that omit writeSet continue to update both state rows.
       const writes = input.writeSet ?? {
         checkpoint: "cas_update",
@@ -573,6 +594,7 @@ export class SQLiteRecoveryFinalizationUnitOfWork implements TransactionalAuthor
           key => persistedCommand[key] === input.command[key]
         ) ||
         persistedCommand.executionOwner !== input.command.executionOwner ||
+        persistedCommand.authorizationFence !== input.command.authorizationFence ||
         !["succeeded", "rejected", "failed"].includes(input.command.status)
       ) {
         throw new RecoveryFinalizationConflictError(

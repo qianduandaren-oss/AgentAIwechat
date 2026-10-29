@@ -1,3 +1,4 @@
+import type { RecoveryAuthorizationEvidence } from "./recovery-authorization-evidence.js";
 import type { DurableRecoveryOperationCommand } from "./durable-recovery-operation-orchestrator.js";
 import type {
   DurableRecoveryCommandRecord,
@@ -22,6 +23,8 @@ export type SharedRecoveryOwnershipClaim =
       action: "claimed_executing";
       owner: RecoveryClaimOwner;
       record: DurableRecoveryCommandRecord;
+      /** Trusted in-process evidence, never sourced from request JSON. */
+      authorizationEvidence?: RecoveryAuthorizationEvidence;
     }
   | {
       action: "suspend_in_flight";

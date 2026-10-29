@@ -29,6 +29,12 @@ export interface DurableRecoveryCommandRecord {
   resultSnapshot?: RecoveryCommandResultSnapshot;
   /** Durable route owner for new records; undefined means historical/unknown. */
   executionOwner?: "legacy" | "atomic_control_only";
+  /**
+   * Day 69: an authorized Claim under the same SQLite ACL authority.
+   * Finalizer must revalidate the current grants in its terminal transaction.
+   * Missing field means legacy/unfenced; never infer authorized from absence.
+   */
+  authorizationFence?: "same_sqlite";
 }
 
 export class RecoveryCommandConflictError extends Error {

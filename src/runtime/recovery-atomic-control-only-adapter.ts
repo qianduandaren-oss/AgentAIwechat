@@ -12,6 +12,7 @@ import type {
 } from "./recovery-command-store.js";
 import type { RecoveryOperationAuthorizer } from "./recovery-operations.js";
 import type { RecoveryOutboxRecord } from "./recovery-outbox.js";
+import type { RecoveryAuthorizationEvidence } from "./recovery-authorization-evidence.js";
 import {
   selectAtomicRecoveryRoute
 } from "./recovery-atomic-route-decision.js";
@@ -70,7 +71,7 @@ export class AtomicRecoveryControlOnlyAdapter {
     if (claim.record.status !== "executing" || claim.record.version !== 2) {
       throw new Error("Shared atomic claim is not executing v2");
     }
-    return this.executeAlreadyAdmitted(command, claim.record);
+    return this.executeAlreadyAdmitted(command, claim.record, claim.authorizationEvidence);
   }
 
   async execute(
@@ -122,7 +123,8 @@ export class AtomicRecoveryControlOnlyAdapter {
 
   private async executeAlreadyAdmitted(
     command: DurableRecoveryOperationCommand,
-    executing: DurableRecoveryCommandRecord
+    executing: DurableRecoveryCommandRecord,
+    authorizationEvidence?: RecoveryAuthorizationEvidence
   ): Promise<AtomicControlOnlyExecution> {
     const checkpoint = this.finalizer.loadCheckpoint(command.runId);
     if (!checkpoint) {
@@ -183,7 +185,8 @@ export class AtomicRecoveryControlOnlyAdapter {
       command: terminal,
       expectedCommandVersion: executing.version,
       outbox: [event],
-      writeSet: prepared.writeSet
+      writeSet: prepared.writeSet,
+      authorizationEvidence
     });
 
     // Read durable truth rather than returning a tentative draft.

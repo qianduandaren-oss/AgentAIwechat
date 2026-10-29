@@ -64,7 +64,8 @@
     "test:recovery-ingress-evening": "npm run build && node dist/demos/day68-evening-ingress-contract-test.js",
     "test:recovery-authorization-evidence": "npm run build && node dist/demos/day69-morning-authorization-evidence-test.js",
     "test:recovery-authorized-claim": "npm run build && node dist/demos/day69-noon-authorized-claim-sqlite-test.js",
-    "test:recovery-authorization-finalize-fence": "npm run build && node dist/demos/day69-evening-authorization-fence-test.js"
+    "test:recovery-authorization-finalize-fence": "npm run build && node dist/demos/day69-evening-authorization-fence-test.js",
+    "test:recovery-external-effect-fence": "npm run build && node dist/demos/day70-morning-external-effect-fence-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -126,6 +126,9 @@ jobs:
       - name: Day 69 evening revocation-after-Claim Finalizer authorization fence
         run: npm run test:recovery-authorization-finalize-fence
 
+      - name: Day 70 morning external effect fence identity contract
+        run: npm run test:recovery-external-effect-fence
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

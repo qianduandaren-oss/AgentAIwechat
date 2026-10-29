@@ -18,6 +18,13 @@ import {
   type SharedRecoveryOwnershipClaim,
   type SharedRecoveryOwnershipClaimer
 } from "./recovery-shared-ownership-claim.js";
+import {
+  assertRecoveryAuthorizationEvidence,
+  assertRecoveryAuthorizationRevisionsUnchanged,
+  RecoveryAuthorizationEvidenceConflictError,
+  type RecoveryAuthorizationEvidence,
+  type TransactionalAuthorizedRecoveryClaimer
+} from "./recovery-authorization-evidence.js";
 import { RecoveryTerminalSnapshotMissingError } from "./recovery-atomic-route-decision.js";
 import {
   selectAtomicRecoveryRoute,
@@ -81,6 +88,35 @@ export interface RecoveryInFlightEvidence {
   outboxEventIds: string[];
 }
 
+/**
+ * Day 69 candidate SAME-SQLite authorization authority for reproducible
+ * transaction tests. These rows must be maintained by a trusted ACL writer;
+ * they are NOT synced to an external identity service or a production IdP.
+ */
+export const RECOVERY_AUTHORIZATION_AUTHORITY_SCHEMA = `
+CREATE TABLE IF NOT EXISTS recovery_authority_runs (
+  run_id TEXT PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  tenant_revision INTEGER NOT NULL,
+  acl_revision INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS recovery_authority_actor_grants (
+  actor_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  operation TEXT NOT NULL,
+  grant_revision INTEGER NOT NULL,
+  allowed INTEGER NOT NULL,
+  PRIMARY KEY (actor_id, tenant_id, operation)
+);
+CREATE TABLE IF NOT EXISTS recovery_authority_run_permissions (
+  run_id TEXT NOT NULL,
+  actor_id TEXT NOT NULL,
+  operation TEXT NOT NULL,
+  allowed INTEGER NOT NULL,
+  PRIMARY KEY (run_id, actor_id, operation)
+);
+`;
+
 export class SQLiteRecoveryFinalizationUnitOfWork {
   private readonly db: DatabaseSync;
 
@@ -95,6 +131,7 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
     }
     this.db.exec(SQLITE_CHECKPOINT_SCHEMA);
     this.db.exec(RECOVERY_FINALIZATION_SCHEMA);
+    this.db.exec(RECOVERY_AUTHORIZATION_AUTHORITY_SCHEMA);
   }
 
 
@@ -105,7 +142,8 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
    */
   async claim(
     request: DurableRecoveryOperationCommand,
-    owner: RecoveryClaimOwner
+    owner: RecoveryClaimOwner,
+    evidence?: RecoveryAuthorizationEvidence
   ): Promise<SharedRecoveryOwnershipClaim> {
     if (!request.commandId.trim() ||
         !request.runId.trim() ||
@@ -118,6 +156,7 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
     }
     this.db.exec("BEGIN IMMEDIATE;");
     try {
+      if (evidence) this.assertAuthorizedEvidenceInTransaction(request, evidence);
       const existing = this.loadCommand(request.commandId);
       const decision = decideDurableRecoveryOperation(existing, request);
       if (existing) {
@@ -184,6 +223,64 @@ export class SQLiteRecoveryFinalizationUnitOfWork {
       this.db.exec("ROLLBACK;");
       throw error;
     }
+  }
+
+  /**
+   * Day 69 noon: permission/tenant revision check and durable Command Claim
+   * share ONE BEGIN IMMEDIATE on the same SQLite file.
+   *
+   * This is a candidate local ACL authority, not an adapter for external ACL.
+   * Do not expose raw claim() or claimAuthorized() to untrusted callers.
+   */
+  async claimAuthorized(
+    request: DurableRecoveryOperationCommand,
+    owner: RecoveryClaimOwner,
+    evidence: RecoveryAuthorizationEvidence
+  ): Promise<SharedRecoveryOwnershipClaim> {
+    if (!evidence) throw new RecoveryAuthorizationEvidenceConflictError();
+    return this.claim(request, owner, evidence);
+  }
+
+  private assertAuthorizedEvidenceInTransaction(
+    request: DurableRecoveryOperationCommand,
+    evidence: RecoveryAuthorizationEvidence
+  ): void {
+    // The authenticated principal must have been verified upstream.
+    // This binding check does NOT authenticate request.requestedBy.
+    assertRecoveryAuthorizationEvidence(
+      request,
+      { actorId: request.requestedBy, tenantId: evidence.tenantId },
+      evidence
+    );
+    const run = this.db.prepare(`
+      SELECT tenant_id, tenant_revision, acl_revision
+      FROM recovery_authority_runs WHERE run_id = ?;
+    `).get(request.runId) as {
+      tenant_id: string; tenant_revision: number; acl_revision: number
+    } | undefined;
+    if (!run || run.tenant_id !== evidence.tenantId) {
+      throw new RecoveryAuthorizationEvidenceConflictError();
+    }
+    const actor = this.db.prepare(`
+      SELECT grant_revision, allowed FROM recovery_authority_actor_grants
+      WHERE actor_id = ? AND tenant_id = ? AND operation = ?;
+    `).get(evidence.actorId, run.tenant_id, request.operation) as {
+      grant_revision: number; allowed: number
+    } | undefined;
+    const resource = this.db.prepare(`
+      SELECT allowed FROM recovery_authority_run_permissions
+      WHERE run_id = ? AND actor_id = ? AND operation = ?;
+    `).get(request.runId, evidence.actorId, request.operation) as {
+      allowed: number
+    } | undefined;
+    if (!actor || actor.allowed !== 1 || !resource || resource.allowed !== 1) {
+      throw new RecoveryAuthorizationEvidenceConflictError();
+    }
+    assertRecoveryAuthorizationRevisionsUnchanged(evidence.revisions, {
+      runTenantRevision: run.tenant_revision,
+      runAclRevision: run.acl_revision,
+      actorGrantRevision: actor.grant_revision
+    });
   }
 
   /**

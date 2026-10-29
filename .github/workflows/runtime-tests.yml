@@ -120,6 +120,9 @@ jobs:
       - name: Day 69 authorization evidence identity and ACL revision invariants
         run: npm run test:recovery-authorization-evidence
 
+      - name: Day 69 noon ACL drift same-SQLite authorized Claim
+        run: npm run test:recovery-authorized-claim
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

@@ -117,6 +117,9 @@ jobs:
       - name: Day 68 evening ingress replay and safe response contracts
         run: npm run test:recovery-ingress-evening
 
+      - name: Day 69 authorization evidence identity and ACL revision invariants
+        run: npm run test:recovery-authorization-evidence
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

@@ -129,6 +129,9 @@ jobs:
       - name: Day 70 morning external effect fence identity contract
         run: npm run test:recovery-external-effect-fence
 
+      - name: Day 70 noon same-SQLite effect ledger and monotonic epochs
+        run: npm run test:recovery-effect-ledger
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

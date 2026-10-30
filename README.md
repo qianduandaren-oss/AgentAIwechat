@@ -1,10 +1,22 @@
-# Agent AI 工程师 · Day 1–47 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–70 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 47**。
+当前课程代码进度：**Day 70**（2026-10-30）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 10 / Day 64–70：Recovery 发布安全审查
+
+- Day 64–65：纯 Control Prepare、Selective SQLite Finalizer、Atomic Control-only 候选路由。
+- Day 66–67：持久化执行 owner、共享 Command Claim 和 Run-level CAS，防止跨路由重复命令写入。
+- Day 68–69：Ingress 信任边界、权限撤销后的重放检查、授权 Revision 在 Claim/Finalizer 的同库 Fence。
+- Day 70：外部 Effect Fence 契约、SQLite Intent Ledger 和模拟 Sink、UNKNOWN 的只读远程 Reconciliation 决策；**没有**真实第三方 exactly-once。
+- [Week 10 Checkpoint](docs/checkpoints/week10-day70.md) · [Day 70 晚练审查](docs/day70-evening-effect-reconciliation-and-cutover.md)
+
+运行 `npm run test:recovery-effect-reconciliation` 可复现 UNKNOWN 停止自动重试、远程证据分支与本地模拟 Sink 丢 ACK 情况。
+
+**发布状态：NO_GO。** 缺真实 HTTP/CLI 与 IAM/ACL、旧 Service 旁路隔离、外部 Sink 协议、事实核对接口、多进程发布验收。不得将本仓库候选测试当成生产级 exactly-once。
 
 ---
 

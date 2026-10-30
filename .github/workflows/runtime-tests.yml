@@ -132,6 +132,9 @@ jobs:
       - name: Day 70 noon same-SQLite effect ledger and monotonic epochs
         run: npm run test:recovery-effect-ledger
 
+      - name: Day 70 evening remote effect UNKNOWN reconciliation and lost ACK
+        run: npm run test:recovery-effect-reconciliation
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

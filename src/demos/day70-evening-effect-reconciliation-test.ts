@@ -102,7 +102,7 @@ try {
     "3. stale query: manual review"); passed++;
   check(decide(caps, { kind: "unknown" }).action === "manual_review_required",
     "4. unknown provider result: manual review"); passed++;
-  check(decide(caps, undefined).action === "manual_review_required",
+  check(planUnknownRemoteEffectRecovery(intent, fence, state(), caps, undefined).action === "manual_review_required",
     "5. absent provider result: manual review"); passed++;
   check(decide().action === "verified_applied_requires_receipt_persistence",
     "6. authoritative applied receipt leads to persistence review"); passed++;

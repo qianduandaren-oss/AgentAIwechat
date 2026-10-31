@@ -36,7 +36,8 @@ expect("2. even strong provider cannot automatically resend UNKNOWN",
 expect("3. client claims cannot authorize dispatch or reconciliation",
   !audit({ ...base, source: "client_claim" }).firstDispatchCandidate &&
   !audit({ ...base, source: "client_claim" }).appliedReconciliationCandidate);
-expect("4. absent capability profile fails closed", !audit(undefined).firstDispatchCandidate);
+expect("4. absent capability profile fails closed",
+  !auditRecoveryProviderCapabilities(undefined, 3600).firstDispatchCandidate);
 expect("5. no atomic idempotency and no epoch fencing: no dispatch candidate",
   !audit({ ...base, capabilities: { ...base.capabilities, atomicIdempotency: false, epochFencing: false } }).firstDispatchCandidate);
 expect("6. epoch-only protection does not make negative retry safe",

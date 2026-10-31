@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 71 午练**（2026-10-31）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 71 晚练**（2026-10-31）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 71 晚练：供应商能力漂移与发布门禁
+
+- [晚练实现与发布阻塞清单](docs/day71-evening-provider-conformance-release-gate.md) 在午练候选矩阵上增加服务端探针证据审查、版本和时效绑定、声明与观测一致性、未结案事故隔离。
+- `npm run test:recovery-provider-conformance`：34 项模拟测试，覆盖能力声明失实、重复副作用、旧 Epoch、ACK 丢失、不可确认的终态及不允许自动重发 UNKNOWN。
+- 探针和事故记录目前是**测试注入/候选接口，不具备真实下游探针或持久化事故隔离**；发布仍 **NO_GO**。
 
 ## Week 11 / Day 71 午练：Provider 能力矩阵与 fail-closed 候选路由
 

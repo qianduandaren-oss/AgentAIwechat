@@ -1,10 +1,16 @@
-# Agent AI 工程师 · Day 1–70 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–71 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 70**（2026-10-30）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 71 早课**（2026-10-31）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 71：外部 Provider 能力审计
+
+- [Day 71 早课：Provider Capability Contract](docs/day71-morning-provider-capability-contract.md) 对原有 Day 70 UNKNOWN 决策前置安全能力评估，区分原子幂等、下游 Epoch Fencing、权威终态查询、稳定收据身份、终局否定查询、幂等作用域和保留时长。
+- 运行 `npm run test:recovery-provider-capabilities` 验证 15 项纯合同断言；只建立接线前候选门禁，不调用真实第三方，也不批准 UNKNOWN 自动重发。
+- **发布状态：NO_GO**，真实 Provider Adapter、IAM、收据持久化及旧路径隔离均未验收。
 
 ## Week 10 / Day 64–70：Recovery 发布安全审查
 

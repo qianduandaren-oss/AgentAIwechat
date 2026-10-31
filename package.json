@@ -67,7 +67,8 @@
     "test:recovery-authorization-finalize-fence": "npm run build && node dist/demos/day69-evening-authorization-fence-test.js",
     "test:recovery-external-effect-fence": "npm run build && node dist/demos/day70-morning-external-effect-fence-test.js",
     "test:recovery-effect-ledger": "npm run build && node dist/demos/day70-noon-effect-ledger-test.js",
-    "test:recovery-effect-reconciliation": "npm run build && node dist/demos/day70-evening-effect-reconciliation-test.js"
+    "test:recovery-effect-reconciliation": "npm run build && node dist/demos/day70-evening-effect-reconciliation-test.js",
+    "test:recovery-provider-capabilities": "npm run build && node dist/demos/day71-morning-provider-capability-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

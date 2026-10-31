@@ -141,6 +141,9 @@ jobs:
       - name: Day 71 noon provider matrix, trusted registry and fail-closed candidate review
         run: npm run test:recovery-provider-matrix
 
+      - name: Day 71 evening contract drift, quarantine and lost-ACK review
+        run: npm run test:recovery-provider-conformance
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

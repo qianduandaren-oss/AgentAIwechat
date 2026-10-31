@@ -135,6 +135,9 @@ jobs:
       - name: Day 70 evening remote effect UNKNOWN reconciliation and lost ACK
         run: npm run test:recovery-effect-reconciliation
 
+      - name: Day 71 morning provider capability audit
+        run: npm run test:recovery-provider-capabilities
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

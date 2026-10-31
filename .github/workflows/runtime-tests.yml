@@ -138,6 +138,9 @@ jobs:
       - name: Day 71 morning provider capability audit
         run: npm run test:recovery-provider-capabilities
 
+      - name: Day 71 noon provider matrix, trusted registry and fail-closed candidate review
+        run: npm run test:recovery-provider-matrix
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 71 早课**（2026-10-31）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 71 午练**（2026-10-31）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 71 午练：Provider 能力矩阵与 fail-closed 候选路由
+
+- [午练实现](docs/day71-noon-provider-matrix-fail-closed.md) 将早课的能力审计与 Day 70 Effect Ledger 阶段组合：仅 pending 的首次派发候选、UNKNOWN 的只读查询/新认领候选，任何情况都禁止盲目重发。
+- `npm run test:recovery-provider-matrix` 运行 28 个合同检查，覆盖四类模拟 Provider、身份伪造、状态绕过、保留期和 Day 70 Reconciliation；没有真实外部调用或账本写入。
+- 状态仍是 **NO_GO**：它只做静态候选评估，不批准实际副作用。
 
 ## Week 11 / Day 71：外部 Provider 能力审计
 

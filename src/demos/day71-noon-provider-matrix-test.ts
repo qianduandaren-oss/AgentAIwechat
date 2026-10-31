@@ -139,7 +139,7 @@ const command = {
 };
 const evidence = {
   actorId: "operator-a", tenantId: "tenant-a", runId: command.runId,
-  operation: command.operation, allowed: true,
+  operation: command.operation, allowed: true as const,
   revisions: { runTenantRevision: 3, runAclRevision: 5, actorGrantRevision: 9 }
 };
 const intent: RecoveryExternalEffectIntent = {

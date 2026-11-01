@@ -220,4 +220,26 @@ await scenario("two readers cannot advance terminal state",
     check(x.ledger.inspect(x.intent.effectId)?.status === "unknown", "UNKNOWN is unchanged");
     check(x.ledger.countRemoteReceipts() === 1, "receipt stable");
   });
+await scenario("advisory expires after a subsequent ACL revocation", x => {
+  const before = x.review();
+  check(before.action === "requires_atomic_terminal_transaction",
+    "review was initially eligible");
+  x.admin.exec("UPDATE recovery_authority_actor_grants SET allowed=0,grant_revision=10 WHERE actor_id='operator-a'");
+  expectHold(x.review(), "local_authority_changed");
+  check(x.ledger.inspect(x.intent.effectId)?.status === "unknown",
+    "the advisory must never commit the Effect");
+  const row = x.admin.prepare("SELECT version,payload FROM recovery_commands WHERE command_id=?")
+    .get(x.command.commandId) as { version: number; payload: string };
+  check(row.version === 2 && JSON.parse(row.payload).status === "executing",
+    "the advisory must never commit Command terminal");
+});
+await scenario("advisory expires after subsequent Control CAS drift", x => {
+  check(x.review().action === "requires_atomic_terminal_transaction",
+    "review was initially eligible");
+  x.admin.prepare("INSERT INTO recovery_controls (run_id,version,payload,updated_at) VALUES (?,1,'{}','after-review')")
+    .run(x.command.runId);
+  expectHold(x.review(), "control_cas_conflict");
+  check(x.ledger.countRemoteReceipts() === 1,
+    "a stale advisory cannot overwrite the persisted receipt");
+});
 console.log("Day 72 evening terminal readiness: " + checks + " SQLite scenarios passed");

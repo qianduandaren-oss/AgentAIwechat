@@ -71,7 +71,8 @@
     "test:recovery-provider-capabilities": "npm run build && node dist/demos/day71-morning-provider-capability-test.js",
     "test:recovery-provider-matrix": "npm run build && node dist/demos/day71-noon-provider-matrix-test.js",
     "test:recovery-provider-conformance": "npm run build && node dist/demos/day71-evening-provider-conformance-test.js",
-    "test:recovery-remote-receipt-review": "npm run build && node dist/demos/day72-morning-remote-receipt-review-test.js"
+    "test:recovery-remote-receipt-review": "npm run build && node dist/demos/day72-morning-remote-receipt-review-test.js",
+    "test:recovery-remote-receipt-persistence": "npm run build && node dist/demos/day72-noon-remote-receipt-persistence-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -147,6 +147,9 @@ jobs:
       - name: Day 72 morning authenticated remote receipt review contract
         run: npm run test:recovery-remote-receipt-review
 
+      - name: Day 72 noon same-SQLite trusted remote receipt persistence and uniqueness
+        run: npm run test:recovery-remote-receipt-persistence
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

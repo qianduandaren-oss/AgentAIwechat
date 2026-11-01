@@ -1,5 +1,11 @@
 import { DatabaseSync } from "node:sqlite";
 import {
+  reviewRemoteAppliedReceiptForPersistence,
+  type RecoveryRemoteAppliedReceipt,
+  type RecoveryRemoteReceiptReviewInput
+} from "./recovery-remote-receipt-review.js";
+import type { RecoveryProviderConformanceRegistry } from "./recovery-provider-conformance-gate.js";
+import {
   assertRecoveryExternalEffectFenceBinding,
   RecoveryExternalEffectFenceConflictError,
   type RecoveryExternalEffectFence,
@@ -38,6 +44,13 @@ type RunAuthorityRow = {
 type GrantRow = { grant_revision: number; allowed: number };
 type PermissionRow = { allowed: number };
 type ReceiptRow = { effect_id: string; applied_epoch: number };
+type RemoteReceiptRow = {
+  provider_id: string;
+  receipt_id: string;
+  effect_id: string;
+  idempotency_key: string;
+  receipt_json: string;
+};
 
 const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS recovery_effect_intents (",
@@ -52,6 +65,15 @@ const SCHEMA = [
   " idempotency_key TEXT PRIMARY KEY,",
   " effect_id TEXT NOT NULL UNIQUE,",
   " applied_epoch INTEGER NOT NULL",
+  ");",
+  "CREATE TABLE IF NOT EXISTS recovery_remote_applied_receipts (",
+  " provider_id TEXT NOT NULL,",
+  " receipt_id TEXT NOT NULL,",
+  " effect_id TEXT NOT NULL UNIQUE,",
+  " idempotency_key TEXT NOT NULL,",
+  " receipt_json TEXT NOT NULL,",
+  " PRIMARY KEY(provider_id,receipt_id),",
+  " UNIQUE(provider_id,idempotency_key)",
   ");"
 ].join("\n");
 
@@ -337,12 +359,128 @@ export class SQLiteRecoveryExternalEffectLedger {
       if (receipt && receipt.effect_id !== effectId) {
         throw new RecoveryEffectLedgerConflictError();
       }
+      // A remote applied receipt must never be overturned by the local mock
+      // sink's absence of a receipt (different authoritative systems).
+      const remoteReceipt = this.db.prepare(
+        "SELECT effect_id FROM recovery_remote_applied_receipts WHERE effect_id = ?"
+      ).get(effectId) as { effect_id: string } | undefined;
+      if (remoteReceipt) throw new RecoveryEffectLedgerConflictError();
       const status = receipt ? "committed" : "pending";
       this.db.prepare(
         "UPDATE recovery_effect_intents SET status = ? WHERE effect_id = ?"
       ).run(status, effectId);
       return receipt ? "committed" : "ready_for_new_epoch";
     });
+  }
+
+
+  /**
+   * Day 72 NOON: candidate durable receipt storage for an authenticated
+   * applied observation; it is NOT a remote provider adapter.
+   *
+   * The registry and observation must be constructed by trusted server-side
+   * dependencies, never from an HTTP request body. A string source marker
+   * cannot authenticate a provider. The review is re-evaluated against the
+   * transaction's CURRENT Ledger status/epoch. The same SQLite transaction
+   * checks current local Command, owner, tenant and ACL revisions.
+   *
+   * Profile/incident authority is outside SQLite and NOT atomic with this
+   * local commit; this method is a candidate until an authority-consistent
+   * production integration exists. No external HTTP calls belong here.
+   */
+  persistReviewedRemoteAppliedReceipt(
+    registry: RecoveryProviderConformanceRegistry,
+    input: Omit<RecoveryRemoteReceiptReviewInput, "ledger">
+  ): "stored" | "already_stored" {
+    try {
+      assertRecoveryExternalEffectFenceBinding(input.intent, input.fence);
+    } catch {
+      throw new RecoveryEffectLedgerConflictError();
+    }
+    return this.transaction(() => {
+      const row = this.require(input.intent.effectId);
+      this.sameIntent(row, input.intent);
+      if (row.status !== "unknown" || row.epoch !== input.fence.epoch) {
+        throw new RecoveryEffectLedgerConflictError();
+      }
+      // Do not mix the same-file simulated sink and a claimed remote receipt.
+      const localReceipt = this.db.prepare(
+        "SELECT effect_id FROM recovery_effect_sink_receipts WHERE idempotency_key = ?"
+      ).get(row.idempotency_key) as { effect_id: string } | undefined;
+      if (localReceipt) throw new RecoveryEffectLedgerConflictError();
+      this.assertCurrentAuthority(input.intent);
+
+      const review = reviewRemoteAppliedReceiptForPersistence(registry, {
+        ...input, ledger: { status: row.status, epoch: row.epoch }
+      });
+      if (review.action !== "needs_transactional_receipt_commit" ||
+          !input.receipt ||
+          review.providerId !== input.receipt.providerId ||
+          review.receiptId !== input.receipt.receiptId ||
+          review.effectId !== row.effect_id ||
+          review.idempotencyKey !== row.idempotency_key ||
+          review.commandId !== input.intent.command.commandId ||
+          review.epoch !== row.epoch) {
+        throw new RecoveryEffectLedgerConflictError();
+      }
+
+      // Protect receipt identity and Effect identity independently.
+      // Identical replays keep the FIRST immutable trusted observation.
+      const byReceipt = this.db.prepare(
+        "SELECT * FROM recovery_remote_applied_receipts WHERE provider_id = ? AND receipt_id = ?"
+      ).get(input.receipt.providerId, input.receipt.receiptId) as RemoteReceiptRow | undefined;
+      const byEffect = this.db.prepare(
+        "SELECT * FROM recovery_remote_applied_receipts WHERE effect_id = ?"
+      ).get(row.effect_id) as RemoteReceiptRow | undefined;
+      const byKey = this.db.prepare(
+        "SELECT * FROM recovery_remote_applied_receipts WHERE provider_id = ? AND idempotency_key = ?"
+      ).get(input.receipt.providerId, row.idempotency_key) as RemoteReceiptRow | undefined;
+
+      const old = byReceipt ?? byEffect ?? byKey;
+      if (old) {
+        const saved = JSON.parse(old.receipt_json) as RecoveryRemoteAppliedReceipt;
+        const first = { ...saved, observedAtEpochMs: 0 };
+        const latest = { ...input.receipt, observedAtEpochMs: 0 };
+        if (old.effect_id !== row.effect_id ||
+            old.idempotency_key !== row.idempotency_key ||
+            old.provider_id !== input.receipt.providerId ||
+            old.receipt_id !== input.receipt.receiptId ||
+            JSON.stringify(first) !== JSON.stringify(latest) ||
+            (byReceipt && byReceipt.effect_id !== row.effect_id) ||
+            (byEffect && byEffect.receipt_id !== input.receipt.receiptId) ||
+            (byKey && byKey.effect_id !== row.effect_id)) {
+          throw new RecoveryEffectLedgerConflictError();
+        }
+        return "already_stored";
+      }
+      try {
+        this.db.prepare(
+          "INSERT INTO recovery_remote_applied_receipts (provider_id,receipt_id,effect_id,idempotency_key,receipt_json) VALUES (?,?,?,?,?)"
+        ).run(
+          input.receipt.providerId, input.receipt.receiptId, row.effect_id,
+          row.idempotency_key, JSON.stringify(input.receipt)
+        );
+      } catch {
+        throw new RecoveryEffectLedgerConflictError();
+      }
+      // Deliberately KEEP Effect UNKNOWN and Command executing v2.
+      // Receipt storage is evidence, NOT a terminal/Control/Outbox transition.
+      return "stored";
+    });
+  }
+
+  inspectRemoteReceipt(effectId: string): RecoveryRemoteAppliedReceipt | undefined {
+    const row = this.db.prepare(
+      "SELECT receipt_json FROM recovery_remote_applied_receipts WHERE effect_id = ?"
+    ).get(effectId) as { receipt_json: string } | undefined;
+    return row ? JSON.parse(row.receipt_json) as RecoveryRemoteAppliedReceipt : undefined;
+  }
+
+  countRemoteReceipts(): number {
+    const row = this.db.prepare(
+      "SELECT COUNT(*) AS total FROM recovery_remote_applied_receipts"
+    ).get() as { total: number };
+    return row.total;
   }
 
   inspect(effectId: string): { status: RecoveryEffectLedgerStatus; epoch: number } | undefined {

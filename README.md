@@ -1030,3 +1030,19 @@ docs/day47-noon-durable-recovery-operation-orchestrator.md
 ```
 
 当前这一版故意把 `resume_in_flight` 停在“重新读取 durable facts”这一步，不把 executing 误判成“上次没执行”。下一步会把这条 in-flight path 接到 Day 46 的 transaction-aware Recovery Commit，让崩溃恢复重新加载 Checkpoint / Control / Command 后再决定下一步。
+
+
+## Day 72 午练：远程 Applied 收据只入证据库，不推进终态
+
+在现有 \`SQLiteRecoveryExternalEffectLedger\` 上新增 \`persistReviewedRemoteAppliedReceipt()\`：
+同一个 SQLite \`BEGIN IMMEDIATE\` 内再次检查 UNKNOWN/Epoch、原始 Intent、
+executing v2 Command、owner、租户与授权修订，再复用 Day 72 早课的可信收据审查。
+\`recovery_remote_applied_receipts\` 强制 UNIQUE(provider_id,receipt_id)、
+UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
+两连接竞争相同收据只允许一行；跨 Effect 重绑定拒绝；
+远程收据存在时禁止仅凭本地模拟 Sink 无收据将 UNKNOWN 置回 pending。
+结果只为 stored/already_stored，**Effect 仍为 UNKNOWN、Command 仍为 executing v2**。
+
+验证：\`npm run test:recovery-remote-receipt-persistence\`。
+**这是同库候选存储，不是真实供应商认证；Registry 仍非 SQLite 原子权威，
+未实现终态 CAS、正式入口、真实 IAM 或远程 exactly-once。NO_GO。**

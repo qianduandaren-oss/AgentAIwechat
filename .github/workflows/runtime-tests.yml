@@ -144,6 +144,9 @@ jobs:
       - name: Day 71 evening contract drift, quarantine and lost-ACK review
         run: npm run test:recovery-provider-conformance
 
+      - name: Day 72 morning authenticated remote receipt review contract
+        run: npm run test:recovery-remote-receipt-review
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

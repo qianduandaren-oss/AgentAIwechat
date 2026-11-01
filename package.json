@@ -70,7 +70,8 @@
     "test:recovery-effect-reconciliation": "npm run build && node dist/demos/day70-evening-effect-reconciliation-test.js",
     "test:recovery-provider-capabilities": "npm run build && node dist/demos/day71-morning-provider-capability-test.js",
     "test:recovery-provider-matrix": "npm run build && node dist/demos/day71-noon-provider-matrix-test.js",
-    "test:recovery-provider-conformance": "npm run build && node dist/demos/day71-evening-provider-conformance-test.js"
+    "test:recovery-provider-conformance": "npm run build && node dist/demos/day71-evening-provider-conformance-test.js",
+    "test:recovery-remote-receipt-review": "npm run build && node dist/demos/day72-morning-remote-receipt-review-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

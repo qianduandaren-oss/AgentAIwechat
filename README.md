@@ -4,13 +4,24 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 72 早课**（2026-11-01）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 72 晚练**（2026-11-01）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 72 晚练：收据已入库，但终态仍要重新授权和 CAS
+
+- [晚练：可信收据 → 终态事务候选](docs/day72-evening-remote-receipt-terminal-handoff.md) 增加同库 read-only 检查：远程收据、UNKNOWN/Epoch、Command executing v2、当前 Run/Grant/ACL、Control CAS 和 Provider 一致性。
+- `npm run test:recovery-remote-receipt-terminal-review`：15 个 SQLite 场景覆盖撤权、权限版本漂移、Control 已变化、Provider 事故、错绑收据、双读者。仅返回事务候选，不写终态。
+- **明确没有**实现收据消费与 Command/Control/Outbox 同事务 Finalizer；Provider Registry 不受 SQLite 锁控制。正式发布 **NO_GO**。
+
+## Week 11 / Day 72 午练：可信远程收据持久化
+
+- [午练：远程 applied 收据同库唯一约束与授权](docs/day72-noon-remote-receipt-persistence.md) 在已有 Effect Ledger 增加不可变收据表，阻止同收据串用和本地模拟 Sink 误覆盖远程证据。
+- `npm run test:recovery-remote-receipt-persistence`：17 项同库候选回归。收据持久化后 Effect 仍 UNKNOWN、Command 仍 executing v2。
 
 ## Week 11 / Day 72 早课：可信远程收据审查，不等于成功终态
 
 - [收据身份与存储边界](docs/day72-morning-trusted-remote-receipts.md)：延续 Day 70 UNKNOWN Reconciliation 和 Day 71 Provider Conformance，增加只读的 applied receipt 身份、Epoch、配置版本和时效校验。
 - `npm run test:recovery-remote-receipt-review`：25 项合同回归；结果只能是「待事务性持久化收据」或人工核对，不执行远端工具、不修改 Ledger/Command、不直接标记 terminal。
-- 可信 Provider Adapter 和收据存储目前尚未实现；真实生产接线、权限与 Legacy 旁路隔离仍待完成，发布 NO_GO。
+- 可信 Provider Adapter 尚未实现；真实生产接线、权限与 Legacy 旁路隔离仍待完成，发布 NO_GO。
 
 ## Week 11 / Day 71 晚练：供应商能力漂移与发布门禁
 

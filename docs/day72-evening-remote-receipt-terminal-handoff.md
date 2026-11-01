@@ -42,3 +42,24 @@ Unimplemented: a receipt-aware Finalizer transition under ONE local transaction,
 ## Next Day 73
 
 Design receipt-consumption CAS within Finalizer, including durable replay and rollback when ACL or Control changes after the read-only review. Keep UNKNOWN frozen until a complete authorized terminal transaction is proven.
+
+
+## Post-review drift regression (additional evening hardening)
+
+The read-only advisory can become stale immediately after the transaction ends.
+Two additional real-SQLite regression scenarios explicitly take a successful
+`requires_atomic_terminal_transaction` advisory and then commit a second
+administrative transaction:
+
+- Revoke actor grant and advance grant revision: a fresh review returns
+  `hold(local_authority_changed)`, while Effect remains UNKNOWN and Command
+  remains executing v2.
+- Advance Control version: a fresh review returns
+  `hold(control_cas_conflict)`, without modifying the previously persisted
+  remote receipt.
+
+Thus the suite now contains **17 SQLite scenarios**. The tests do not implement
+a terminal writer, and they deliberately refuse to treat a prior advisory as
+authorization. The future receipt-consuming Finalizer must independently
+re-read current ACL, Command Owner, receipt identity, Provider revision and
+Control/Command expected versions inside its own write transaction.

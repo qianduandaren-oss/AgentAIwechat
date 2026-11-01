@@ -4,7 +4,7 @@ import {
   type RecoveryRemoteAppliedReceipt,
   type RecoveryRemoteReceiptReviewInput
 } from "./recovery-remote-receipt-review.js";
-import type { RecoveryProviderConformanceRegistry } from "./recovery-provider-conformance-gate.js";
+import { reviewRecoveryProviderConformance, type RecoveryProviderConformanceRegistry } from "./recovery-provider-conformance-gate.js";
 import {
   assertRecoveryExternalEffectFenceBinding,
   RecoveryExternalEffectFenceConflictError,
@@ -93,6 +93,30 @@ function nonempty(value: unknown): value is string {
     value.length <= 256;
 }
 
+/**
+ * Day 72 EVENING: a read-only, same-file snapshot for planning a FUTURE atomic
+ * terminal transition. This does not approve execution or perform a commit.
+ * Every check MUST be repeated inside the eventual Finalizer transaction.
+ */
+export interface RecoveryRemoteReceiptTerminalReviewInput {
+  intent: RecoveryExternalEffectIntent;
+  fence: RecoveryExternalEffectFence;
+  providerId: string;
+  recoveryWindowSeconds: number;
+  nowEpochMs: number;
+  maxProbeAgeMs: number;
+}
+export type RecoveryRemoteReceiptTerminalReview =
+  | { action: "hold"; reason:
+      "invalid_fence" | "missing_or_changed_effect" |
+      "receipt_missing_or_mismatched" | "local_authority_changed" |
+      "control_cas_conflict" | "provider_conformance_denied" |
+      "authority_unavailable" }
+  | { action: "requires_atomic_terminal_transaction";
+      receiptId: string; commandId: string; runId: string;
+      expectedCommandVersion: 2; expectedControlVersion: number };
+
+/** Not a release permission; a later transaction must recheck all facts. */
 export class SQLiteRecoveryExternalEffectLedger {
   private readonly db: DatabaseSync;
 
@@ -467,6 +491,106 @@ export class SQLiteRecoveryExternalEffectLedger {
       // Receipt storage is evidence, NOT a terminal/Control/Outbox transition.
       return "stored";
     });
+  }
+
+  /**
+   * Read-only terminal handoff REVIEW. Receipt may prove the remote effect
+   * happened, but cannot itself transition Command/Control/Outbox.
+   * BEGIN IMMEDIATE makes this view internally consistent only until COMMIT.
+   * The authoritative Finalizer must repeat receipt, ACL, provider, and CAS
+   * checks in its OWN atomic write boundary; never execute on this advice.
+   */
+  reviewRemoteReceiptTerminalReadiness(
+    registry: RecoveryProviderConformanceRegistry,
+    input: RecoveryRemoteReceiptTerminalReviewInput
+  ): RecoveryRemoteReceiptTerminalReview {
+    const hold = (reason: Extract<RecoveryRemoteReceiptTerminalReview,
+      { action: "hold" }>["reason"]): RecoveryRemoteReceiptTerminalReview =>
+      ({ action: "hold", reason });
+    try {
+      assertRecoveryExternalEffectFenceBinding(input.intent, input.fence);
+    } catch {
+      return hold("invalid_fence");
+    }
+    try {
+      return this.transaction(() => {
+        const row = this.load(input.intent.effectId);
+        if (!row || row.status !== "unknown" ||
+            row.epoch !== input.fence.epoch) {
+          return hold("missing_or_changed_effect");
+        }
+        try { this.sameIntent(row, input.intent); }
+        catch { return hold("missing_or_changed_effect"); }
+
+        // The simulated sink and remote provider must never cross-certify.
+        const local = this.db.prepare(
+          "SELECT effect_id FROM recovery_effect_sink_receipts WHERE idempotency_key = ?"
+        ).get(row.idempotency_key) as { effect_id: string } | undefined;
+        const saved = this.db.prepare(
+          "SELECT * FROM recovery_remote_applied_receipts WHERE effect_id = ?"
+        ).get(row.effect_id) as RemoteReceiptRow | undefined;
+        if (!saved || local) return hold("receipt_missing_or_mismatched");
+        let receipt: RecoveryRemoteAppliedReceipt;
+        try { receipt = JSON.parse(saved.receipt_json) as RecoveryRemoteAppliedReceipt; }
+        catch { return hold("receipt_missing_or_mismatched"); }
+        if (receipt.source !== "authenticated_server_adapter" ||
+            receipt.providerId !== input.providerId ||
+            receipt.receiptId !== saved.receipt_id ||
+            receipt.effectId !== row.effect_id ||
+            receipt.idempotencyKey !== row.idempotency_key ||
+            receipt.commandId !== input.intent.command.commandId ||
+            receipt.runId !== input.intent.command.runId ||
+            receipt.operation !== input.intent.command.operation ||
+            receipt.actorId !== input.intent.command.requestedBy ||
+            receipt.tenantId !== input.intent.authorizationEvidence.tenantId ||
+            receipt.owner !== input.intent.owner ||
+            receipt.epoch !== input.fence.epoch ||
+            saved.provider_id !== input.providerId ||
+            saved.idempotency_key !== row.idempotency_key) {
+          return hold("receipt_missing_or_mismatched");
+        }
+
+        // Day 69 local authority/Owner/Command executing-v2 check is performed
+        // again AFTER the Day 72 noon receipt was durably inserted.
+        try { this.assertCurrentAuthority(input.intent); }
+        catch { return hold("local_authority_changed"); }
+
+        const expected = input.intent.command.expectedControlVersion;
+        const control = this.db.prepare(
+          "SELECT version FROM recovery_controls WHERE run_id = ?"
+        ).get(input.intent.command.runId) as { version: number } | undefined;
+        if (typeof expected !== "number" || !Number.isSafeInteger(expected) ||
+            expected < 0 || (control?.version ?? 0) !== expected) {
+          return hold("control_cas_conflict");
+        }
+
+        // Provider registry is OUTSIDE this SQLite file. Two revision reads
+        // only detect drift during THIS call, NOT cross-system atomicity.
+        const before = registry.getCurrentProfileRevision(input.providerId);
+        const conformance = reviewRecoveryProviderConformance(registry, {
+          providerId: input.providerId, operation: "reconcile_unknown_applied",
+          effectStatus: "unknown",
+          recoveryWindowSeconds: input.recoveryWindowSeconds
+        }, input.nowEpochMs, input.maxProbeAgeMs);
+        const after = registry.getCurrentProfileRevision(input.providerId);
+        if (!conformance.candidate || !Number.isSafeInteger(before) ||
+            before !== after || receipt.profileRevision !== before) {
+          return hold("provider_conformance_denied");
+        }
+
+        // This is a read-only hint, NOT a terminal operation.
+        return {
+          action: "requires_atomic_terminal_transaction" as const,
+          receiptId: receipt.receiptId,
+          commandId: input.intent.command.commandId,
+          runId: input.intent.command.runId,
+          expectedCommandVersion: 2 as const,
+          expectedControlVersion: expected
+        };
+      });
+    } catch {
+      return hold("authority_unavailable");
+    }
   }
 
   inspectRemoteReceipt(effectId: string): RecoveryRemoteAppliedReceipt | undefined {

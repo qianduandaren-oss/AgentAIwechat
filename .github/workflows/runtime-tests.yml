@@ -150,6 +150,9 @@ jobs:
       - name: Day 72 noon same-SQLite trusted remote receipt persistence and uniqueness
         run: npm run test:recovery-remote-receipt-persistence
 
+      - name: Day 72 evening remote receipt to terminal review, revocation and CAS
+        run: npm run test:recovery-remote-receipt-terminal-review
+
       - name: Durable recovery command and outbox regression
         run: node dist/demos/recovery-command-outbox-test.js
 

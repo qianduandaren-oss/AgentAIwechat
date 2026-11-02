@@ -81,7 +81,7 @@ export function planRemoteReceiptConsumption(
   }
   const expected = input.intent.command.expectedControlVersion;
   if (input.review.expectedCommandVersion !== 2 ||
-      !Number.isSafeInteger(expected) || expected < 0 ||
+      typeof expected !== "number" || !Number.isSafeInteger(expected) || expected < 0 ||
       input.review.expectedControlVersion !== expected) {
     return hold("version_mismatch");
   }

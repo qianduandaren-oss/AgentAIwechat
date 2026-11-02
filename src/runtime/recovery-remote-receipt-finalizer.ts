@@ -163,8 +163,17 @@ export class SQLiteRecoveryRemoteReceiptFinalizer {
       const eventId = "recovery:" + intent.command.commandId + ":remote-receipt-terminal";
       if (existing) {
         const outbox = this.db.prepare(
-          "SELECT command_id,run_id FROM recovery_outbox WHERE event_id=?"
-        ).get(eventId) as { command_id: string; run_id: string } | undefined;
+          "SELECT id,event_id,command_id,run_id,payload FROM recovery_outbox WHERE event_id=?"
+        ).get(eventId) as { id: string; event_id: string; command_id: string; run_id: string; payload: string } | undefined;
+        const outboxRecord = outbox ? JSON.parse(outbox.payload) as {
+          id: string; eventId: string; commandId: string; runId: string;
+          kind: string; payload: string;
+        } : undefined;
+        const outboxEvidence = outboxRecord
+          ? JSON.parse(outboxRecord.payload) as {
+              operation: string; outcome: string; receiptId: string; providerId: string;
+            }
+          : undefined;
         const control = this.db.prepare(
           "SELECT version,payload FROM recovery_controls WHERE run_id=?"
         ).get(intent.command.runId) as DbControl | undefined;
@@ -179,6 +188,17 @@ export class SQLiteRecoveryRemoteReceiptFinalizer {
             command.resultSnapshot.controlVersion !== existing.control_version ||
             !outbox || outbox.command_id !== command.commandId ||
             outbox.run_id !== command.runId ||
+            outbox.id !== command.commandId + ":remote-receipt-terminal" ||
+            outbox.event_id !== eventId ||
+            outboxRecord?.id !== outbox.id ||
+            outboxRecord.eventId !== eventId ||
+            outboxRecord.commandId !== command.commandId ||
+            outboxRecord.runId !== command.runId ||
+            outboxRecord.kind !== "audit" ||
+            outboxEvidence?.operation !== command.operation ||
+            outboxEvidence.outcome !== "applied" ||
+            outboxEvidence.receiptId !== receipt.receiptId ||
+            outboxEvidence.providerId !== input.providerId ||
             !control || control.version !== existing.control_version ||
             controlPayload?.causedByCommandId !== command.commandId) deny("replay_inconsistent");
         this.db.exec("COMMIT;");

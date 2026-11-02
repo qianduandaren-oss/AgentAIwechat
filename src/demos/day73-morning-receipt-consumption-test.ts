@@ -94,7 +94,7 @@ expectHold(result({ review: { ...review, expectedCommandVersion: 3 as 2 } }),
   "version_mismatch");
 expectHold(result({ intent: { ...intent, command: {
   ...command, expectedControlVersion: -1
-} } }), "invalid_fence");
+} } }), "version_mismatch");
 // No I/O or terminal mutation: the source inputs remain untouched.
 check(review.action === "requires_atomic_terminal_transaction" &&
   fence.epoch === 1 && command.expectedControlVersion === 0,

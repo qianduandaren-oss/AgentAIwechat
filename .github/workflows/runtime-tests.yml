@@ -161,3 +161,6 @@ jobs:
 
       - name: Day 73 morning receipt consumption CAS contract
         run: npm run test:recovery-receipt-consumption-contract
+
+      - name: Day 73 noon same-SQLite remote receipt consumption and terminal CAS
+        run: npm run test:recovery-receipt-consumption-sqlite

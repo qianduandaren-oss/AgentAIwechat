@@ -1067,3 +1067,8 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 ## Day 73 午练：远程收据消费与终态 CAS（同库候选）
 
 新增 `SQLiteRecoveryRemoteReceiptFinalizer`，在同一 SQLite 事务里重查 UNKNOWN/Epoch、授权、Provider 候选、Checkpoint/Control 版本，原子写入收据消费、Control、Command terminal、Outbox 与 Effect committed。稳定重放不重复 Outbox；测试覆盖撤权、冲突、故障回滚与重启。运行 `npm run test:recovery-receipt-consumption-sqlite`。真实 Provider/外部 Registry 尚未实现跨系统原子一致性，发布 **NO_GO**。参见 `docs/day73-noon-receipt-consumption-sqlite.md`。
+
+
+## Day 73 晚练：终态双写者隔离与重放证据核对
+
+修复午练 Finalizer 的 TypeScript 控制流收窄错误（初次 CI Build 失败，修复提交的 CI 已通过）；为旧通用 `SQLiteRecoveryFinalizationUnitOfWork.commit()` 加同库 Effect Intent 拦截，避免绕过远程收据消费直接终态提交。强化新 Finalizer 的 `replayed_terminal`：必须核对 Outbox 事件的收据、Provider 和 Command 身份，不能只看事件行存在。新增 `npm run test:recovery-receipt-finalizer-boundary`，覆盖旧写入者绕过、Outbox 收据篡改、Consumption 错绑和事件 ID 错绑。详见 `docs/day73-evening-receipt-finalizer-boundary.md`。**仅候选 SQLite 边界，生产 NO_GO。**

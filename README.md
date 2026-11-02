@@ -1057,3 +1057,8 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 验证：\`npm run test:recovery-remote-receipt-persistence\`。
 **这是同库候选存储，不是真实供应商认证；Registry 仍非 SQLite 原子权威，
 未实现终态 CAS、正式入口、真实 IAM 或远程 exactly-once。NO_GO。**
+
+
+## Day 73 早课：Receipt Consumption CAS
+
+新增 `planRemoteReceiptConsumption()` 纯合同，接续 Day 72 的可信远程收据与只读终态审查；它只提出下一笔原子事务所需的 receipt、effect、epoch、Command/Control 版本约束，不执行终态写入。测试：`npm run test:recovery-receipt-consumption-contract`。真实消费 Finalizer 尚未实现，发布 **NO_GO**。

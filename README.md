@@ -1062,3 +1062,8 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 ## Day 73 早课：Receipt Consumption CAS
 
 新增 `planRemoteReceiptConsumption()` 纯合同，接续 Day 72 的可信远程收据与只读终态审查；它只提出下一笔原子事务所需的 receipt、effect、epoch、Command/Control 版本约束，不执行终态写入。测试：`npm run test:recovery-receipt-consumption-contract`。真实消费 Finalizer 尚未实现，发布 **NO_GO**。
+
+
+## Day 73 午练：远程收据消费与终态 CAS（同库候选）
+
+新增 `SQLiteRecoveryRemoteReceiptFinalizer`，在同一 SQLite 事务里重查 UNKNOWN/Epoch、授权、Provider 候选、Checkpoint/Control 版本，原子写入收据消费、Control、Command terminal、Outbox 与 Effect committed。稳定重放不重复 Outbox；测试覆盖撤权、冲突、故障回滚与重启。运行 `npm run test:recovery-receipt-consumption-sqlite`。真实 Provider/外部 Registry 尚未实现跨系统原子一致性，发布 **NO_GO**。参见 `docs/day73-noon-receipt-consumption-sqlite.md`。

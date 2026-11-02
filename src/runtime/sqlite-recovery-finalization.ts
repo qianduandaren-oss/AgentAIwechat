@@ -451,6 +451,20 @@ export class SQLiteRecoveryFinalizationUnitOfWork implements TransactionalAuthor
   commit(input: RecoveryFinalizationInput) {
     this.db.exec("BEGIN IMMEDIATE;");
     try {
+      // Day 73 evening: an effect-backed Command must NOT be terminalized by
+      // the generic Control-only Finalizer without consuming its receipt.
+      // This guard is same-file only; it does not replace ingress isolation.
+      const effectTable = this.db.prepare(
+        "SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='recovery_effect_intents'"
+      ).get();
+      if (effectTable) {
+        const effectBacked = this.db.prepare(
+          "SELECT 1 AS present FROM recovery_effect_intents WHERE json_extract(intent_json,'$.command.commandId')=? LIMIT 1"
+        ).get(input.command.commandId);
+        if (effectBacked) {
+          throw new RecoveryFinalizationConflictError("effect_requires_receipt_consumption");
+        }
+      }
       // Day 69 evening: Claim-time authorization is NOT enough. Fence the
       // terminal Control/Outbox write against current SAME-SQLite ACL facts.
       // Check before any state writes; transaction makes check + commit atomic.

@@ -191,14 +191,14 @@ export class SQLiteRecoveryRemoteReceiptFinalizer {
             outbox.id !== command.commandId + ":remote-receipt-terminal" ||
             outbox.event_id !== eventId ||
             outboxRecord?.id !== outbox.id ||
-            outboxRecord.eventId !== eventId ||
-            outboxRecord.commandId !== command.commandId ||
-            outboxRecord.runId !== command.runId ||
-            outboxRecord.kind !== "audit" ||
+            outboxRecord?.eventId !== eventId ||
+            outboxRecord?.commandId !== command.commandId ||
+            outboxRecord?.runId !== command.runId ||
+            outboxRecord?.kind !== "audit" ||
             outboxEvidence?.operation !== command.operation ||
-            outboxEvidence.outcome !== "applied" ||
-            outboxEvidence.receiptId !== receipt.receiptId ||
-            outboxEvidence.providerId !== input.providerId ||
+            outboxEvidence?.outcome !== "applied" ||
+            outboxEvidence?.receiptId !== receipt.receiptId ||
+            outboxEvidence?.providerId !== input.providerId ||
             !control || control.version !== existing.control_version ||
             controlPayload?.causedByCommandId !== command.commandId) deny("replay_inconsistent");
         this.db.exec("COMMIT;");

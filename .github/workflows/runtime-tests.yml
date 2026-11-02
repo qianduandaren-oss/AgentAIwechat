@@ -158,3 +158,6 @@ jobs:
 
       - name: Durable recovery operation orchestrator regression
         run: npm run test:durable-recovery-operation
+
+      - name: Day 73 morning receipt consumption CAS contract
+        run: npm run test:recovery-receipt-consumption-contract

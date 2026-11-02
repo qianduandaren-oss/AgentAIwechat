@@ -75,7 +75,8 @@
     "test:recovery-remote-receipt-persistence": "npm run build && node dist/demos/day72-noon-remote-receipt-persistence-test.js",
     "test:recovery-remote-receipt-terminal-review": "npm run build && node dist/demos/day72-evening-remote-receipt-terminal-review-test.js",
     "test:recovery-receipt-consumption-contract": "npm run build && node dist/demos/day73-morning-receipt-consumption-test.js",
-    "test:recovery-receipt-consumption-sqlite": "npm run build && node dist/demos/day73-noon-receipt-consumption-sqlite-test.js"
+    "test:recovery-receipt-consumption-sqlite": "npm run build && node dist/demos/day73-noon-receipt-consumption-sqlite-test.js",
+    "test:recovery-receipt-finalizer-boundary": "npm run build && node dist/demos/day73-evening-receipt-finalizer-boundary-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

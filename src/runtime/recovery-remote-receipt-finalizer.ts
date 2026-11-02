@@ -36,7 +36,7 @@ export class RemoteReceiptFinalizationConflict extends Error {
     this.name = "RemoteReceiptFinalizationConflict";
   }
 }
-const deny = (reason: string): never => { throw new RemoteReceiptFinalizationConflict(reason); };
+function deny(reason: string): never { throw new RemoteReceiptFinalizationConflict(reason); }
 type DbCommand = { version: number; payload: string };
 type DbEffect = { status: string; epoch: number; intent_json: string; idempotency_key: string };
 type DbReceipt = { provider_id: string; receipt_id: string; effect_id: string; idempotency_key: string; receipt_json: string };

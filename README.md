@@ -1,10 +1,23 @@
-# Agent AI 工程师 · Day 1–72 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–74 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 72 晚练**（2026-11-01）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 74 早课**（2026-11-03）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 74 早课：Outbox Delivery Idempotency
+
+- [早课：投递 ACK 歧义与消费者去重](docs/day74-morning-outbox-delivery-idempotency.md) 在 Day 73 的同库唯一 Outbox 事件之上区分「一次入库」和「至少一次投递」。
+- `src/runtime/recovery-outbox-delivery-contract.ts` 增加纯 `planRecoveryOutboxDelivery()`，复用现有 Outbox 记录；`npm run test:recovery-outbox-delivery-contract` 验证合同。
+- 当前 Dispatcher 尚无持久化 claim/lease；消费者去重与可信 ACK 尚未实接，不能宣称 exactly-once。正式发布 **NO_GO**。
+
+## Week 11 / Day 73：远程收据消费与终态 CAS
+
+- [晚练：双 Finalizer 隔离与重放完整性](docs/day73-evening-receipt-finalizer-boundary.md)；[午练：SQLite 原子收据消费](docs/day73-noon-receipt-consumption-sqlite.md)；[早课：消费 CAS 合同](docs/day73-morning-receipt-consumption-cas.md)。
+- 现有候选 Finalizer 同库提交 Consumption、Control、Command、Effect、Outbox，并阻止通用 Finalizer 对 Effect-backed Command 绕过消费；真实生产入口尚未完成。
+
+
 
 ## Week 11 / Day 72 晚练：收据已入库，但终态仍要重新授权和 CAS
 

@@ -77,7 +77,8 @@
     "test:recovery-receipt-consumption-contract": "npm run build && node dist/demos/day73-morning-receipt-consumption-test.js",
     "test:recovery-receipt-consumption-sqlite": "npm run build && node dist/demos/day73-noon-receipt-consumption-sqlite-test.js",
     "test:recovery-receipt-finalizer-boundary": "npm run build && node dist/demos/day73-evening-receipt-finalizer-boundary-test.js",
-    "test:recovery-outbox-delivery-contract": "npm run build && node dist/demos/day74-morning-outbox-delivery-contract-test.js"
+    "test:recovery-outbox-delivery-contract": "npm run build && node dist/demos/day74-morning-outbox-delivery-contract-test.js",
+    "test:recovery-outbox-delivery-lease": "npm run build && node dist/demos/day74-noon-outbox-delivery-lease-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

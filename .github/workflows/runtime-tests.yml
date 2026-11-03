@@ -167,3 +167,6 @@ jobs:
 
       - name: Day 73 evening receipt terminal replay integrity and generic Finalizer bypass
         run: npm run test:recovery-receipt-finalizer-boundary
+
+      - name: Day 74 morning outbox delivery idempotency contract
+        run: npm run test:recovery-outbox-delivery-contract

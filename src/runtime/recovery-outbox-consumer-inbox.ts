@@ -8,7 +8,7 @@ import type { RecoveryOutboxRecord } from "./recovery-outbox.js";
  * No HTTP authentication, signature verification, or external side effect is
  * implemented. This class must only be called by a trusted consumer adapter.
  */
-const CONSUMER_INBOX_SCHEMA = \`
+const CONSUMER_INBOX_SCHEMA = `
 CREATE TABLE IF NOT EXISTS recovery_consumer_inbox (
   event_id TEXT PRIMARY KEY,
   outbox_id TEXT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS recovery_consumer_business_effects (
   effect_payload TEXT NOT NULL,
   FOREIGN KEY(event_id) REFERENCES recovery_consumer_inbox(event_id)
 );
-\`;
+`;
 
 type InboxRow = {
   event_id: string; outbox_id: string; command_id: string;
@@ -120,17 +120,17 @@ export class SQLiteRecoveryOutboxConsumerInbox {
           }
         };
       }
-      this.db.prepare(\`
+      this.db.prepare(`
         INSERT INTO recovery_consumer_inbox
           (event_id,outbox_id,command_id,run_id,kind,event_payload,consumed_at_ms)
         VALUES (?,?,?,?,?,?,?)
-      \`).run(record.eventId, record.id, record.commandId, record.runId,
+      `).run(record.eventId, record.id, record.commandId, record.runId,
         record.kind, record.payload, input.nowEpochMs);
       if (input.faultAt === "after_inbox_insert") deny("injected_after_inbox_insert");
-      this.db.prepare(\`
+      this.db.prepare(`
         INSERT INTO recovery_consumer_business_effects
           (event_id,command_id,run_id,effect_payload) VALUES (?,?,?,?)
-      \`).run(record.eventId, record.commandId, record.runId, record.payload);
+      `).run(record.eventId, record.commandId, record.runId, record.payload);
       if (input.faultAt === "after_effect_insert") deny("injected_after_effect_insert");
       this.db.exec("COMMIT;");
       return {

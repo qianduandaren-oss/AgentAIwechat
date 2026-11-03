@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 74 早课**（2026-11-03）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 74 晚练**（2026-11-03）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 74 晚练：消费者 Inbox 去重与 ACK 丢失
+
+- [晚练：消费者 Inbox 原子去重与故障注入](docs/day74-evening-outbox-consumer-dedupe.md)；[午练：SQLite Delivery Lease](docs/day74-noon-outbox-delivery-lease.md)。
+- 新增 `SQLiteRecoveryOutboxConsumerInbox`：使用与生产者独立的 SQLite 文件，在消费者事务中一起保存 Inbox eventId 与模拟业务效果；ACK 丢失重投只返回稳定重放证据。
+- `npm run test:recovery-outbox-consumer-dedupe`：12 个独立 SQLite 场景；生产者旧 Dispatcher 旁路、真实 ACK 认证、网络 Publisher、真实业务幂等和跨进程验收仍缺失。**NO_GO**。
 
 ## Week 11 / Day 74 早课：Outbox Delivery Idempotency
 

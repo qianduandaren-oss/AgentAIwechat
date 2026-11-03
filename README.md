@@ -1085,3 +1085,8 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 ## Day 73 晚练：终态双写者隔离与重放证据核对
 
 修复午练 Finalizer 的 TypeScript 控制流收窄错误（初次 CI Build 失败，修复提交的 CI 已通过）；为旧通用 `SQLiteRecoveryFinalizationUnitOfWork.commit()` 加同库 Effect Intent 拦截，避免绕过远程收据消费直接终态提交。强化新 Finalizer 的 `replayed_terminal`：必须核对 Outbox 事件的收据、Provider 和 Command 身份，不能只看事件行存在。新增 `npm run test:recovery-receipt-finalizer-boundary`，覆盖旧写入者绕过、Outbox 收据篡改、Consumption 错绑和事件 ID 错绑。详见 `docs/day73-evening-receipt-finalizer-boundary.md`。**仅候选 SQLite 边界，生产 NO_GO。**
+
+
+## Day 74 午练：同库 Outbox Delivery Claim / Lease
+
+新增 `SQLiteRecoveryOutboxDeliveryClaimer`，在 Day 73 的同一 `recovery_outbox` 表上使用 `BEGIN IMMEDIATE`、事件版本 CAS 和 `recovery_outbox_delivery_leases` 持久化租约；两个连接不能同时领取有效租约，过期后可重新认领且保持原始 `eventId`。只有受信消费者 ACK（与 eventId、当前 leaseToken、有效期绑定）才将事件标记 `dispatched`。验证：`npm run test:recovery-outbox-delivery-lease`。**未接真实 Publisher/Consumer；来源字符串不能替代认证；消费者去重与跨进程验收未完成，发布 NO_GO。**

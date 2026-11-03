@@ -173,3 +173,6 @@ jobs:
 
       - name: Day 74 noon same-SQLite Outbox lease and authenticated ACK candidate
         run: npm run test:recovery-outbox-delivery-lease
+
+      - name: Day 74 evening consumer inbox ACK-loss and atomic dedupe regression
+        run: npm run test:recovery-outbox-consumer-dedupe

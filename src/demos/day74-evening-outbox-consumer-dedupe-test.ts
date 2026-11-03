@@ -40,10 +40,10 @@ function fixture() {
   const admin = new DatabaseSync(producerFile);
   admin.exec(RECOVERY_FINALIZATION_SCHEMA);
   const initial = seed();
-  admin.prepare(\`
+  admin.prepare(`
     INSERT INTO recovery_outbox (id,event_id,command_id,run_id,payload,created_at)
     VALUES (?,?,?,?,?,?)
-  \`).run(initial.id, initial.eventId, initial.commandId,
+  `).run(initial.id, initial.eventId, initial.commandId,
     initial.runId, JSON.stringify(initial), initial.createdAt);
   const a = new SQLiteRecoveryOutboxDeliveryClaimer(producerFile);
   const b = new SQLiteRecoveryOutboxDeliveryClaimer(producerFile);

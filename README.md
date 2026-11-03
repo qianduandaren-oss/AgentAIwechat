@@ -1,10 +1,14 @@
-# Agent AI 工程师 · Day 1–74 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–75 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 74 晚练**（2026-11-03）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 75 早课**（2026-11-04）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 75 早课：可信消费者 ACK 与单一 Dispatcher 入口
+
+- [架构笔记](docs/day75-morning-authenticated-ack-cutover.md) 与 `src/runtime/recovery-outbox-ack-boundary.ts`：纯 ACK 身份绑定审查，不授予认证权限；旧 Dispatcher 旁路仍待封闭。生产 NO_GO。
 
 ## Week 11 / Day 74 晚练：消费者 Inbox 去重与 ACK 丢失
 

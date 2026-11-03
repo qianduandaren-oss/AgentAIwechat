@@ -170,3 +170,6 @@ jobs:
 
       - name: Day 74 morning outbox delivery idempotency contract
         run: npm run test:recovery-outbox-delivery-contract
+
+      - name: Day 74 noon same-SQLite Outbox lease and authenticated ACK candidate
+        run: npm run test:recovery-outbox-delivery-lease

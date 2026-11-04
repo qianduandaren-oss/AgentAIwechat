@@ -11,6 +11,8 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      - name: Day 75 noon authenticated ACK candidate
+        run: npm run test:recovery-authenticated-ack
       - name: Checkout
         uses: actions/checkout@v4
 

@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 75 午练**（2026-11-04）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 75 晚练**（2026-11-04）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 75 晚练：候选 ACK Gateway 与 Cutover 门禁
+
+- [晚练笔记](docs/day75-evening-dispatcher-cutover.md)；新增 `RecoveryVerifiedDeliveryGateway` 与 `npm run test:recovery-dispatcher-cutover`，组合现有 SQLite claim、可信 Adapter 合同及租约 CAS。
+- 旧内存 Dispatcher、直接 acknowledge 旁路仍未封闭，真实认证未接入，**NO_GO**。
 
 ## Week 11 / Day 75 午练：ACK Adapter 候选接线
 

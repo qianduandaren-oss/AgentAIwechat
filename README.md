@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 75 早课**（2026-11-04）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 75 午练**（2026-11-04）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 75 午练：ACK Adapter 候选接线
+
+- [午练架构笔记](docs/day75-noon-authenticated-ack-adapter.md)；新增 `acknowledgeVerifiedConsumerDelivery()`，先校验受信 Adapter 返回的消费者证据，再执行 SQLite 当前租约 CAS。
+- `npm run test:recovery-authenticated-ack`：7 项候选测试。真实认证与旧 Dispatcher 旁路隔离未完成，NO_GO。
 
 ## Week 11 / Day 75 早课：可信消费者 ACK 与单一 Dispatcher 入口
 

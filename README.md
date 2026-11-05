@@ -4,9 +4,9 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程代码进度：**Day 76 早课**（2026-11-05）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程代码进度：**Day 76 午练**（2026-11-05）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
 
-## Week 11 / Day 76 早课：Dispatcher Cutover 启动门禁
+## Week 11 / Day 76 午练：可信启动门禁（候选）\n\n- [午练笔记](docs/day76-noon-cutover-bootstrap.md)；新增可信证据采集入口和 fail-closed bootstrap；8 项回归。仍未封闭旧写入口，NO_GO。\n\n## Week 11 / Day 76 早课：Dispatcher Cutover 启动门禁
 
 - [早课笔记](docs/day76-morning-dispatcher-cutover-gate.md)；新增 `reviewDispatcherCutover()` 纯策略合同，明确六项可信启动前提；返回结果不授权 publish。
 - 旧 Dispatcher 和 raw ACK 尚未隔离，生产 NO_GO。

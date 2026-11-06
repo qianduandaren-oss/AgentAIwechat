@@ -4,7 +4,11 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 77 早课**（2026-11-06）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 77 午练**（2026-11-06）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 11 / Day 77 午练：SQLite Writer Epoch 候选实现
+
+- [午练笔记](docs/day77-noon-writer-epoch.md)；新增 `SQLiteWriterEpochStore` 与 `npm run test:recovery-writer-epoch`，验证同事务栅栏与旧 Worker 拒绝。尚未接入生产 claim/ack，NO_GO。
 
 ## Week 11 / Day 77 早课：Writer Epoch / Fencing Token
 

@@ -86,7 +86,8 @@
     "test:recovery-cutover-recheck": "npm run build && node dist/demos/day76-evening-cutover-recheck-test.js",
     "test:recovery-writer-epoch": "npm run build && node dist/demos/day77-noon-writer-epoch-test.js",
     "test:recovery-writer-epoch-evening": "npm run build && node dist/demos/day77-evening-writer-epoch-bypass-test.js",
-    "test:recovery-fenced-outbox": "npm run build && node dist/demos/day78-noon-fenced-outbox-test.js"
+    "test:recovery-fenced-outbox": "npm run build && node dist/demos/day78-noon-fenced-outbox-test.js",
+    "test:recovery-fenced-outbox-evening": "npm run build && node dist/demos/day78-evening-fenced-outbox-boundary-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

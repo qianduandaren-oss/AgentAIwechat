@@ -4,7 +4,11 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 78 午练**（2026-11-07）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 78 晚练**（2026-11-07）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 78 晚练：Fencing 边界与直接 SQL 旁路
+
+- [晚练审查](docs/day78-evening-fenced-outbox-boundary.md)；运行 `npm run test:recovery-fenced-outbox-evening`。验证旧 Epoch/旧 Lease 拒绝，同时刻意复现直接 SQL 绕过。生产 NO_GO。
 
 ## Week 12 / Day 78 午练：Epoch + Outbox 同事务候选
 

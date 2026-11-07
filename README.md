@@ -1,10 +1,14 @@
-# Agent AI 工程师 · Day 1–77 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–78 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 77 晚练**（2026-11-06）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 78 早课**（2026-11-07）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 78 早课：Writer Epoch 与 Outbox 联合事务设计
+
+- [早课架构笔记](docs/day78-morning-outbox-epoch-transaction.md)：审计现有 Epoch Store 与 Outbox Claimer 的分离边界，明确同库、同事务校验 Epoch + Lease + Version CAS。尚未接线，生产 NO_GO。
 
 ## Week 11 / Day 77 晚练：旧代次重启与直接 SQL 旁路
 

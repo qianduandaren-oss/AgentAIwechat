@@ -51,7 +51,7 @@ export class SQLiteFencedOutboxDelivery {
    this.assertFence(input.workerId,input.epoch);
    const record=this.read(input.outboxId);
    const plan=planRecoveryOutboxDelivery(record,input.consumer);
-   if(plan.action!=="deliver")return {action:plan.action,reason:plan.action==="hold"?plan.reason:undefined} as const;
+   if(plan.action!=="requires_atomic_delivery_claim")return plan;
    const old=this.db.prepare("SELECT * FROM recovery_outbox_delivery_leases WHERE outbox_id=?").get(record.id) as Lease|undefined;
    if(old&&old.event_id!==record.eventId)deny("lease_identity_mismatch");
    if(old&&old.lease_expires_ms>input.nowEpochMs)return {action:"busy" as const};

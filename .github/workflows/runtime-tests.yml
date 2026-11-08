@@ -11,8 +11,6 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Day 75 noon authenticated ACK candidate
-        run: npm run test:recovery-authenticated-ack
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -178,3 +176,33 @@ jobs:
 
       - name: Day 74 evening consumer inbox ACK-loss and atomic dedupe regression
         run: npm run test:recovery-outbox-consumer-dedupe
+
+      - name: Day 75 noon authenticated ACK candidate
+        run: npm run test:recovery-authenticated-ack
+
+      - name: Day 75 evening dispatcher cutover candidate
+        run: npm run test:recovery-dispatcher-cutover
+
+      - name: Day 76 noon cutover bootstrap
+        run: npm run test:recovery-cutover-bootstrap
+
+      - name: Day 76 evening cutover evidence recheck
+        run: npm run test:recovery-cutover-recheck
+
+      - name: Day 77 noon SQLite writer epoch
+        run: npm run test:recovery-writer-epoch
+
+      - name: Day 77 evening old-writer bypass
+        run: npm run test:recovery-writer-epoch-evening
+
+      - name: Day 78 noon fenced outbox
+        run: npm run test:recovery-fenced-outbox
+
+      - name: Day 78 evening fenced outbox boundary
+        run: npm run test:recovery-fenced-outbox-evening
+
+      - name: Day 79 noon single writer candidate
+        run: npm run test:recovery-single-writer-candidate
+
+      - name: Day 79 evening release proof review
+        run: npm run test:recovery-single-writer-release

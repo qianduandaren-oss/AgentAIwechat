@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 79 午练**（2026-11-08）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 79 晚练**（2026-11-08）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 79 晚练：发布证据、回滚与旧 SQL 旁路
+
+- [晚练审查](docs/day79-evening-single-writer-release-gate.md)；新增 `reviewSingleWriterReleaseEvidence()`，九类证据缺失/过期/失败时 fail closed，即使全部通过也只能进入外部人工安全审查（`publishAuthorized=false`）。
+- `npm run test:recovery-single-writer-release`：校验九类证据、回滚混合版本拒绝、真实 SQLite 直接 SQL 仍能绕过候选 Gate。
+- 发现 CI 工作流的 Day 75 noon 测试被放在 checkout 前，已修正测试顺序并补 Day 75–79 回归。独立真实部署的 OS 写权限拒绝/真实 ACK 尚待验收，生产 **NO_GO**。
 
 ## Week 12 / Day 79 午练：Fail-Closed 单一写入候选服务
 

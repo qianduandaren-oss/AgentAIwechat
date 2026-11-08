@@ -6,7 +6,9 @@ declare module "node:assert" {
   export const strict: {
     equal(actual: unknown, expected: unknown, message?: string): void;
     deepEqual(actual: unknown, expected: unknown, message?: string): void;
-    throws(block: () => unknown, error?: (error: unknown) => boolean): void;
+    throws(block: () => unknown, error?: ((error: unknown) => boolean) | RegExp): void;
+    ok(value: unknown, message?: string): asserts value;
+    rejects(block: Promise<unknown> | (() => Promise<unknown>), error?: ((error: unknown) => boolean) | RegExp): Promise<void>;
   };
 }
 declare module "node:fs" {

@@ -24,7 +24,20 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        id: build
+        shell: bash
+        run: |
+          if ! npm run build > /tmp/tsc-build.log 2>&1; then
+            cat /tmp/tsc-build.log
+            message="$(grep -m1 'error TS' /tmp/tsc-build.log | tr '\n' ' ' | cut -c1-180)"
+            echo "detail=${message:-unknown-typescript-error}" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          cat /tmp/tsc-build.log
+
+      - name: Build diagnostic — ${{ steps.build.outputs.detail }}
+        if: failure()
+        run: echo "See TypeScript error in previous step"
 
       - name: Runtime contract checks
         run: node dist/demos/run-result-contract-test.js

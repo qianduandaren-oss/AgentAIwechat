@@ -88,7 +88,8 @@
     "test:recovery-writer-epoch-evening": "npm run build && node dist/demos/day77-evening-writer-epoch-bypass-test.js",
     "test:recovery-fenced-outbox": "npm run build && node dist/demos/day78-noon-fenced-outbox-test.js",
     "test:recovery-fenced-outbox-evening": "npm run build && node dist/demos/day78-evening-fenced-outbox-boundary-test.js",
-    "test:recovery-single-writer-candidate": "npm run build && node dist/demos/day79-noon-single-writer-candidate-test.js"
+    "test:recovery-single-writer-candidate": "npm run build && node dist/demos/day79-noon-single-writer-candidate-test.js",
+    "test:recovery-single-writer-release": "npm run build && node dist/demos/day79-evening-single-writer-release-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

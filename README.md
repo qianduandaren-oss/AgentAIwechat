@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–78 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–79 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 78 晚练**（2026-11-07）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 79 早课**（2026-11-08）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 79 早课：单一写入服务的强制边界
+
+- [早课架构与旧 SQL 旁路审计](docs/day79-morning-single-writer-authority.md)；新增 `src/runtime/recovery-single-writer-service-contract.ts` 的**类型契约**，不提供生产服务或安全授权。
+- 下一步需从 OS/部署层撤销旧进程 SQLite 写权限，服务端验证真实 ACK，再联通现有 Epoch + Lease + CAS。旧 Dispatcher、raw ACK 与 SQL 直写仍未隔离，正式发布 **NO_GO**。
 
 ## Week 12 / Day 78 晚练：Fencing 边界与直接 SQL 旁路
 
@@ -35,7 +40,11 @@
 
 - [晚练笔记](docs/day76-evening-cutover-toctou.md)；新增 `CutoverEvidenceGuard` 和 `npm run test:recovery-cutover-recheck`。检查时旧 Worker 复活会 hold，但尚无数据库级持续 fencing，NO_GO。
 
-## Week 11 / Day 76 午练：可信启动门禁（候选）\n\n- [午练笔记](docs/day76-noon-cutover-bootstrap.md)；新增可信证据采集入口和 fail-closed bootstrap；8 项回归。仍未封闭旧写入口，NO_GO。\n\n## Week 11 / Day 76 早课：Dispatcher Cutover 启动门禁
+## Week 11 / Day 76 午练：可信启动门禁（候选）
+
+- [午练笔记](docs/day76-noon-cutover-bootstrap.md)；新增可信证据采集入口和 fail-closed bootstrap；8 项回归。仍未封闭旧写入口，NO_GO。
+
+## Week 11 / Day 76 早课：Dispatcher Cutover 启动门禁
 
 - [早课笔记](docs/day76-morning-dispatcher-cutover-gate.md)；新增 `reviewDispatcherCutover()` 纯策略合同，明确六项可信启动前提；返回结果不授权 publish。
 - 旧 Dispatcher 和 raw ACK 尚未隔离，生产 NO_GO。

@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–79 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–80 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 79 晚练**（2026-11-08）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 80 早课**（2026-11-09）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 80 早课：SQLite Writer OS 身份与挂载隔离
+
+- [早课：部署隔离威胁模型与负向探针设计](docs/day80-morning-sqlite-writer-isolation.md)；在 Day 79 候选 Service/发布证据审查基础上，明确不同 OS 身份、数据库目录不挂载、WAL/SHM、旧 FD、混合版本与回滚的验收要求。
+- 仅更新架构文档，**没有**部署真实 Writer 服务，也没有执行 OS 探针；旧 SQLite 写权限仍未真正收回，生产 **NO_GO**。
 
 ## Week 12 / Day 79 晚练：发布证据、回滚与旧 SQL 旁路
 

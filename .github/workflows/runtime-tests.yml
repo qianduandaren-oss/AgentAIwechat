@@ -225,3 +225,9 @@ jobs:
 
       - name: Day 80 noon disposable Linux OS UID / directory denial
         run: npm run test:recovery-writer-isolation-lab
+
+      - name: Day 80 evening mixed-version and rollback handoff review
+        run: npm run test:recovery-writer-handoff
+
+      - name: Day 80 evening disposable stale writable FD counterexample
+        run: npm run test:recovery-writer-stale-fd-lab

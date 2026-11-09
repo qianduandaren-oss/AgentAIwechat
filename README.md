@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 80 早课**（2026-11-09）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 80 午练**（2026-11-09）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 80 午练：一次性 SQLite 目录 Linux DAC 拒绝探针
+
+- [午练实验说明](docs/day80-noon-writer-isolation-lab.md)；新增 `reviewSqliteWriterIsolationPlan()` 纯策略，危险身份/挂载/回滚计划直接 hold，不能授权生产。
+- `npm run test:recovery-writer-isolation-policy`：拓扑声明负向测试；`npm run test:recovery-writer-isolation-lab`：仅 Linux 隔离 CI，以同 UID 正控和 nobody 负控对一次性 /tmp SQLite 数据做真实 OS 拒绝探针。环境不满足时失败，不伪装 PASS。
+- **不是生产部署的单 Writer 隔离证据**；旧 FD、挂载/容器特权、WAL/SHM、真实 ACK 和回滚仍未验收；生产 **NO_GO**。
 
 ## Week 12 / Day 80 早课：SQLite Writer OS 身份与挂载隔离
 

@@ -10,10 +10,17 @@ for cmd in sudo node mktemp chmod id; do
 done
 id nobody >/dev/null || { echo "FAIL_CLOSED: missing legacy test identity nobody" >&2; exit 1; }
 dir="$(mktemp -d /tmp/day80-writer-lab.XXXXXX)"
-trap 'rm -rf -- "$dir"' EXIT
+code_dir="$(mktemp -d /tmp/day80-probe-code.XXXXXX)"
+trap 'rm -rf -- "$dir" "$code_dir"' EXIT
 chmod 700 "$dir"
-probe="$PWD/dist/demos/day80-noon-writer-isolation-os-probe.js"
-[[ -f "$probe" ]] || { echo "FAIL_CLOSED: build first" >&2; exit 1; }
+# Runner checkouts can be non-traversable by 'nobody'. Copy ONLY the
+# compiled, credential-free probe into a readable scratch directory.
+source_probe="$PWD/dist/demos/day80-noon-writer-isolation-os-probe.js"
+[[ -f "$source_probe" ]] || { echo "FAIL_CLOSED: build first" >&2; exit 1; }
+chmod 755 "$code_dir"
+cp -- "$source_probe" "$code_dir/probe.mjs"
+chmod 644 "$code_dir/probe.mjs"
+probe="$code_dir/probe.mjs"
 [[ "$(node "$probe" seed "$dir")" == "LAB_SEEDED" ]] || exit 1
 # Same-identity shortcut MUST be seen as unsafe, not accepted as isolation.
 same_identity="$(node "$probe" probe "$dir")"

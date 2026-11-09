@@ -4,7 +4,14 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 80 午练**（2026-11-09）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 80 晚练**（2026-11-09）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 80 晚练：旧 FD、混合版本与回滚拒绝验证
+
+- [晚练实验与发布检查](docs/day80-evening-writer-handoff.md)：在午练 Linux DAC 探针基础上，新增一次性旧可写 FD 反例；新身份文件/目录打开被拒绝时，旧进程原先已打开的 FD 仍能写入。
+- `npm run test:recovery-writer-handoff`：任一旧进程存活、FD 未关闭、混合镜像直写、回滚挂载恢复或 raw ACK 旁路清单不合格则 `hold`。审查只处理未经核实的候选声明，**不授权 publish**。
+- `npm run test:recovery-writer-stale-fd-lab`：在 Linux 一次性 /tmp 普通文件上，用 `nobody` 身份验证旧 FD 可写与新打开被拒绝。需无交互 sudo；无条件执行不了则失败，不伪装 PASS。
+- **生产 NO_GO**：真实 SQLite/WAL/SHM 访问、旧进程/FD 清理、混合版本和回滚拒绝、RPC/ACK 认证尚未在部署环境独立验收。
 
 ## Week 12 / Day 80 午练：一次性 SQLite 目录 Linux DAC 拒绝探针
 

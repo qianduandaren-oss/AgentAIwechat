@@ -89,7 +89,9 @@
     "test:recovery-fenced-outbox": "npm run build && node dist/demos/day78-noon-fenced-outbox-test.js",
     "test:recovery-fenced-outbox-evening": "npm run build && node dist/demos/day78-evening-fenced-outbox-boundary-test.js",
     "test:recovery-single-writer-candidate": "npm run build && node dist/demos/day79-noon-single-writer-candidate-test.js",
-    "test:recovery-single-writer-release": "npm run build && node dist/demos/day79-evening-single-writer-release-test.js"
+    "test:recovery-single-writer-release": "npm run build && node dist/demos/day79-evening-single-writer-release-test.js",
+    "test:recovery-writer-isolation-policy": "npm run build && node dist/demos/day80-noon-writer-isolation-policy-test.js",
+    "test:recovery-writer-isolation-lab": "npm run build && bash scripts/day80-writer-isolation-lab.sh"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

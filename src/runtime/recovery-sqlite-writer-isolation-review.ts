@@ -43,3 +43,42 @@ export function reviewSqliteWriterIsolationPlan(
   // Passing claims only means the lab probe can be attempted.
   return { action: "ready_for_isolated_os_probe", publishAuthorized: false };
 }
+
+
+/**
+ * Day 80 evening: handoff checklist review only. These are unverified operator
+ * statements, not OS or container attestations. Never authorize publishing.
+ */
+export interface SqliteWriterHandoffSnapshot {
+  deploymentId: string;
+  legacyProcessesStopped: boolean;
+  legacyWritableDescriptorsClosed: boolean;
+  legacyDatabaseMountRemoved: boolean;
+  mixedVersionDirectSqlDenied: boolean;
+  rollbackCannotRestoreDbMount: boolean;
+  rawAckIngressDisabled: boolean;
+}
+
+export type SqliteWriterHandoffReview =
+  | { action: "hold"; reason: string; publishAuthorized: false }
+  | { action: "ready_for_external_enforcement_review"; publishAuthorized: false };
+
+export function reviewSqliteWriterHandoff(
+  snapshot: SqliteWriterHandoffSnapshot | null
+): SqliteWriterHandoffReview {
+  if (!snapshot?.deploymentId?.trim())
+    return { action: "hold", reason: "deployment_not_identified", publishAuthorized: false };
+  const checks: ReadonlyArray<keyof Omit<SqliteWriterHandoffSnapshot, "deploymentId">> = [
+    "legacyProcessesStopped",
+    "legacyWritableDescriptorsClosed",
+    "legacyDatabaseMountRemoved",
+    "mixedVersionDirectSqlDenied",
+    "rollbackCannotRestoreDbMount",
+    "rawAckIngressDisabled"
+  ];
+  for (const key of checks) {
+    if (snapshot[key] !== true)
+      return { action: "hold", reason: "missing_or_failed:" + key, publishAuthorized: false };
+  }
+  return { action: "ready_for_external_enforcement_review", publishAuthorized: false };
+}

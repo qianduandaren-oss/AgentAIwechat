@@ -14,6 +14,9 @@ declare module "node:assert" {
 declare module "node:fs" {
   export function mkdtempSync(prefix: string): string;
   export function rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void;
+  export function openSync(path: string, flags: string, mode?: number): number;
+  export function closeSync(fd: number): void;
+  export function unlinkSync(path: string): void;
 }
 declare module "node:os" {
   export function tmpdir(): string;

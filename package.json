@@ -91,7 +91,9 @@
     "test:recovery-single-writer-candidate": "npm run build && node dist/demos/day79-noon-single-writer-candidate-test.js",
     "test:recovery-single-writer-release": "npm run build && node dist/demos/day79-evening-single-writer-release-test.js",
     "test:recovery-writer-isolation-policy": "npm run build && node dist/demos/day80-noon-writer-isolation-policy-test.js",
-    "test:recovery-writer-isolation-lab": "npm run build && bash scripts/day80-writer-isolation-lab.sh"
+    "test:recovery-writer-isolation-lab": "npm run build && bash scripts/day80-writer-isolation-lab.sh",
+    "test:recovery-writer-handoff": "npm run build && node dist/demos/day80-evening-writer-handoff-test.js",
+    "test:recovery-writer-stale-fd-lab": "node scripts/day80-evening-stale-fd-lab.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

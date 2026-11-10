@@ -231,3 +231,6 @@ jobs:
 
       - name: Day 80 evening disposable stale writable FD counterexample
         run: npm run test:recovery-writer-stale-fd-lab
+
+      - name: Day 81 noon writer RPC input and authorization boundary
+        run: npm run test:recovery-writer-rpc

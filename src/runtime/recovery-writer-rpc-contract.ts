@@ -44,8 +44,9 @@ export type RecoveryWriterWireResponse =
   | Readonly<{ requestId: string; action: "dispatched"; eventId: string }>;
 
 /**
- * Candidate adapter contract. Noon practice will add runtime allowlist validation,
- * authorization and fail-closed dispatch. No implementation exists yet.
+ * Candidate adapter contract. Day 81 noon implements this through
+ * RecoveryWriterRpcCandidateHandler (runtime JSON allowlist and fail-closed dispatch).
+ * This is not a socket listener or a proof of transport authentication.
  */
 export interface RecoveryWriterRequestHandler {
   handle(untrustedRequest: unknown, caller: VerifiedTransportCaller | null):

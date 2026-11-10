@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 81 午练**（2026-11-10）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 81 晚练**（2026-11-10）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 81 晚练：RPC Admission 的重放、撤权与审计边界
+
+- [晚练：候选 RPC Admission、失败与取消检查](docs/day81-evening-writer-rpc-admission.md)；新增 `RecoveryWriterRpcAdmissionHandler`，复用午练 `RecoveryWriterRpcCandidateHandler`，在进程内加入主体并发上限、短期 requestId 重放窗口、服务端 ACL 撤权复查、派发前审计、取消/截止时间入场门禁。
+- `npm run test:recovery-writer-rpc-admission`：覆盖重复请求/并发、ACL 撤销、审计不可用、预派发取消、ACK 审计脱敏与重启后窗口丢失，另保留原 Day 81 午练 SQLite 集成回归。
+- **重要边界**：requestId 不是 durable 幂等键；派发后取消不撤销副作用；尚无真实身份认证、生产 OS 隔离、持久审计、真正消费者 ACK，因此 **NO_GO**。
 
 ## Week 12 / Day 81 午练：运行时 RPC JSON 白名单与逐操作授权
 

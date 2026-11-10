@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–80 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–81 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 80 晚练**（2026-11-09）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 81 早课**（2026-11-10）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 81 早课：受信 IPC/RPC 业务请求合同
+
+- [早课：通信身份与 Writer Epoch 的分离](docs/day81-morning-recovery-writer-ipc-boundary.md)；新增 `src/runtime/recovery-writer-rpc-contract.ts`：明确客户端只携带业务意图，服务端独立验证调用身份并内部获取 Epoch/时钟/ACK 校验器。
+- **仅接口和架构合同**，未实现 IPC Listener、运行时 JSON 白名单校验或真实认证；Day 80 OS 权限隔离仍未部署验收，生产 **NO_GO**。
 
 ## Week 12 / Day 80 晚练：旧 FD、混合版本与回滚拒绝验证
 

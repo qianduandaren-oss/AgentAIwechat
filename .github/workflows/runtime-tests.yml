@@ -234,3 +234,6 @@ jobs:
 
       - name: Day 81 noon writer RPC input and authorization boundary
         run: npm run test:recovery-writer-rpc
+
+      - name: Day 81 evening writer RPC admission, replay and revocation
+        run: npm run test:recovery-writer-rpc-admission

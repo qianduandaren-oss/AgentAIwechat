@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 81 早课**（2026-11-10）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 81 午练**（2026-11-10）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 81 午练：运行时 RPC JSON 白名单与逐操作授权
+
+- [午练：候选 RPC Handler、严格请求解析与授权](docs/day81-noon-writer-rpc-handler.md)。新增 `src/runtime/recovery-writer-rpc-handler.ts`：只接受最大 16 KiB 的原始 JSON 字符串，按操作严格校验顶层字段，禁止客户端提交 `epoch`、`ownerId`、`dbPath` 与身份；未认证调用、无权限操作全部 hold。
+- `npm run test:recovery-writer-rpc` 使用同一套 Day 79 Candidate Service + Day 78 SQLite Fencing，验证未知操作、非法请求、权限拒绝、伪造 ACK 不更新 Outbox，以及可信模拟 ACK 后的事务确认。
+- **依然是进程内候选层**；未实现真实网络监听、peer identity/mTLS、请求重放/限流/审计、生产 OS 隔离与真实消费者密码学验证。**生产 NO_GO**。
 
 ## Week 12 / Day 81 早课：受信 IPC/RPC 业务请求合同
 

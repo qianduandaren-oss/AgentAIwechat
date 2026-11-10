@@ -94,7 +94,8 @@
     "test:recovery-writer-isolation-lab": "npm run build && bash scripts/day80-writer-isolation-lab.sh",
     "test:recovery-writer-handoff": "npm run build && node dist/demos/day80-evening-writer-handoff-test.js",
     "test:recovery-writer-stale-fd-lab": "node scripts/day80-evening-stale-fd-lab.mjs",
-    "test:recovery-writer-rpc": "npm run build && node dist/demos/day81-noon-writer-rpc-test.js"
+    "test:recovery-writer-rpc": "npm run build && node dist/demos/day81-noon-writer-rpc-test.js",
+    "test:recovery-writer-rpc-admission": "npm run build && node dist/demos/day81-evening-writer-rpc-admission-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -45,7 +45,7 @@ function registryFor(peers: readonly MtlsPeerRegistration[]): Map<string, Verifi
         !SUBJECT.test(peer.subject) ||
         !Array.isArray(peer.grantedOperations) ||
         peer.grantedOperations.length < 1 || peer.grantedOperations.length > 2 ||
-        peer.grantedOperations.some(op => op !== "claim_outbox" && op !== "confirm_outbox") ||
+        peer.grantedOperations.some((op: RecoveryWriterOperation) => op !== "claim_outbox" && op !== "confirm_outbox") ||
         new Set(peer.grantedOperations).size !== peer.grantedOperations.length) {
       throw new Error("mtls_peer_registration_invalid");
     }

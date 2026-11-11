@@ -97,7 +97,8 @@
     "test:recovery-writer-rpc": "npm run build && node dist/demos/day81-noon-writer-rpc-test.js",
     "test:recovery-writer-rpc-admission": "npm run build && node dist/demos/day81-evening-writer-rpc-admission-test.js",
     "test:recovery-writer-transport-plan": "npm run build && node dist/demos/day82-morning-transport-trust-review-test.js",
-    "test:recovery-writer-mtls-peer": "npm run build && node scripts/day82-noon-mtls-peer-lab.mjs"
+    "test:recovery-writer-mtls-peer": "npm run build && node scripts/day82-noon-mtls-peer-lab.mjs",
+    "test:recovery-writer-mtls-rotation": "npm run build && node dist/demos/day82-evening-mtls-trust-rotation-test.js && node scripts/day82-noon-mtls-peer-lab.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

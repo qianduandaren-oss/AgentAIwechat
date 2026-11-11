@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { connect } from "node:tls";
 import { createRecoveryWriterMtlsCandidateServer } from "../dist/runtime/recovery-writer-mtls-transport.js";
+import { RecoveryWriterMtlsTrustController } from "../dist/runtime/recovery-writer-mtls-trust-controller.js";
 import { RecoveryWriterRpcCandidateHandler } from "../dist/runtime/recovery-writer-rpc-handler.js";
 import { RecoveryWriterRpcAdmissionHandler } from "../dist/runtime/recovery-writer-rpc-admission.js";
 
@@ -92,7 +93,7 @@ try {
   });
   const address = server.address();
   assert.ok(address && typeof address === "object");
-  const port = address.port;
+  let port = address.port;
   async function send(identity, body) {
     return new Promise(resolve => {
       let result = "";
@@ -168,7 +169,67 @@ try {
   assert.equal(ackOk?.action, "dispatched");
   assert.equal(actions.length, 3);
   assert.ok(audits.every(x => !("rawConsumerResponse" in x) && !("leaseToken" in x)));
-  console.log("PASS Day 82 real localhost mTLS handshake, pinned identity, ACL revocation and spoof denial");
+  console.log("PASS Day 82 noon real localhost mTLS identity and ACL checks");
+
+  // Evening: same real TLS server and test certificates, now with a live
+  // SERVER-OWNED versioned trust policy rather than a static allowlist.
+  await new Promise(resolve => server.close(() => resolve()));
+  const trust = new RecoveryWriterMtlsTrustController("staging-day82", () => Date.now());
+  let revision = 0;
+  const trustSnapshot = peers => {
+    const issued = Date.now();
+    return {
+      deploymentId: "staging-day82", revision: ++revision,
+      issuedAtEpochMs: issued, expiresAtEpochMs: issued + 30_000, peers
+    };
+  };
+  const claimPeer = { fingerprint256: fingerprint(claim.cert),
+    subject: "svc:claim-day82", grantedOperations: ["claim_outbox"] };
+  const rotatedPeer = { fingerprint256: fingerprint(unregistered.cert),
+    subject: "svc:claim-day82", grantedOperations: ["claim_outbox"] };
+  assert.equal(trust.install(trustSnapshot([claimPeer])).action, "ready_for_isolated_rotation_test");
+  server = createRecoveryWriterMtlsCandidateServer({
+    keyPem: srv.key, certPem: srv.cert, clientCaPem: ca,
+    trustController: trust, handler, requestTimeoutMs: 5_000
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  port = server.address().port;
+  const firstRot = await send(claim, request("req82live1", "claim_outbox"));
+  assert.equal(firstRot?.action, "claimed");
+  // Open a real TLS connection while the old certificate is still trusted.
+  const preRevocation = connect({
+    host: "127.0.0.1", port, servername: "localhost", ca,
+    key: claim.key, cert: claim.cert, rejectUnauthorized: true
+  });
+  const authenticated = new Promise((resolve, reject) => {
+    preRevocation.once("secureConnect", resolve);
+    preRevocation.once("error", reject);
+  });
+  await authenticated;
+  let staleResponse = "";
+  const staleClosed = new Promise(resolve => {
+    preRevocation.setEncoding("utf8");
+    preRevocation.on("data", chunk => { staleResponse += chunk; });
+    preRevocation.on("close", resolve);
+  });
+  assert.equal(trust.install(trustSnapshot([rotatedPeer])).action, "ready_for_isolated_rotation_test");
+  preRevocation.write(JSON.stringify(request("req82stale", "claim_outbox")) + "\n");
+  await staleClosed;
+  assert.equal(JSON.parse(staleResponse.trim()).reason, "transport_identity_revoked");
+  // New handshakes with the old cert must be denied; the new pin succeeds.
+  assert.equal(await send(claim, request("req82oldpin", "claim_outbox")), null);
+  assert.equal((await send(unregistered, request("req82rotated", "claim_outbox")))?.action, "claimed");
+  const rollback = trustSnapshot([claimPeer]);
+  rollback.revision = 1; // stale version: fail closed, not silent fallback.
+  assert.equal(trust.install(rollback).action, "hold");
+  assert.equal(await send(unregistered, request("req82afterbadpolicy", "claim_outbox")), null);
+  assert.equal(trust.install(trustSnapshot([rotatedPeer])).action, "ready_for_isolated_rotation_test");
+  assert.equal((await send(unregistered, request("req82recovered", "claim_outbox")))?.action, "claimed");
+  assert.ok(audits.every(x => !("rawConsumerResponse" in x) && !("leaseToken" in x)));
+  console.log("PASS Day 82 evening mTLS rotation, live revocation, handshake-to-dispatch recheck and fail-closed rollback");
 } finally {
   if (server) await new Promise(resolve => server.close(() => resolve()));
   rmSync(dir, { recursive: true, force: true });

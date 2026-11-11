@@ -1,4 +1,5 @@
 import { createServer, type Server, type TLSSocket } from "node:tls";
+import type { RecoveryWriterMtlsTrustController } from "./recovery-writer-mtls-trust-controller.js";
 import type {
   RecoveryWriterOperation, RecoveryWriterRequestHandler, VerifiedTransportCaller
 } from "./recovery-writer-rpc-contract.js";
@@ -23,7 +24,10 @@ export interface RecoveryWriterMtlsOptions {
   readonly keyPem: string;
   readonly certPem: string;
   readonly clientCaPem: string;
-  readonly peers: readonly MtlsPeerRegistration[];
+  /** Legacy, static LAB allowlist. Mutually exclusive with trustController. */
+  readonly peers?: readonly MtlsPeerRegistration[];
+  /** Live server-owned trust policy: re-evaluated before request dispatch. */
+  readonly trustController?: RecoveryWriterMtlsTrustController;
   readonly handler: RecoveryWriterRequestHandler;
   readonly maxBodyBytes?: number;
   readonly requestTimeoutMs?: number;
@@ -61,14 +65,17 @@ function registryFor(peers: readonly MtlsPeerRegistration[]): Map<string, Verifi
 }
 
 function verifiedCaller(
-  socket: TLSSocket, registry: Map<string, VerifiedTransportCaller>
+  socket: TLSSocket, registry: Map<string, VerifiedTransportCaller> | null,
+  trustController?: RecoveryWriterMtlsTrustController
 ): VerifiedTransportCaller | null {
   // Handshake status is furnished by Node's TLS stack, not client JSON.
   if (socket.authorized !== true || socket.encrypted !== true) return null;
   const certificate = socket.getPeerCertificate();
   const fingerprint = certificate?.fingerprint256;
   if (typeof fingerprint !== "string") return null;
-  return registry.get(fingerprint.toUpperCase()) ?? null;
+  return trustController
+    ? trustController.resolve(fingerprint)
+    : (registry?.get(fingerprint.toUpperCase()) ?? null);
 }
 
 /** Create a TLS listener; caller must bind it only in an isolated test deployment. */
@@ -86,12 +93,15 @@ export function createRecoveryWriterMtlsCandidateServer(options: RecoveryWriterM
       requestTimeoutMs > MAX_TIMEOUT) {
     throw new Error("mtls_server_limits_invalid");
   }
-  const registry = registryFor(options.peers);
+  if (options.trustController && options.peers !== undefined) {
+    throw new Error("ambiguous_mtls_peer_sources");
+  }
+  const registry = options.trustController ? null : registryFor(options.peers ?? []);
   return createServer({
     key: options.keyPem, cert: options.certPem, ca: options.clientCaPem,
     requestCert: true, rejectUnauthorized: true, minVersion: "TLSv1.3"
   }, socket => {
-    const caller = verifiedCaller(socket, registry);
+    const caller = verifiedCaller(socket, registry, options.trustController);
     if (!caller) {
       socket.destroy();
       return;
@@ -121,8 +131,18 @@ export function createRecoveryWriterMtlsCandidateServer(options: RecoveryWriterM
         return;
       }
       const message = raw.slice(0, newline);
-      // The existing Day 81 parser/Admission validates JSON, ACL, replay and audit.
-      void options.handler.handle(message, caller).then(
+      // Re-resolve from the CURRENT server-owned policy at the point of dispatch.
+      // A peer revoked after TLS handshake must not reuse a stale caller.
+      const currentCaller = verifiedCaller(socket, registry, options.trustController);
+      if (!currentCaller || currentCaller.subject !== caller.subject ||
+          currentCaller.grantedOperations.join(",") !== caller.grantedOperations.join(",")) {
+        socket.end(JSON.stringify({
+          requestId: "unavailable", action: "hold", reason: "transport_identity_revoked"
+        }) + "\n");
+        return;
+      }
+      // Admission independently rechecks current server ACL before delegation.
+      void options.handler.handle(message, currentCaller).then(
         response => { if (!socket.destroyed) socket.end(JSON.stringify(response) + "\n"); },
         () => { if (!socket.destroyed) socket.end(JSON.stringify({
           requestId: "unavailable", action: "hold", reason: "trusted_service_unavailable"

@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 82 午练**（2026-11-11）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 82 晚练**（2026-11-11）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 82 晚练：证书轮换、旧连接撤权与回滚拒绝
+
+- [晚练：证书生命周期及真实 TLS 连接负向验收](docs/day82-evening-mtls-rotation.md)；新增 `RecoveryWriterMtlsTrustController`，使用服务端版本化快照管理证书指纹，过期/撤权/错误部署/时钟回退/版本倒退一律关闭身份映射。
+- Day 82 的真实 mTLS Listener 增加派发前再查当前指纹映射：TLS 握手后撤销证书，旧连接不能在后续报文中复用身份。旧测试仍支持静态 `peers`，动态源 `trustController` 不允许与其混用。
+- `npm run test:recovery-writer-mtls-rotation`：策略/过期/回滚/恢复水位 + 本机真实 TLS 证书切换、旧连接拒绝与审计脱敏。仅实验环境；快照信任源、持久水位、运行时密钥轮换、生产 DB 隔离、真实消费者 ACK 仍未实现，发布 **NO_GO**。
 
 ## Week 12 / Day 82 午练：真实 localhost mTLS 证书身份映射
 

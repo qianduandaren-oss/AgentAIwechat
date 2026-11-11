@@ -237,3 +237,6 @@ jobs:
 
       - name: Day 81 evening writer RPC admission, replay and revocation
         run: npm run test:recovery-writer-rpc-admission
+
+      - name: Day 82 morning transport trust root plan review
+        run: npm run test:recovery-writer-transport-plan

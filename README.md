@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 82 早课**（2026-11-11）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 82 午练**（2026-11-11）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 82 午练：真实 localhost mTLS 证书身份映射
+
+- [午练：受信证书 → VerifiedTransportCaller → Day 81 Admission + Handler](docs/day82-noon-mtls-peer-binding.md)；新增 `src/runtime/recovery-writer-mtls-transport.ts`，通过 Node 标准 TLS Server 强制验证客户端证书，使用服务端配置的 SHA-256 指纹白名单绑定 subject/操作权限。
+- `npm run test:recovery-writer-mtls-peer`：OpenSSL 临时证书、真实本机 TLS 握手、无证书/未注册证书拒绝、JSON 伪造字段、操作无权限、ACL 撤销和模拟 ACK。
+- 本实验有真实 mTLS 握手，但仍无真实消费者 ACK、生产 OS DB 挂载隔离、证书生命周期及跨进程幂等。发布 **NO_GO**。
 
 ## Week 12 / Day 82 早课：可信传输身份的信任根（UDS / mTLS）
 

@@ -1,10 +1,16 @@
-# Agent AI 工程师 · Day 1–81 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–82 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 81 晚练**（2026-11-10）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 82 早课**（2026-11-11）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 82 早课：可信传输身份的信任根（UDS / mTLS）
+
+- [早课：UDS Peer Credentials / mTLS 的信任根与部署约束](docs/day82-morning-transport-trust-root.md)。沿用 Day 81 的 Candidate Handler / Admission，不让客户端 JSON、任意 Header 或 TypeScript 类型冒充真正的已认证身份。
+- 新增 `src/runtime/recovery-writer-transport-trust-review.ts` 和 `npm run test:recovery-writer-transport-plan`：审查候选部署方案，模式不支持、前提缺失或额外字段则 hold；即使全部声明满足也只返回 `ready_for_isolated_transport_probe`，`publishAuthorized=false`。
+- **这是未经核实部署声明的纯策略校验**，没有实际 UDS peer credential 读取、mTLS 握手、RPC Listener 或生产文件权限/ACK 验证。生产仍为 **NO_GO**。
 
 ## Week 12 / Day 81 晚练：RPC Admission 的重放、撤权与审计边界
 

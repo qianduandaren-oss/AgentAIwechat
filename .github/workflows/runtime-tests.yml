@@ -240,3 +240,6 @@ jobs:
 
       - name: Day 82 morning transport trust root plan review
         run: npm run test:recovery-writer-transport-plan
+
+      - name: Day 82 noon localhost mTLS verified peer handshake
+        run: npm run test:recovery-writer-mtls-peer

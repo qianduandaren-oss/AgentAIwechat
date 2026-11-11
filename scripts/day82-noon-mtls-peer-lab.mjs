@@ -175,6 +175,14 @@ try {
   // SERVER-OWNED versioned trust policy rather than a static allowlist.
   await new Promise(resolve => server.close(() => resolve()));
   const trust = new RecoveryWriterMtlsTrustController("staging-day82", () => Date.now());
+  // Instrument the trusted resolver in this disposable test only. The TLS
+  // client's secureConnect can fire before the server's secureConnection.
+  let serverResolutions = 0;
+  const originalResolve = trust.resolve.bind(trust);
+  trust.resolve = fp => {
+    serverResolutions += 1;
+    return originalResolve(fp);
+  };
   let revision = 0;
   const trustSnapshot = peers => {
     const issued = Date.now();
@@ -204,11 +212,19 @@ try {
     host: "127.0.0.1", port, servername: "localhost", ca,
     key: claim.key, cert: claim.cert, rejectUnauthorized: true
   });
+  const beforeHandshake = serverResolutions;
   const authenticated = new Promise((resolve, reject) => {
     preRevocation.once("secureConnect", resolve);
     preRevocation.once("error", reject);
   });
   await authenticated;
+  // Wait until SERVER-SIDE identity mapping has actually occurred, rather
+  // than relying solely on the client-side TLS handshake completion.
+  for (let attempt = 0; attempt < 100 && serverResolutions <= beforeHandshake; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+  assert.ok(serverResolutions > beforeHandshake, "server never mapped peer before rotation");
+  await new Promise(resolve => setImmediate(resolve));
   let staleResponse = "";
   const staleClosed = new Promise(resolve => {
     preRevocation.setEncoding("utf8");
@@ -218,6 +234,7 @@ try {
   assert.equal(trust.install(trustSnapshot([rotatedPeer])).action, "ready_for_isolated_rotation_test");
   preRevocation.write(JSON.stringify(request("req82stale", "claim_outbox")) + "\n");
   await staleClosed;
+  assert.ok(staleResponse.trim(), "established connection must receive explicit revoke hold");
   assert.equal(JSON.parse(staleResponse.trim()).reason, "transport_identity_revoked");
   // New handshakes with the old cert must be denied; the new pin succeeds.
   assert.equal(await send(claim, request("req82oldpin", "claim_outbox")), null);

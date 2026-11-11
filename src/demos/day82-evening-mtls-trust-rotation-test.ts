@@ -1,5 +1,6 @@
 import { strict as assert } from "node:assert";
 import { RecoveryWriterMtlsTrustController } from "../runtime/recovery-writer-mtls-trust-controller.js";
+import type { MtlsPeerRegistration } from "../runtime/recovery-writer-mtls-transport.js";
 
 let now = 10_000;
 const fpA = Array(32).fill("AA").join(":");
@@ -8,7 +9,7 @@ const clock = () => now;
 const controller = new RecoveryWriterMtlsTrustController("staging-day82", clock);
 const peerA = { fingerprint256: fpA, subject: "svc:old", grantedOperations: ["claim_outbox"] as const };
 const peerB = { fingerprint256: fpB, subject: "svc:new", grantedOperations: ["confirm_outbox"] as const };
-const snapshot = (revision: number, peers: readonly typeof peerA[] = [peerA]) => ({
+const snapshot = (revision: number, peers: readonly MtlsPeerRegistration[] = [peerA]) => ({
   deploymentId: "staging-day82", revision,
   issuedAtEpochMs: now, expiresAtEpochMs: now + 1_000, peers
 });

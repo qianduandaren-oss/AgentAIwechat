@@ -1,4 +1,4 @@
-import type { VerifiedTransportCaller } from "./recovery-writer-rpc-contract.js";
+import type { RecoveryWriterOperation, VerifiedTransportCaller } from "./recovery-writer-rpc-contract.js";
 import type { MtlsPeerRegistration } from "./recovery-writer-mtls-transport.js";
 
 /**
@@ -90,7 +90,7 @@ export class RecoveryWriterMtlsTrustController {
           !SUBJECT.test(peer.subject) ||
           !Array.isArray(peer.grantedOperations) ||
           peer.grantedOperations.length < 1 || peer.grantedOperations.length > 2 ||
-          peer.grantedOperations.some(op => op !== "claim_outbox" && op !== "confirm_outbox") ||
+          peer.grantedOperations.some((op: RecoveryWriterOperation) => op !== "claim_outbox" && op !== "confirm_outbox") ||
           new Set(peer.grantedOperations).size !== peer.grantedOperations.length) {
         return HOLD("trust_peer_registration_invalid");
       }

@@ -252,3 +252,6 @@ jobs:
 
       - name: Day 83 noon SQLite durable trust watermark CAS and crash recovery
         run: npm run test:recovery-writer-trust-watermark-sqlite
+
+      - name: Day 83 evening stale live-instance watermark and source fail-closed
+        run: npm run test:recovery-writer-trust-live-admission

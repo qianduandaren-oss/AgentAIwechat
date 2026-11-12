@@ -21,6 +21,8 @@ export interface WriterRpcAuditEvent {
 export interface WriterRpcAdmissionDependencies {
   /** Read the server's CURRENT authorization policy; never trust request JSON. */
   reauthorize(caller: VerifiedTransportCaller, operation: RecoveryWriterOperation): Promise<boolean>;
+  /** Day 83 lab: recheck shared durable watermark and authenticated policy source immediately before delegation. */
+  beforeDelegate?(caller: VerifiedTransportCaller, operation: RecoveryWriterOperation): Promise<boolean>;
   /** Synchronous pre-dispatch audit. On failure no work is dispatched. */
   recordAudit(event: WriterRpcAuditEvent): void;
   /** Server clock, not the client's timestamp. */
@@ -131,6 +133,25 @@ export class RecoveryWriterRpcAdmissionHandler implements RecoveryWriterRequestH
       if (control.signal?.aborted ||
           (control.deadlineEpochMs !== undefined && beforeDispatch >= control.deadlineEpochMs)) {
         return hold(id, "admission_cancelled_or_expired");
+      }
+
+      // A different instance may have advanced the durable trust watermark while
+      // this call awaited ACL. Reject before auditing/delegating if our active
+      // policy is stale. This is NOT atomic with another process's future CAS.
+      if (this.deps.beforeDelegate) {
+        let currentTrust = false;
+        try {
+          currentTrust = await this.deps.beforeDelegate(caller, request.operation);
+        } catch {
+          return hold(id, "durable_trust_verification_unavailable");
+        }
+        if (!currentTrust) return hold(id, "durable_trust_stale_or_unavailable");
+        const checkedAt = this.clock();
+        if (checkedAt === null) return hold(id, "admission_clock_unavailable");
+        if (control.signal?.aborted ||
+            (control.deadlineEpochMs !== undefined && checkedAt >= control.deadlineEpochMs)) {
+          return hold(id, "admission_cancelled_or_expired");
+        }
       }
 
       // No rawConsumerResponse, eventId, leaseToken or arbitrary payloads in audit.

@@ -4,7 +4,17 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 83 早课**（2026-11-12）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 83 晚练**（2026-11-12）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 83 晚练：活跃实例失效和请求派发前权威水位核对
+
+- [晚练：持久水位漂移与 Fail Closed](docs/day83-evening-trust-live-admission.md)。新增 `RecoveryWriterDurableTrustAdmissionGate`，比对当前 Store / 受信 Source / 引导时冻结的 revision+digest；Day 81 Admission 在异步 ACL 重查后、审计与委派前调用 Gate。
+- `npm run test:recovery-writer-trust-live-admission` 覆盖旧实例内存白名单存活、另一个连接 CAS 前进、ACL 等待中变更、精确重启、来源失联、数据损坏、回滚及 Store 不可用。只用一次性 SQLite 和受信桩；仍有检查与事务之间的 TOCTOU，生产 **NO_GO**。
+
+## Week 12 / Day 83 午练：SQLite 持久水位 CAS 与冷启动恢复
+
+- [午练：同库 SQLite 事务 CAS 和精确重启](docs/day83-noon-trust-watermark-sqlite.md)，新增 SQLite Store 与 bootstrap，在隔离实验中校验完整字节摘要、拒绝缺失锚点、先验证策略后 CAS，支持崩溃后同版同摘要恢复。
+- `npm run test:recovery-writer-trust-watermark-sqlite` 覆盖两连接竞争、降级、同版换内容、来源失联及过期。没有跨节点全局水位，生产 **NO_GO**。
 
 ## Week 12 / Day 83 早课：持久策略水位与可信重启合同
 

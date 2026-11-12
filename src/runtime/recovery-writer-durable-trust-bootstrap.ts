@@ -4,6 +4,7 @@ import type { RecoveryWriterMtlsTrustSnapshot } from "./recovery-writer-mtls-tru
 import {
   reviewRecoveryWriterTrustBootstrap,
   type AuthenticatedRecoveryWriterPolicySource,
+  type RecoveryWriterTrustWatermark,
   type RecoveryWriterTrustWatermarkStore
 } from "./recovery-writer-trust-watermark-contract.js";
 
@@ -20,7 +21,7 @@ export async function bootstrapRecoveredWriterTrust(input: Readonly<{
   nowEpochMs: () => number;
 }>): Promise<
   | { action: "ready_for_isolated_bootstrap_test"; mode: "exact_restart_replay" | "advance_requires_durable_cas";
-      controller: RecoveryWriterMtlsTrustController; publishAuthorized: false }
+      controller: RecoveryWriterMtlsTrustController; activeWatermark: RecoveryWriterTrustWatermark; publishAuthorized: false }
   | { action: "hold"; reason: string; publishAuthorized: false }
 > {
   const hold = (reason: string) => ({ action: "hold" as const, reason, publishAuthorized: false as const });
@@ -64,7 +65,9 @@ export async function bootstrapRecoveredWriterTrust(input: Readonly<{
     }
     return {
       action: "ready_for_isolated_bootstrap_test",
-      mode: review.mode, controller, publishAuthorized: false
+      mode: review.mode, controller,
+      activeWatermark: Object.freeze({ ...supplied.watermark, policySha256: supplied.watermark.policySha256.toLowerCase() }),
+      publishAuthorized: false
     };
   } catch {
     return hold("durable_trust_bootstrap_unavailable");

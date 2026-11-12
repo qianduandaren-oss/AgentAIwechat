@@ -100,7 +100,8 @@
     "test:recovery-writer-mtls-peer": "npm run build && node scripts/day82-noon-mtls-peer-lab.mjs",
     "test:recovery-writer-mtls-rotation": "npm run build && node dist/demos/day82-evening-mtls-trust-rotation-test.js && node scripts/day82-noon-mtls-peer-lab.mjs",
     "test:recovery-writer-trust-watermark-contract": "npm run build && node dist/demos/day83-morning-trust-watermark-contract-test.js",
-    "test:recovery-writer-trust-watermark-sqlite": "npm run build && node dist/demos/day83-noon-trust-watermark-sqlite-test.js"
+    "test:recovery-writer-trust-watermark-sqlite": "npm run build && node dist/demos/day83-noon-trust-watermark-sqlite-test.js",
+    "test:recovery-writer-trust-live-admission": "npm run build && node dist/demos/day83-evening-trust-live-admission-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -249,3 +249,6 @@ jobs:
 
       - name: Day 83 morning durable trust watermark contract
         run: npm run test:recovery-writer-trust-watermark-contract
+
+      - name: Day 83 noon SQLite durable trust watermark CAS and crash recovery
+        run: npm run test:recovery-writer-trust-watermark-sqlite

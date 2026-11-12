@@ -99,7 +99,8 @@
     "test:recovery-writer-transport-plan": "npm run build && node dist/demos/day82-morning-transport-trust-review-test.js",
     "test:recovery-writer-mtls-peer": "npm run build && node scripts/day82-noon-mtls-peer-lab.mjs",
     "test:recovery-writer-mtls-rotation": "npm run build && node dist/demos/day82-evening-mtls-trust-rotation-test.js && node scripts/day82-noon-mtls-peer-lab.mjs",
-    "test:recovery-writer-trust-watermark-contract": "npm run build && node dist/demos/day83-morning-trust-watermark-contract-test.js"
+    "test:recovery-writer-trust-watermark-contract": "npm run build && node dist/demos/day83-morning-trust-watermark-contract-test.js",
+    "test:recovery-writer-trust-watermark-sqlite": "npm run build && node dist/demos/day83-noon-trust-watermark-sqlite-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

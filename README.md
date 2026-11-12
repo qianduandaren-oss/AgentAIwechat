@@ -1224,3 +1224,7 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 ## Day 74 午练：同库 Outbox Delivery Claim / Lease
 
 新增 `SQLiteRecoveryOutboxDeliveryClaimer`，在 Day 73 的同一 `recovery_outbox` 表上使用 `BEGIN IMMEDIATE`、事件版本 CAS 和 `recovery_outbox_delivery_leases` 持久化租约；两个连接不能同时领取有效租约，过期后可重新认领且保持原始 `eventId`。只有受信消费者 ACK（与 eventId、当前 leaseToken、有效期绑定）才将事件标记 `dispatched`。验证：`npm run test:recovery-outbox-delivery-lease`。**未接真实 Publisher/Consumer；来源字符串不能替代认证；消费者去重与跨进程验收未完成，发布 NO_GO。**
+
+## Day 83 午练：持久策略版本水位与 SQLite CAS（候选）
+
+在 Day 83 早课的可信水位合同上新增 `SQLiteRecoveryWriterTrustWatermarkStore`，使用 SQLite `BEGIN IMMEDIATE` 实现两个连接的持久化 `(deploymentId, revision, policySha256)` CAS。`bootstrapRecoveredWriterTrust` 先校验受信 Source 提供字节的 SHA-256、策略自身有效期和指纹列表，再 CAS，支持重启时同版本同摘要的精确重放；旧 revision、同版换摘要、缺失锚、Source 故障保持 Fail Closed。运行 `npm run test:recovery-writer-trust-watermark-sqlite`。详见 `docs/day83-noon-trust-watermark-sqlite.md`。该实验不实现真实策略签名、生产共享策略权威、活跃实例即时撤权、旧 Writer OS 挂载隔离或真实 ACK；**生产 NO_GO**。

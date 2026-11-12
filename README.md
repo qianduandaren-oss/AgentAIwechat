@@ -1,10 +1,16 @@
-# Agent AI 工程师 · Day 1–82 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–83 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 82 晚练**（2026-11-11）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 83 早课**（2026-11-12）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 83 早课：持久策略水位与可信重启合同
+
+- [早课：可信策略版本水位和重启原子性](docs/day83-morning-trust-policy-watermark.md)。新增 `src/runtime/recovery-writer-trust-watermark-contract.ts`：持久 `deploymentId / revision / policySha256` 检查点接口、CAS 接口、受信策略来源接口与只读引导审查。
+- `npm run test:recovery-writer-trust-watermark-contract`：覆盖持久锚缺失、降级、同版本换内容、同版本相同摘要重启候选、部署错绑和不可信来源。纯合同；不执行真实持久化或密码学认证。
+- Day 82 控制器仍**只有进程内 revision**且 `install()` 不支持相同 revision + digest 的精确重放；这是今天午练的接线待办。生产 **NO_GO**。
 
 ## Week 12 / Day 82 晚练：证书轮换、旧连接撤权与回滚拒绝
 

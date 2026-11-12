@@ -246,3 +246,6 @@ jobs:
 
       - name: Day 82 evening mTLS trust rotation and post-handshake revocation
         run: npm run test:recovery-writer-mtls-rotation
+
+      - name: Day 83 morning durable trust watermark contract
+        run: npm run test:recovery-writer-trust-watermark-contract

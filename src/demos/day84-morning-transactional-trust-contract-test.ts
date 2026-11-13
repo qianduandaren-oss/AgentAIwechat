@@ -13,7 +13,7 @@ function denied(observed: typeof active | null, reason: string) {
   );
 }
 
-assert.doesNotThrow(() => assertRecoveryWriterTrustMatch(active, { ...active, policySha256: "A".repeat(64) }));
+assertRecoveryWriterTrustMatch(active, { ...active, policySha256: "A".repeat(64) });
 denied(null, "transactional_watermark_unavailable");
 denied({ ...active, revision: 6 }, "stale_trust_revision_fenced");
 denied({ ...active, revision: 8 }, "stale_trust_revision_fenced");

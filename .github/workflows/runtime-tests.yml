@@ -258,3 +258,6 @@ jobs:
 
       - name: Day 84 morning same-transaction trust fence comparison contract
         run: npm run test:recovery-writer-trust-tx-contract
+
+      - name: Day 84 noon same-connection transactional trust Claim and ACK
+        run: npm run test:recovery-writer-trust-tx-sqlite

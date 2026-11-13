@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 84 早课**（2026-11-13）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 84 午练**（2026-11-13）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 84 午练：在 Claim / ACK 同一个 SQLite 写事务中检查 Trust Watermark
+
+- [午练：同库 SQLite 事务 Trust Fencing](docs/day84-noon-transactional-trust-sqlite.md)。修改已有 `SQLiteFencedOutboxDelivery`，当从受信启动流程注入 `activeTrustWatermark` 时，在每次 Claim/ACK 的 `BEGIN IMMEDIATE` 事务内、Writer Epoch/Lease/Version CAS 前核对同库 revision+SHA-256+deploymentId，错配或缺表一律回滚。
+- `npm run test:recovery-writer-trust-tx-sqlite`：两连接撤权先后、旧 ACK/Claim 回滚、新版本成功、错误摘要/部署及独立数据库缺表负向回归。旧构造方法仍为兼容遗留实验而保留，**不带信任围栏，严禁用于生产**。
+- 本实验未证明直接 SQL 旁路隔离、旧 FD 排空、生产证书/ACK 授权；发布仍 **NO_GO**。
 
 ## Week 12 / Day 84 早课：策略水位与 Writer 写事务同一个线性化点
 

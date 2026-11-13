@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 84 午练**（2026-11-13）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 84 晚练（Week 12 完成）**（2026-11-13）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 84 晚练：崩溃回滚、旧实例轮换封锁与 SQL 旁路
+
+- [晚练：事务信任围栏边界和负向验收](docs/day84-evening-trust-fence-boundary.md)；把 `rotate()` 也纳入 Claim/ACK 已有的同库 Trust Watermark 检查；增加策略事务回滚、旧 revision 轮换/Claim/ACK 拒绝、重启和新版本成功用例。
+- `npm run test:recovery-writer-trust-tx-evening` 明确演示两个**尚未解决**的绕过路径：不传水位的兼容构造和旧进程直接 SQL 写入。
+- [Week 12 / Day 78–84 阶段总结与 Checkpoint](docs/week12-day78-84-checkpoint.md)。测试使用临时 SQLite 与模拟数据，不提供生产 OS 访问控制或真实消费者 ACK 证明。**发布 NO_GO**。
 
 ## Week 12 / Day 84 午练：在 Claim / ACK 同一个 SQLite 写事务中检查 Trust Watermark
 

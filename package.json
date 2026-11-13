@@ -103,7 +103,8 @@
     "test:recovery-writer-trust-watermark-sqlite": "npm run build && node dist/demos/day83-noon-trust-watermark-sqlite-test.js",
     "test:recovery-writer-trust-live-admission": "npm run build && node dist/demos/day83-evening-trust-live-admission-test.js",
     "test:recovery-writer-trust-tx-contract": "npm run build && node dist/demos/day84-morning-transactional-trust-contract-test.js",
-    "test:recovery-writer-trust-tx-sqlite": "npm run build && node dist/demos/day84-noon-transactional-trust-sqlite-test.js"
+    "test:recovery-writer-trust-tx-sqlite": "npm run build && node dist/demos/day84-noon-transactional-trust-sqlite-test.js",
+    "test:recovery-writer-trust-tx-evening": "npm run build && node dist/demos/day84-evening-trust-fence-boundary-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

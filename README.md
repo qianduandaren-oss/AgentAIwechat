@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–83 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–84 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 83 晚练**（2026-11-12）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 84 早课**（2026-11-13）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 12 / Day 84 早课：策略水位与 Writer 写事务同一个线性化点
+
+- [早课：事务内 Trust Watermark Fencing](docs/day84-morning-transactional-trust-fence.md)：新增纯比较合同 `assertRecoveryWriterTrustMatch()` 和负向回归；同版本异摘要、错误部署、旧版以及空水位拒绝。
+- `npm run test:recovery-writer-trust-tx-contract` 验证比较语义。本节**尚未更改** Day 78 的 claim/ack SQLite 事务；Day 84 午练再把水位读取加入同连接 `BEGIN IMMEDIATE` 中。只读审查不能关闭 TOCTOU，生产继续 **NO_GO**。
 
 ## Week 12 / Day 83 晚练：活跃实例失效和请求派发前权威水位核对
 

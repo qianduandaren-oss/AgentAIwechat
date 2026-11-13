@@ -108,11 +108,10 @@ try {
     activeTrustWatermark: v8
   });
   try {
-    const localEpoch = isolatedWriter.rotate("worker-A");
-    assert.throws(() => isolatedWriter.claim({
-      outboxId: second.id, workerId: "worker-A", epoch: localEpoch, consumer,
-      nowEpochMs: now + 70, leaseMs: 3000
-    }), /no such table: recovery_writer_trust_watermarks/);
+    // Day 84 evening: rotate is now trust-fenced too, so a missing trust
+    // table must fail BEFORE any epoch mutation, not merely at claim().
+    assert.throws(() => isolatedWriter.rotate("worker-A"),
+      /no such table: recovery_writer_trust_watermarks/);
   } finally {
     isolatedWriter.close();
   }

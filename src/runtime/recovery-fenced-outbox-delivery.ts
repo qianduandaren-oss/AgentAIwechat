@@ -31,6 +31,9 @@ export class SQLiteFencedOutboxDelivery {
  rotate(ownerId:string):number {
   if(!ownerId.trim())deny("invalid_owner");
   return this.transaction(()=>{
+   // Day 84 evening: a stale policy must not rotate the writer epoch either.
+   // The same SQLite write lock serializes this check with policy CAS.
+   this.assertTrustInTransaction();
    const prev=this.db.prepare("SELECT epoch FROM recovery_writer_fence WHERE scope='outbox'").get() as {epoch:number}|undefined;
    const epoch=(prev?.epoch??0)+1;
    if(!Number.isSafeInteger(epoch))deny("epoch_overflow");

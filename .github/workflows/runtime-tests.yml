@@ -261,3 +261,6 @@ jobs:
 
       - name: Day 84 noon same-connection transactional trust Claim and ACK
         run: npm run test:recovery-writer-trust-tx-sqlite
+
+      - name: Day 84 evening same-DB trust rotation, crash and SQL bypass
+        run: npm run test:recovery-writer-trust-tx-evening

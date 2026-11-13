@@ -4,6 +4,8 @@ import { RECOVERY_FINALIZATION_SCHEMA } from "./sqlite-recovery-finalization.js"
 import { planRecoveryOutboxDelivery, type RecoveryOutboxConsumerContract } from "./recovery-outbox-delivery-contract.js";
 import type { RecoveryOutboxRecord } from "./recovery-outbox.js";
 import { RecoveryDeliveryConflict } from "./recovery-outbox-delivery-lease.js";
+import type { RecoveryWriterTrustWatermark } from "./recovery-writer-trust-watermark-contract.js";
+import { assertRecoveryWriterTrustMatch } from "./recovery-writer-transactional-trust-contract.js";
 
 const SCHEMA = `CREATE TABLE IF NOT EXISTS recovery_writer_fence(scope TEXT PRIMARY KEY,epoch INTEGER NOT NULL CHECK(epoch>0),owner_id TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS recovery_outbox_delivery_leases(outbox_id TEXT PRIMARY KEY,event_id TEXT NOT NULL,worker_id TEXT NOT NULL,lease_token TEXT NOT NULL UNIQUE,lease_expires_ms INTEGER NOT NULL,attempt INTEGER NOT NULL);`;
@@ -15,7 +17,15 @@ function valid(n:number):boolean {return Number.isSafeInteger(n)&&n>=0;}
 /** Candidate only. Legacy direct SQL remains a bypass. Trusted coordinator controls rotate(). */
 export class SQLiteFencedOutboxDelivery {
  private db:DatabaseSync;
- constructor(path:string) {this.db=new DatabaseSync(path);this.db.exec("PRAGMA busy_timeout=5000");this.db.exec(RECOVERY_FINALIZATION_SCHEMA);this.db.exec(SCHEMA);}
+ /** Optional to preserve historical tests. Production must NEVER use unfenced legacy mode. */
+ private readonly activeTrustWatermark: RecoveryWriterTrustWatermark | null;
+ constructor(path:string, options?:Readonly<{activeTrustWatermark:RecoveryWriterTrustWatermark}>) {
+  this.activeTrustWatermark=options ? Object.freeze({...options.activeTrustWatermark}) : null;
+  this.db=new DatabaseSync(path);
+  this.db.exec("PRAGMA busy_timeout=5000");
+  this.db.exec(RECOVERY_FINALIZATION_SCHEMA);
+  this.db.exec(SCHEMA);
+ }
  close(){this.db.close();}
  private transaction<T>(fn:()=>T):T {this.db.exec("BEGIN IMMEDIATE");try{const result=fn();this.db.exec("COMMIT");return result;}catch(e){this.db.exec("ROLLBACK");throw e;}}
  rotate(ownerId:string):number {
@@ -27,6 +37,21 @@ export class SQLiteFencedOutboxDelivery {
    this.db.prepare("INSERT INTO recovery_writer_fence(scope,epoch,owner_id) VALUES('outbox',?,?) ON CONFLICT(scope) DO UPDATE SET epoch=excluded.epoch,owner_id=excluded.owner_id").run(epoch,ownerId);
    return epoch;
   });
+ }
+ /**
+  * Day 84 noon: must run INSIDE the same BEGIN IMMEDIATE transaction/DatabaseSync
+  * that mutates recovery_outbox. Missing trust table/row is a hard failure.
+  * Active trust is injected by the trusted bootstrap, never from RPC JSON.
+  * No ATTACH and no secondary SQLite connection: both mutations share one writer lock.
+  */
+ private assertTrustInTransaction():void {
+  const active=this.activeTrustWatermark;
+  if(!active)return; // Legacy mode for older isolated regression tests; NOT production-safe.
+  const row=this.db.prepare("SELECT deployment_id,revision,policy_sha256 FROM recovery_writer_trust_watermarks WHERE deployment_id=?")
+   .get(active.deploymentId) as {deployment_id:string;revision:number;policy_sha256:string}|undefined;
+  assertRecoveryWriterTrustMatch(active,row?{
+   deploymentId:row.deployment_id,revision:row.revision,policySha256:row.policy_sha256
+  }:null);
  }
  private assertFence(ownerId:string,epoch:number) {
   const fence=this.db.prepare("SELECT epoch,owner_id FROM recovery_writer_fence WHERE scope='outbox'").get() as Fence|undefined;
@@ -48,6 +73,7 @@ export class SQLiteFencedOutboxDelivery {
  claim(input:{outboxId:string;workerId:string;epoch:number;consumer:RecoveryOutboxConsumerContract;nowEpochMs:number;leaseMs:number}) {
   if(!input.workerId?.trim()||!valid(input.nowEpochMs)||!Number.isSafeInteger(input.leaseMs)||input.leaseMs<=0||!Number.isSafeInteger(input.nowEpochMs+input.leaseMs))deny("invalid_claim_input");
   return this.transaction(()=>{
+   this.assertTrustInTransaction();
    this.assertFence(input.workerId,input.epoch);
    const record=this.read(input.outboxId);
    const plan=planRecoveryOutboxDelivery(record,input.consumer);
@@ -66,6 +92,7 @@ export class SQLiteFencedOutboxDelivery {
  acknowledge(input:{outboxId:string;eventId:string;workerId:string;epoch:number;leaseToken:string;nowEpochMs:number}) {
   if(!valid(input.nowEpochMs)||!input.leaseToken?.trim())deny("invalid_ack");
   return this.transaction(()=>{
+   this.assertTrustInTransaction();
    this.assertFence(input.workerId,input.epoch);
    const record=this.read(input.outboxId);
    const lease=this.db.prepare("SELECT * FROM recovery_outbox_delivery_leases WHERE outbox_id=?").get(input.outboxId) as Lease|undefined;

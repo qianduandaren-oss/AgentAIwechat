@@ -255,3 +255,6 @@ jobs:
 
       - name: Day 83 evening stale live-instance watermark and source fail-closed
         run: npm run test:recovery-writer-trust-live-admission
+
+      - name: Day 84 morning same-transaction trust fence comparison contract
+        run: npm run test:recovery-writer-trust-tx-contract

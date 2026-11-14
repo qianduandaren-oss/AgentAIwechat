@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–84 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–85 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 84 晚练（Week 12 完成）**（2026-11-13）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 85 早课（Week 13）**（2026-11-14）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 85 早课：生产唯一 Writer 创建入口的设计合同
+
+- [唯一可信 Writer 创建路径（隔离候选合同）](docs/day85-morning-writer-creation-boundary.md)：新增 `reviewRecoveryWriterCreationBoundary()`，要求受信启动水位和 Writer 活动水位一致；无水位 Legacy 直接创建、版本/摘要漂移和生产发布请求都返回 HOLD。
+- `npm run test:recovery-writer-creation-boundary` 验证负向合同；**并未**建立不可绕过的生产 Factory 或 OS 写隔离。保留旧构造入口以免破坏历史实验，后续收敛生产入口。生产 **NO_GO**。
 
 ## Week 12 / Day 84 晚练：崩溃回滚、旧实例轮换封锁与 SQL 旁路
 

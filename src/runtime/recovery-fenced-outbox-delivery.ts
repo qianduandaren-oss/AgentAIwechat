@@ -5,7 +5,7 @@ import { planRecoveryOutboxDelivery, type RecoveryOutboxConsumerContract } from 
 import type { RecoveryOutboxRecord } from "./recovery-outbox.js";
 import { RecoveryDeliveryConflict } from "./recovery-outbox-delivery-lease.js";
 import type { RecoveryWriterTrustWatermark } from "./recovery-writer-trust-watermark-contract.js";
-import { assertRecoveryWriterTrustMatch } from "./recovery-writer-transactional-trust-contract.js";
+import { assertRecoveryWriterTrustMatch, RecoveryWriterTrustFenceConflict } from "./recovery-writer-transactional-trust-contract.js";
 
 const SCHEMA = `CREATE TABLE IF NOT EXISTS recovery_writer_fence(scope TEXT PRIMARY KEY,epoch INTEGER NOT NULL CHECK(epoch>0),owner_id TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS recovery_outbox_delivery_leases(outbox_id TEXT PRIMARY KEY,event_id TEXT NOT NULL,worker_id TEXT NOT NULL,lease_token TEXT NOT NULL UNIQUE,lease_expires_ms INTEGER NOT NULL,attempt INTEGER NOT NULL);`;
@@ -27,6 +27,14 @@ export class SQLiteFencedOutboxDelivery {
   this.db.exec(SCHEMA);
  }
  close(){this.db.close();}
+ /** Day 85 noon: candidate factory must verify the same DB row before exposing a writer. */
+ assertTrustBoundForIsolatedStartup():void {
+  if(!this.activeTrustWatermark) {
+   throw new RecoveryWriterTrustFenceConflict("trusted_active_watermark_invalid");
+  }
+  this.transaction(()=>this.assertTrustInTransaction());
+ }
+
  private transaction<T>(fn:()=>T):T {this.db.exec("BEGIN IMMEDIATE");try{const result=fn();this.db.exec("COMMIT");return result;}catch(e){this.db.exec("ROLLBACK");throw e;}}
  rotate(ownerId:string):number {
   if(!ownerId.trim())deny("invalid_owner");

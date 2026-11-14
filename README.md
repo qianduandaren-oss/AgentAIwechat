@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 85 早课（Week 13）**（2026-11-14）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 85 午练（Week 13）**（2026-11-14）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 85 午练：严格隔离 Writer Factory 与同库水位启动校验
+
+- [严格隔离候选 Factory](docs/day85-noon-trust-bound-writer-factory.md)：新增 `createIsolatedTrustBoundRecoveryWriter()`，内部复用 Day 83 已认证 Bootstrap + Day 85 早课审查；只能从通过验证的活动水位创建 Writer。
+- `SQLiteFencedOutboxDelivery.assertTrustBoundForIsolatedStartup()` 用创建出的 Writer 自身 SQLite 连接和事务核对同库水位；不匹配立即关闭连接并 HOLD，不向调用方暴露 Writer。
+- `npm run test:recovery-writer-trust-bound-factory` 覆盖无锚、错误 DB、旧版、离线/损坏 Source、当前 Claim/ACK/Rotate 及重启。保留历史无水位构造以兼容测试，**仍可被直接调用且可直接 SQL 绕过；发布 NO_GO**。
 
 ## Week 13 / Day 85 早课：生产唯一 Writer 创建入口的设计合同
 

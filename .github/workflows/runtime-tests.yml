@@ -267,3 +267,6 @@ jobs:
 
       - name: Day 85 morning trusted writer creation boundary review
         run: npm run test:recovery-writer-creation-boundary
+
+      - name: Day 85 noon isolated trust-bound writer factory and same-DB startup fence
+        run: npm run test:recovery-writer-trust-bound-factory

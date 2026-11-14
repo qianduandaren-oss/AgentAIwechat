@@ -105,7 +105,8 @@
     "test:recovery-writer-trust-tx-contract": "npm run build && node dist/demos/day84-morning-transactional-trust-contract-test.js",
     "test:recovery-writer-trust-tx-sqlite": "npm run build && node dist/demos/day84-noon-transactional-trust-sqlite-test.js",
     "test:recovery-writer-trust-tx-evening": "npm run build && node dist/demos/day84-evening-trust-fence-boundary-test.js",
-    "test:recovery-writer-creation-boundary": "npm run build && node dist/demos/day85-morning-writer-creation-boundary-test.js"
+    "test:recovery-writer-creation-boundary": "npm run build && node dist/demos/day85-morning-writer-creation-boundary-test.js",
+    "test:recovery-writer-trust-bound-factory": "npm run build && node dist/demos/day85-noon-trust-bound-factory-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

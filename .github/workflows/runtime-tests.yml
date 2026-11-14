@@ -264,3 +264,6 @@ jobs:
 
       - name: Day 84 evening same-DB trust rotation, crash and SQL bypass
         run: npm run test:recovery-writer-trust-tx-evening
+
+      - name: Day 85 morning trusted writer creation boundary review
+        run: npm run test:recovery-writer-creation-boundary

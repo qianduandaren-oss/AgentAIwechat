@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 85 午练（Week 13）**（2026-11-14）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 85 晚练（Week 13）**（2026-11-14）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 85 晚练：唯一创建入口扫描和 SQLite/WAL/SHM 权限反例
+
+- [Writer Release Boundary 负向验收](docs/day85-evening-writer-release-boundary.md)：保持午练严格隔离 Factory 不变，新增 Runtime 构造调用点扫描与真实 Linux 独立 UID 对 DB、WAL、SHM、目录的权限验证；故意回滚权限，证实旧进程新打开权限会复活。
+- `npm run test:recovery-writer-entrypoint-audit` 为启发式扫描，不构成不可绕过保证；`npm run test:recovery-writer-wal-shm-os-lab` 仅操作一次性 `/tmp` SQLite 夹具。Day 80 旧 FD 反例仍成立，生产 OS/容器隔离、真实 ACK 未验收，**NO_GO**。
 
 ## Week 13 / Day 85 午练：严格隔离 Writer Factory 与同库水位启动校验
 

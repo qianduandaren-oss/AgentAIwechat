@@ -270,3 +270,9 @@ jobs:
 
       - name: Day 85 noon isolated trust-bound writer factory and same-DB startup fence
         run: npm run test:recovery-writer-trust-bound-factory
+
+      - name: Day 85 evening writer creation sites (advisory static audit)
+        run: npm run test:recovery-writer-entrypoint-audit
+
+      - name: Day 85 evening separate UID WAL SHM rollback isolation lab
+        run: npm run test:recovery-writer-wal-shm-os-lab

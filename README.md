@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–85 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–86 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 85 晚练（Week 13）**（2026-11-14）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 86 早课（Week 13）**（2026-11-15）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 86 早课：部署证明来自独立观察者
+
+- [部署证据结构化合同](docs/day86-morning-writer-release-evidence.md)：Day 85 的单 Writer Factory 和 WAL/SHM 权限反例之后，继续定义旧进程、旧可写 FD、挂载拒绝、回滚防恢复等七项独立证据。新增 `reviewWriterReleaseEvidence()` 只审查元数据完整性，不鉴定 OS 事实、证据签名或生产采集器。
+- `npm run test:recovery-writer-release-evidence`：验证错绑、陈旧、自报、缺项和失败项一律 HOLD。合成完整证据只进入隔离探针阶段，`publishAuthorized=false`，生产 **NO_GO**。
 
 ## Week 13 / Day 85 晚练：唯一创建入口扫描和 SQLite/WAL/SHM 权限反例
 

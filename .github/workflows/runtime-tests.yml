@@ -276,3 +276,6 @@ jobs:
 
       - name: Day 85 evening separate UID WAL SHM rollback isolation lab
         run: npm run test:recovery-writer-wal-shm-os-lab
+
+      - name: Day 86 morning release evidence envelope (advisory only)
+        run: npm run test:recovery-writer-release-evidence

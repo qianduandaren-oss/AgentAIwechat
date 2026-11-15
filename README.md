@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 86 午练（Week 13）**（2026-11-15）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 86 晚练（Week 13）**（2026-11-15）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 86 晚练：混合版本 / 回滚复活 / 过期证据切换审查
+
+- [Fail-Closed 发布切换审查](docs/day86-evening-release-cutover-review.md)：新增 `reviewWriterCutoverRehearsal()`，在早课七项证据合同之上，要求新鲜且完整的实例清单、唯一 Trust-Bound 可写 Writer、旧 Writer 停止、原始 ACK 入口关闭与不会恢复旧镜像/挂载/无水位构造的回滚清单。
+- `npm run test:recovery-writer-release-cutover`：旧实例混入、第二可写 Writer、过期证据、错误发布 ID、回滚旧挂载/ACK/无围栏构造全部 HOLD；合成全绿只返回 `ready_for_isolated_cutover_rehearsal` 与 `publishAuthorized=false`。**无真实部署平台认证或生产权限证据，生产 NO_GO**。
 
 ## Week 13 / Day 86 午练：Linux /proc 旧进程 FD 独立采集实验
 

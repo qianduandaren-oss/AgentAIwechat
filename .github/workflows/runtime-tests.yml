@@ -279,3 +279,6 @@ jobs:
 
       - name: Day 86 morning release evidence envelope (advisory only)
         run: npm run test:recovery-writer-release-evidence
+
+      - name: Day 86 noon observed Linux PID and writable FD lifecycle (NO_GO)
+        run: npm run test:recovery-writer-host-fd-probe

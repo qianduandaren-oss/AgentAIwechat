@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 86 早课（Week 13）**（2026-11-15）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 86 午练（Week 13）**（2026-11-15）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 86 午练：Linux /proc 旧进程 FD 独立采集实验
+
+- [Linux 进程与 FD 证据采集](docs/day86-noon-host-fd-probe.md)：一次性父子进程 + SQLite WAL 实验，观察真实 /proc/<pid>/fdinfo 中可写 FD，然后关闭并核对 PID/starttime；只认被观察到的两项事实，其余五项保持 UNKNOWN。
+- npm run test:recovery-writer-host-fd-probe：内核进程/FD 观测、Day 86 早课合同联动、最终 HOLD。父进程未经过主机控制面认证，不采集真实部署/旧 UID/mount/rollback/ACK；生产 **NO_GO**。
 
 ## Week 13 / Day 86 早课：部署证明来自独立观察者
 

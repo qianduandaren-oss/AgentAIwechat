@@ -282,3 +282,6 @@ jobs:
 
       - name: Day 86 noon observed Linux PID and writable FD lifecycle (NO_GO)
         run: npm run test:recovery-writer-host-fd-probe
+
+      - name: Day 86 evening mixed-version rollback and stale-evidence cutover HOLD
+        run: npm run test:recovery-writer-release-cutover

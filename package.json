@@ -110,7 +110,8 @@
     "test:recovery-writer-entrypoint-audit": "node scripts/day85-evening-writer-entrypoint-audit.mjs",
     "test:recovery-writer-wal-shm-os-lab": "node scripts/day85-evening-wal-shm-identity-lab.mjs",
     "test:recovery-writer-release-evidence": "npm run build && node dist/demos/day86-morning-writer-release-evidence-test.js",
-    "test:recovery-writer-host-fd-probe": "npm run build && node scripts/day86-noon-host-fd-probe.mjs"
+    "test:recovery-writer-host-fd-probe": "npm run build && node scripts/day86-noon-host-fd-probe.mjs",
+    "test:recovery-writer-release-cutover": "npm run build && node dist/demos/day86-evening-release-cutover-review-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

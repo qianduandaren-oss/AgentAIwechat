@@ -109,7 +109,8 @@
     "test:recovery-writer-trust-bound-factory": "npm run build && node dist/demos/day85-noon-trust-bound-factory-test.js",
     "test:recovery-writer-entrypoint-audit": "node scripts/day85-evening-writer-entrypoint-audit.mjs",
     "test:recovery-writer-wal-shm-os-lab": "node scripts/day85-evening-wal-shm-identity-lab.mjs",
-    "test:recovery-writer-release-evidence": "npm run build && node dist/demos/day86-morning-writer-release-evidence-test.js"
+    "test:recovery-writer-release-evidence": "npm run build && node dist/demos/day86-morning-writer-release-evidence-test.js",
+    "test:recovery-writer-host-fd-probe": "npm run build && node scripts/day86-noon-host-fd-probe.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

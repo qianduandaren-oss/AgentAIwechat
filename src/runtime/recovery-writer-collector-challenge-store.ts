@@ -44,7 +44,7 @@ const validTarget = (v: CollectorChallengeTarget): boolean =>
   !!v && [v.deploymentId, v.releaseId, v.observerId, v.hostId,
     v.mountNamespaceId].every(validId);
 const validTime = (v: number): boolean => Number.isSafeInteger(v) && v >= 0;
-const sha256 = (v: string): string => createHash("sha256").update(v).digest("hex");
+const sha256 = (v: string): string => createHash("sha256").update(new TextEncoder().encode(v)).digest("hex");
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
 

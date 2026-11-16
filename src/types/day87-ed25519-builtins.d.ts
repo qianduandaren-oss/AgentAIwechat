@@ -1,5 +1,6 @@
 /** Minimal Ed25519 additions to existing node:crypto shims. */
 declare module "node:crypto" {
+  export function randomBytes(size: number): Uint8Array;
   export function verify(
     algorithm: null, data: Uint8Array, key: string, signature: Uint8Array
   ): boolean;

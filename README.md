@@ -1286,3 +1286,7 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 ## Day 83 午练：持久策略版本水位与 SQLite CAS（候选）
 
 在 Day 83 早课的可信水位合同上新增 `SQLiteRecoveryWriterTrustWatermarkStore`，使用 SQLite `BEGIN IMMEDIATE` 实现两个连接的持久化 `(deploymentId, revision, policySha256)` CAS。`bootstrapRecoveredWriterTrust` 先校验受信 Source 提供字节的 SHA-256、策略自身有效期和指纹列表，再 CAS，支持重启时同版本同摘要的精确重放；旧 revision、同版换摘要、缺失锚、Source 故障保持 Fail Closed。运行 `npm run test:recovery-writer-trust-watermark-sqlite`。详见 `docs/day83-noon-trust-watermark-sqlite.md`。该实验不实现真实策略签名、生产共享策略权威、活跃实例即时撤权、旧 Writer OS 挂载隔离或真实 ACK；**生产 NO_GO**。
+
+## Day 87 早课：采集器 Ed25519 身份与原始字节绑定（隔离候选）
+
+在 Day 86 的部署证据合同上增加 Ed25519 公钥 pin、签名原始 payload、raw artifact SHA-256 校验，并把 release/host/mount namespace/一次性 challenge/时间窗写入签名声明。运行 npm run test:recovery-writer-collector-attestation。测试密钥仅在进程内生成。该合同没有真实主机采集器、一次性 nonce 持久消费、受信密钥分发和真实生产 OS 证明。参见 docs/day87-morning-collector-attestation.md，生产 NO_GO。

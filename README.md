@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–87 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–88 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 87 午练（Week 13）**（2026-11-16）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 88 早课（Week 13）**（2026-11-17）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 88 早课：Challenge 控制面鉴权与审计意图
+
+- [Day 88 早课：控制面授权合同](docs/day88-morning-collector-control-plane-admission.md)：在 Day 87 持久 Challenge/Ed25519 基础上引入 `reviewCollectorControlPlaneCommand()`，按已验证入站身份、部署/发布范围、角色与操作 ACL 审查密钥预置、Challenge 签发和撤销命令；拒绝 Worker 或 Collector 执行管理操作。
+- `npm run test:recovery-writer-control-plane-admission`：隔离候选合同负向回归；返回审计意图对象但未写入不可篡改日志，也未让 Challenge Store 强制走此审查。可信 mTLS 适配、强制入口、OS 写隔离和生产权限证据未建立，`publishAuthorized=false`，生产 **NO_GO**。
 
 ## Week 13 / Day 87 午练：把真实 procfs 证据字节与签名合同接起来
 

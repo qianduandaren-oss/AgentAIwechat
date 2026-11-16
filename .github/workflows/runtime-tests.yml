@@ -285,3 +285,6 @@ jobs:
 
       - name: Day 86 evening mixed-version rollback and stale-evidence cutover HOLD
         run: npm run test:recovery-writer-release-cutover
+
+      - name: Day 87 morning signed collector identity and raw artifact binding (NO_GO)
+        run: npm run test:recovery-writer-collector-attestation

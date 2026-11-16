@@ -113,7 +113,8 @@
     "test:recovery-writer-host-fd-probe": "npm run build && node scripts/day86-noon-host-fd-probe.mjs",
     "test:recovery-writer-release-cutover": "npm run build && node dist/demos/day86-evening-release-cutover-review-test.js",
     "test:recovery-writer-collector-attestation": "npm run build && node dist/demos/day87-morning-collector-attestation-test.js",
-    "test:recovery-writer-signed-host-fd-probe": "npm run build && node scripts/day87-noon-signed-host-fd-probe.mjs"
+    "test:recovery-writer-signed-host-fd-probe": "npm run build && node scripts/day87-noon-signed-host-fd-probe.mjs",
+    "test:recovery-writer-collector-challenge-store": "npm run build && node dist/demos/day87-evening-collector-challenge-store-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

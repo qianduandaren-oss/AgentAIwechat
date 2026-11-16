@@ -291,3 +291,6 @@ jobs:
   
       - name: Day 87 noon real procfs byte capture and Ed25519 attestation (NO_GO)
         run: npm run test:recovery-writer-signed-host-fd-probe
+
+      - name: Day 87 evening single-use SQLite collector challenge and key revocation (NO_GO)
+        run: npm run test:recovery-writer-collector-challenge-store

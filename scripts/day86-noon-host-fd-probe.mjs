@@ -7,7 +7,7 @@ import { strict as assert } from 'node:assert';
 import { fork } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, readlinkSync, readdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
@@ -105,6 +105,23 @@ if (mode === 'legacy-child') {
     const ticks = startTicks(pid);
     const live = writableFixtureFds(pid, dir);
     assert.ok(live.some(fd => fd.file === '/agent.sqlite'), 'kernel must show writable SQLite FD');
+    // Preserve the kernel text observed for the owned test child, not a synthetic PASS report.
+    // Emitted only after the child has exited and the experiment has passed its assertions.
+    const procfsArtifact = {
+      schemaVersion: 1,
+      source: 'linux-procfs-owned-fixture',
+      observedAtEpochMs: Date.now(),
+      hostId: hostname(),
+      mountNamespaceId: readlinkSync('/proc/' + pid + '/ns/mnt'),
+      pid, startTicks: ticks,
+      rawProcStat: readFileSync('/proc/' + pid + '/stat', 'utf8'),
+      fdSnapshots: live.slice(0, 12).map(({ fd, file }) => ({
+        fd, file, rawFdinfo: readFileSync('/proc/' + pid + '/fdinfo/' + fd, 'utf8')
+      }))
+    };
+    assert.ok(procfsArtifact.fdSnapshots.some(item => item.file === '/agent.sqlite'),
+      'raw procfs artifact must include writable SQLite FD');
+
     assert.deepEqual(review('before', pid, ticks, live, {
       legacy_processes_exited: 'fail', legacy_writable_fds_drained: 'fail'
     }), { action: 'hold', reason: 'check_not_proven:legacy_processes_exited', publishAuthorized: false });
@@ -133,6 +150,8 @@ if (mode === 'legacy-child') {
     console.log('PASS Day 86 noon: kernel /proc showed live writable SQLite FD; after owned child exit PID/starttime is gone.');
     console.log('PASS release evidence review: 2 fixture checks pass, other 5 remain UNKNOWN => HOLD; publishAuthorized=false.');
     console.log('LIMIT: no authenticated host collector, global PID sweep, mount or rollback proof, real ACK or production authority. NO_GO.');
+    console.log('DAY86_RAW_PROCFS_ARTIFACT_B64=' +
+      Buffer.from(JSON.stringify(procfsArtifact), 'utf8').toString('base64'));
   } finally {
     if (child.exitCode === null && !child.killed) child.kill('SIGKILL');
     rmSync(dir, { recursive: true, force: true });

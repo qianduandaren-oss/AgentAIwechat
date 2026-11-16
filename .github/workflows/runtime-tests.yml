@@ -288,3 +288,6 @@ jobs:
 
       - name: Day 87 morning signed collector identity and raw artifact binding (NO_GO)
         run: npm run test:recovery-writer-collector-attestation
+  
+      - name: Day 87 noon real procfs byte capture and Ed25519 attestation (NO_GO)
+        run: npm run test:recovery-writer-signed-host-fd-probe

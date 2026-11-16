@@ -1,10 +1,21 @@
-# Agent AI 工程师 · Day 1–86 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–87 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 86 晚练（Week 13）**（2026-11-15）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 87 午练（Week 13）**（2026-11-16）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 87 午练：把真实 procfs 证据字节与签名合同接起来
+
+- [Day 87 午练：签名的 Linux /proc FD 实验](docs/day87-noon-signed-procfs-artifact.md)：Day 86 临时子进程探针现在导出真实读取的 /proc stat 和 fdinfo 原文，Day 87 使用临时 Ed25519 密钥绑定原始字节摘要、主机/挂载命名空间、releaseId 与 challenge。
+- `npm run test:recovery-writer-signed-host-fd-probe`：运行真实 Linux /proc 实验，再调用已有 `reviewSignedWriterCollectorArtifact()` 验证正例和篡改、错绑、错误公钥等负向用例；明确演示**同一签名报告可再次通过**，未实现一次性 challenge 消费。临时密钥不入库。
+- 采集身份和 pinned public key 均由本地测试自己产生，非生产控制面；只测试临时进程，七项生产发布证据依然未完成，**NO_GO**。
+
+## Week 13 / Day 87 早课：Ed25519 采集器签名与发布对象绑定
+
+- [Day 87 早课：受信采集者与原始证据字节](docs/day87-morning-collector-attestation.md)：新增 Ed25519 纯验证合同，固定 release、host、namespace、挑战与原始摘要；`npm run test:recovery-writer-collector-attestation` 验证错签和上下文错绑。
+- 无真实控制面、公钥签发或 nonce 原子消费，`publishAuthorized=false`，生产 **NO_GO**。
 
 ## Week 13 / Day 86 晚练：混合版本 / 回滚复活 / 过期证据切换审查
 

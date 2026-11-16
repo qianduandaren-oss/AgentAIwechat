@@ -1301,3 +1301,9 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 ## Day 87 早课：采集器 Ed25519 身份与原始字节绑定（隔离候选）
 
 在 Day 86 的部署证据合同上增加 Ed25519 公钥 pin、签名原始 payload、raw artifact SHA-256 校验，并把 release/host/mount namespace/一次性 challenge/时间窗写入签名声明。运行 npm run test:recovery-writer-collector-attestation。测试密钥仅在进程内生成。该合同没有真实主机采集器、一次性 nonce 持久消费、受信密钥分发和真实生产 OS 证明。参见 docs/day87-morning-collector-attestation.md，生产 NO_GO。
+
+## Day 87 晚练：持久 Challenge 防重放与 Collector Key 撤销（隔离候选）
+
+复用 Day 87 Ed25519 验签函数，新增 `SQLiteWriterCollectorChallengeStore`。在受信控制面**预置公钥的实验前提下**，SQLite 存储 192-bit 随机挑战、release/host/mount namespace/collector key 绑定和过期时间；`verifyAndConsume()` 使用同库 `BEGIN IMMEDIATE` 将验签与首次消费线性化，两个连接和重启后均不得重放。撤销旧 key 的写入与消费争用同一写锁，轮换到独立预置的新 key 不会复活旧报告。
+
+运行 `npm run test:recovery-writer-collector-challenge-store`；详见 `docs/day87-evening-collector-challenge-store.md`。签名来自一次性测试私钥，现有 provisioning/issue/revoke 是**实验管理 API**而非经过认证的生产控制面；没有真实主机隔离或可信 Consumer ACK，`publishAuthorized=false`，发布 **NO_GO**。

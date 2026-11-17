@@ -75,9 +75,9 @@ function collect(input: ControlAuditSnapshotInput):
 export function captureControlAuditSnapshotForLab(
   input: ControlAuditSnapshotInput
 ): ControlAuditSnapshot {
-  if (!input || !valid(input.dbPath) && (
-    typeof input.dbPath !== "string" || !input.dbPath.trim()
-  ) || !valid(input.deploymentId) || !valid(input.releaseId)) {
+  if (!input || typeof input.dbPath !== "string" ||
+      !input.dbPath.trim() || !valid(input.deploymentId) ||
+      !valid(input.releaseId)) {
     return hold("audit_snapshot_input_invalid");
   }
   try {

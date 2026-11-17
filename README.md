@@ -1318,3 +1318,10 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 新增 `IsolatedCollectorControlPlaneService`，请求对象不接受客户端自报的认证 Peer，使用服务端注入的测试身份解析器来执行 Day 88 早课授权审查。管理操作与持久 `recovery_writer_collector_control_audit` 审计同属一笔 SQLite `BEGIN IMMEDIATE` 事务；审计写入失败时操作回滚，同 requestId 成功重试不重复签发，跨身份/参数冲突 HOLD；Day 87 单次消费逻辑保持不变。验证 `npm run test:recovery-writer-control-plane-service`，参见 `docs/day88-noon-collector-control-plane-service.md`。
 
 **提醒：旧 Day 87 Lab Store 的直接管理方法仍是绕过路径；本地解析器不是 mTLS、数据库审计不防直接 SQL 篡改。未完成生产 OS 身份隔离、旧 FD 排空和真实 Consumer ACK。生产 NO_GO。**
+
+
+## Day 88 晚练：控制面旁路与审计锚点（隔离反例）
+
+新增 `src/runtime/recovery-writer-collector-control-audit-review.ts`，在一次性 SQLite 上以外部测试变量中留存的 SHA-256 快照复核持久审计、key 状态和挑战关系。负向实验明确证明 Day 87 公共 `issueChallenge()` / `provisionLabTrustedKey()` 仍可以绕开 Day 88 服务入口、产生无审计变更；数据库直写可篡改同库审计。两个 SQLite 连接的撤销先于消费、消费先于撤销顺序分别产生 HOLD 与一次性消费结果。
+
+`npm run test:recovery-writer-control-plane-boundary`，详见 `docs/day88-evening-control-plane-release-boundary.md`。**这一测试的 PASS 包含“旁路确实存在”的负向反例。** 快照锚点仅为临时内存值，未认证；不能证明生产可信审计、旧 FD/挂载隔离或 mTLS。生产 **NO_GO**。

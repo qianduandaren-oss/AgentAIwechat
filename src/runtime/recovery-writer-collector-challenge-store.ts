@@ -5,6 +5,11 @@
  * control plane. Merely possessing this class is NOT a security capability.
  */
 import { createHash, randomBytes } from "node:crypto";
+import {
+  reviewCollectorControlPlaneCommand,
+  type CollectorControlAdmissionInput
+} from "./recovery-writer-collector-control-plane-admission.js";
+
 import { DatabaseSync } from "node:sqlite";
 import {
   reviewSignedWriterCollectorArtifact,
@@ -76,13 +81,57 @@ CREATE TABLE IF NOT EXISTS recovery_writer_collector_challenges (
     REFERENCES recovery_writer_collector_keys(deployment_id, key_id)
 );`;
 
+
+/** Day 88 noon: persisted audit and atomic admin command, ISOLATED ONLY. */
+export interface CollectorControlMutationPayload {
+  readonly publicKeyPem?: string;
+  readonly observerId?: string;
+  readonly hostId?: string;
+  readonly mountNamespaceId?: string;
+  readonly ttlMs?: number;
+}
+export interface AuditedCollectorControlInput {
+  readonly requestId: string;
+  readonly admission: CollectorControlAdmissionInput;
+  readonly payload: CollectorControlMutationPayload;
+}
+export type AuditedCollectorControlResult =
+  | Readonly<{ action: "hold"; reason: string; publishAuthorized: false }>
+  | Readonly<{ action: "ready_for_isolated_control_execution";
+      reason: "executed" | "idempotent_replay"; challengeId?: string;
+      publishAuthorized: false }>;
+export interface LabCollectorControlAuditRow {
+  readonly request_id: string;
+  readonly principal_id: string;
+  readonly operation: string;
+  readonly decision: "deny" | "executed";
+  readonly reason: string;
+  readonly challenge_id: string | null;
+}
+const CONTROL_AUDIT_SCHEMA = `
+CREATE TABLE IF NOT EXISTS recovery_writer_collector_control_audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  deployment_id TEXT NOT NULL,
+  release_id TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  principal_id TEXT NOT NULL,
+  operation TEXT NOT NULL,
+  key_id TEXT NOT NULL,
+  request_sha256 TEXT NOT NULL,
+  decision TEXT NOT NULL CHECK(decision IN ('deny','executed')),
+  reason TEXT NOT NULL,
+  challenge_id TEXT,
+  at_epoch_ms INTEGER NOT NULL,
+  UNIQUE(deployment_id, release_id, request_id)
+);`;
+
 export class SQLiteWriterCollectorChallengeStore {
   private readonly db: DatabaseSync;
   constructor(dbPath: string) {
     if (!dbPath?.trim()) throw Error("collector_challenge_db_path_invalid");
     this.db = new DatabaseSync(dbPath);
     this.db.exec("PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;");
-    this.db.exec(SCHEMA);
+    this.db.exec(SCHEMA + CONTROL_AUDIT_SCHEMA);
   }
   close(): void { this.db.close(); }
   private transaction<T>(fn: () => T): T {
@@ -224,6 +273,130 @@ export class SQLiteWriterCollectorChallengeStore {
     } catch {
       return hold("challenge_store_unavailable");
     }
+  }
+
+
+  /**
+   * ISOLATED control-plane mutation. Admission, mutation and durable audit share
+   * this connection and one BEGIN IMMEDIATE transaction. Caller-authenticated
+   * peers are lab inputs: this method does not authenticate identities.
+   * Legacy lab-only direct methods remain callable and are a known bypass.
+   */
+  executeAuditedControlCommand(input: AuditedCollectorControlInput): AuditedCollectorControlResult {
+    const held = (reason: string): AuditedCollectorControlResult =>
+      ({ action: "hold", reason, publishAuthorized: false });
+    if (!input || !validId(input.requestId) ||
+        !input.admission || !input.payload) return held("control_request_invalid");
+    const approval = reviewCollectorControlPlaneCommand(input.admission);
+    const command = input.admission.command;
+    const dep = input.admission.expectedDeploymentId;
+    const rel = input.admission.expectedReleaseId;
+    if (!validId(dep) || !validId(rel)) return held("control_scope_invalid");
+    // Do not put public keys or other raw payload in audit rows.
+    const requestDigest = sha256(JSON.stringify({
+      intent: input.admission.intent, command, payload: input.payload
+    }));
+    try {
+      return this.transaction(() => {
+        const existing = this.db.prepare(
+          "SELECT principal_id,request_sha256,decision,reason,challenge_id " +
+          "FROM recovery_writer_collector_control_audit " +
+          "WHERE deployment_id=? AND release_id=? AND request_id=?"
+        ).get(dep, rel, input.requestId) as
+          { principal_id: string; request_sha256: string; decision: string;
+            reason: string; challenge_id: string | null } | undefined;
+        // Never let an old successful request bypass a *current* denial.
+        if (existing) {
+          if (approval.action === "hold") return held(approval.reason);
+          if (existing.principal_id !== approval.audit.principalId ||
+              existing.request_sha256 !== requestDigest) return held("control_request_id_conflict");
+          if (existing.decision === "deny") return held(existing.reason);
+          return {
+            action: "ready_for_isolated_control_execution",
+            reason: "idempotent_replay",
+            ...(existing.challenge_id ? { challengeId: existing.challenge_id } : {}),
+            publishAuthorized: false
+          };
+        }
+        let denied = approval.action === "hold" ? approval.reason : "";
+        let challengeId: string | null = null;
+        if (!denied && command) {
+          const op = command.operation;
+          try {
+            if (op === "provision_collector_key") {
+              const pem = input.payload.publicKeyPem;
+              if (typeof pem !== "string" || pem.length > 8192 ||
+                  !pem.includes("BEGIN PUBLIC KEY")) throw Error("collector_key_invalid");
+              const changed = this.db.prepare(
+                "INSERT OR IGNORE INTO recovery_writer_collector_keys" +
+                "(deployment_id,key_id,public_key_pem,public_key_sha256) VALUES(?,?,?,?)"
+              ).run(dep, command.keyId, pem, sha256(pem));
+              if (Number(changed.changes) !== 1) throw Error("collector_key_already_registered");
+            } else if (op === "revoke_collector_key") {
+              const changed = this.db.prepare(
+                "UPDATE recovery_writer_collector_keys SET revoked=1 " +
+                "WHERE deployment_id=? AND key_id=? AND revoked=0"
+              ).run(dep, command.keyId);
+              if (Number(changed.changes) !== 1) throw Error("collector_key_not_active");
+            } else if (op === "issue_challenge") {
+              const { observerId, hostId, mountNamespaceId, ttlMs } = input.payload;
+              const now = input.admission.nowEpochMs;
+              if (![observerId, hostId, mountNamespaceId].every(validId) ||
+                  !Number.isSafeInteger(ttlMs) || !(ttlMs! > 0) ||
+                  ttlMs! > MAX_TTL_MS || !validTime(now + ttlMs!)) {
+                throw Error("challenge_issue_invalid");
+              }
+              const key = this.db.prepare(
+                "SELECT revoked FROM recovery_writer_collector_keys " +
+                "WHERE deployment_id=? AND key_id=?"
+              ).get(dep, command.keyId) as { revoked: number } | undefined;
+              if (!key || key.revoked !== 0) throw Error("collector_key_not_active");
+              challengeId = toHex(randomBytes(24));
+              this.db.prepare(
+                "INSERT INTO recovery_writer_collector_challenges " +
+                "(deployment_id,release_id,challenge_id,observer_id,host_id," +
+                "mount_namespace_id,key_id,issued_at_ms,expires_at_ms) " +
+                "VALUES(?,?,?,?,?,?,?,?,?)"
+              ).run(dep, rel, challengeId, observerId!, hostId!, mountNamespaceId!,
+                command.keyId, now, now + ttlMs!);
+            } else {
+              throw Error("operation_invalid");
+            }
+          } catch (error) {
+            denied = error instanceof Error ? error.message : "control_mutation_rejected";
+          }
+        }
+        // Audit is part of the transaction: a failed insert rolls back mutation.
+        this.db.prepare(
+          "INSERT INTO recovery_writer_collector_control_audit" +
+          "(deployment_id,release_id,request_id,principal_id,operation,key_id," +
+          "request_sha256,decision,reason,challenge_id,at_epoch_ms) " +
+          "VALUES(?,?,?,?,?,?,?,?,?,?,?)"
+        ).run(dep, rel, input.requestId, approval.audit.principalId,
+          approval.audit.operation, command?.keyId ?? "invalid",
+          requestDigest, denied ? "deny" : "executed",
+          denied || "executed", challengeId, input.admission.nowEpochMs);
+        if (denied) return held(denied);
+        return {
+          action: "ready_for_isolated_control_execution",
+          reason: "executed",
+          ...(challengeId ? { challengeId } : {}),
+          publishAuthorized: false
+        };
+      });
+    } catch {
+      return held("control_audit_transaction_unavailable");
+    }
+  }
+
+  /** Lab instrumentation; not a tamper-proof production audit export. */
+  listControlAuditForLab(deploymentId: string, releaseId: string):
+    readonly LabCollectorControlAuditRow[] {
+    return this.db.prepare(
+      "SELECT request_id,principal_id,operation,decision,reason,challenge_id " +
+      "FROM recovery_writer_collector_control_audit " +
+      "WHERE deployment_id=? AND release_id=? ORDER BY id"
+    ).all(deploymentId, releaseId) as unknown as LabCollectorControlAuditRow[];
   }
 
   /** Read-only test instrumentation, not a security decision input. */

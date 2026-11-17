@@ -6,6 +6,7 @@ declare module "node:sqlite" {
 
   export interface StatementSync {
     get(...params: unknown[]): unknown;
+    all(...params: unknown[]): unknown[];
     run(...params: unknown[]): StatementResult;
   }
 

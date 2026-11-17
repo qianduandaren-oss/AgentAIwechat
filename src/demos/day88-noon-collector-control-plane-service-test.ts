@@ -104,7 +104,7 @@ try {
   assert.equal(issued.action, "ready_for_isolated_control_execution");
   assert.equal(issued.publishAuthorized, false);
   assert.ok(issued.action !== "hold" && issued.challengeId);
-  if (issued.action === "hold" || !issued.challengeId) throw Error("missing_challenge_id");
+  if (!issued.challengeId) throw Error("missing_challenge_id");
   const challengeId = issued.challengeId;
   const retry = svc.execute(issue);
   assert.equal(retry.action, "ready_for_isolated_control_execution");

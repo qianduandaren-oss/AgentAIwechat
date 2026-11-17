@@ -142,6 +142,9 @@ try {
   assert.equal(revoked.action, "ready_for_isolated_control_execution");
   peer = issuer;
   denied(svc.execute(request("issue_challenge")), "collector_key_not_active");
+  denied(svc.execute(issue), "collector_key_revoked",
+    // A previously issued requestId is not a bypass after revocation.
+  );
 
   // Audit is persisted and records both authorizations and denials.
   const history = store.listControlAuditForLab(dep, release);

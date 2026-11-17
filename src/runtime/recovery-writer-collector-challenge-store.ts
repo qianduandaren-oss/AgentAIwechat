@@ -311,6 +311,18 @@ export class SQLiteWriterCollectorChallengeStore {
           if (existing.principal_id !== approval.audit.principalId ||
               existing.request_sha256 !== requestDigest) return held("control_request_id_conflict");
           if (existing.decision === "deny") return held(existing.reason);
+          // A successful prior request cannot make a subsequently revoked
+          // collector key appear active. A retry must not bypass revocation.
+          if (command && (command.operation === "issue_challenge" ||
+              command.operation === "provision_collector_key")) {
+            const currentKey = this.db.prepare(
+              "SELECT revoked FROM recovery_writer_collector_keys " +
+              "WHERE deployment_id=? AND key_id=?"
+            ).get(dep, command.keyId) as { revoked: number } | undefined;
+            if (!currentKey || currentKey.revoked !== 0) {
+              return held("collector_key_revoked");
+            }
+          }
           return {
             action: "ready_for_isolated_control_execution",
             reason: "idempotent_replay",

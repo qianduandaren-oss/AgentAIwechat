@@ -59,7 +59,7 @@ function request(op: CollectorControlOperation, extra: Partial<LabCollectorContr
   };
   return { ...data, ...extra };
 }
-function denied(result: ReturnType<typeof svc.execute>, reason: string): void {
+function denied(result: { action: string; reason?: string; publishAuthorized: boolean }, reason: string): void {
   assert.equal(result.action, "hold");
   assert.equal(result.reason, reason);
   assert.equal(result.publishAuthorized, false);

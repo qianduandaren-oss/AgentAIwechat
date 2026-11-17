@@ -297,3 +297,6 @@ jobs:
 
       - name: Day 88 morning collector control-plane ACL contract (NO_GO)
         run: npm run test:recovery-writer-control-plane-admission
+
+      - name: Day 88 noon authenticated-ingress control mutations and durable SQLite audit (NO_GO)
+        run: npm run test:recovery-writer-control-plane-service

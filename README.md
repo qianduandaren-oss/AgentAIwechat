@@ -1312,3 +1312,9 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 复用 Day 87 Ed25519 验签函数，新增 `SQLiteWriterCollectorChallengeStore`。在受信控制面**预置公钥的实验前提下**，SQLite 存储 192-bit 随机挑战、release/host/mount namespace/collector key 绑定和过期时间；`verifyAndConsume()` 使用同库 `BEGIN IMMEDIATE` 将验签与首次消费线性化，两个连接和重启后均不得重放。撤销旧 key 的写入与消费争用同一写锁，轮换到独立预置的新 key 不会复活旧报告。
 
 运行 `npm run test:recovery-writer-collector-challenge-store`；详见 `docs/day87-evening-collector-challenge-store.md`。签名来自一次性测试私钥，现有 provisioning/issue/revoke 是**实验管理 API**而非经过认证的生产控制面；没有真实主机隔离或可信 Consumer ACK，`publishAuthorized=false`，发布 **NO_GO**。
+
+## Day 88 午练：受限管理服务与原子持久审计（隔离候选）
+
+新增 `IsolatedCollectorControlPlaneService`，请求对象不接受客户端自报的认证 Peer，使用服务端注入的测试身份解析器来执行 Day 88 早课授权审查。管理操作与持久 `recovery_writer_collector_control_audit` 审计同属一笔 SQLite `BEGIN IMMEDIATE` 事务；审计写入失败时操作回滚，同 requestId 成功重试不重复签发，跨身份/参数冲突 HOLD；Day 87 单次消费逻辑保持不变。验证 `npm run test:recovery-writer-control-plane-service`，参见 `docs/day88-noon-collector-control-plane-service.md`。
+
+**提醒：旧 Day 87 Lab Store 的直接管理方法仍是绕过路径；本地解析器不是 mTLS、数据库审计不防直接 SQL 篡改。未完成生产 OS 身份隔离、旧 FD 排空和真实 Consumer ACK。生产 NO_GO。**

@@ -116,7 +116,8 @@
     "test:recovery-writer-signed-host-fd-probe": "npm run build && node scripts/day87-noon-signed-host-fd-probe.mjs",
     "test:recovery-writer-collector-challenge-store": "npm run build && node dist/demos/day87-evening-collector-challenge-store-test.js",
     "test:recovery-writer-control-plane-admission": "npm run build && node dist/demos/day88-morning-collector-control-plane-admission-test.js",
-    "test:recovery-writer-control-plane-service": "npm run build && node dist/demos/day88-noon-collector-control-plane-service-test.js"
+    "test:recovery-writer-control-plane-service": "npm run build && node dist/demos/day88-noon-collector-control-plane-service-test.js",
+    "test:recovery-writer-control-plane-boundary": "npm run build && node dist/demos/day88-evening-collector-control-boundary-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

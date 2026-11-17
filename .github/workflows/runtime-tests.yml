@@ -300,3 +300,6 @@ jobs:
 
       - name: Day 88 noon authenticated-ingress control mutations and durable SQLite audit (NO_GO)
         run: npm run test:recovery-writer-control-plane-service
+
+      - name: Day 88 evening legacy control bypass audit tamper and revoke ordering (NO_GO)
+        run: npm run test:recovery-writer-control-plane-boundary

@@ -308,3 +308,6 @@ jobs:
 
       - name: Day 89 noon separate control / worker Linux UIDs deny SQLite WAL SHM and directory (NO_GO)
         run: npm run test:recovery-writer-control-os-isolation
+
+      - name: Day 89 evening stale control FD and rollback revival counterexamples (NO_GO)
+        run: npm run test:recovery-writer-control-handoff-negative

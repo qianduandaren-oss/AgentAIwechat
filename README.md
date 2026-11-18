@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–88 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–89 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 88 早课（Week 13）**（2026-11-17）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 89 早课（Week 13）**（2026-11-18）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 89 早课：控制面进程隔离与遗留入口库存
+
+- [Day 89 早课：控制面/Worker 进程和 OS 身份隔离](docs/day89-morning-control-process-isolation.md)：从 Day 88 已证明的旧管理 API 旁路出发，明确独立控制面应独占 Challenge SQLite/WAL/SHM 与目录写权限；`verifyAndConsume()` 也是写操作，不能继续让 Worker 持有控制库连接。
+- `npm run test:recovery-writer-legacy-control-surface`：列出 Demo 遗留直调并拒绝 Runtime 新增显式旧方法调用。这只是**启发式迁移库存**，不是 OS 隔离或完整的 SQL/动态调用分析；当前旧方法仍公开，生产 **NO_GO**。
 
 ## Week 13 / Day 88 早课：Challenge 控制面鉴权与审计意图
 

@@ -6,7 +6,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { constants, chownSync, chmodSync, closeSync, existsSync, mkdirSync, mkdtempSync, openSync, rmSync, statSync } from 'node:fs';
+import { constants, chownSync, chmodSync, closeSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -56,12 +56,15 @@ if (mode === 'control-child') {
   chmodSync(lab, 0o711); // traversal only for child UIDs
   const dir = join(lab, 'control');
   const dbPath = join(dir, 'control.sqlite');
+  const childScript = join(lab, 'day89-noon-child.mjs');
   let controller;
   try {
     mkdirSync(dir, { mode: 0o700 });
     chownSync(dir, CONTROL_UID, CONTROL_UID);
     chmodSync(dir, 0o711); // controller can create WAL/SHM, worker cannot
-    const flags = ['--reuid=' + CONTROL_UID, '--regid=' + CONTROL_UID, '--clear-groups', process.execPath, SELF, 'control-child', dbPath];
+    copyFileSync(SELF, childScript); // accessible path under /tmp, not private repository checkout
+    chmodSync(childScript, 0o644);
+    const flags = ['--reuid=' + CONTROL_UID, '--regid=' + CONTROL_UID, '--clear-groups', process.execPath, childScript, 'control-child', dbPath];
     controller = spawn('setpriv', flags, { stdio: ['pipe', 'pipe', 'pipe'], env: restrictedEnv });
     let stderr = '';
     controller.stderr.on('data', data => { stderr += String(data); });
@@ -87,7 +90,7 @@ if (mode === 'control-child') {
       assert.equal(statSync(file).uid, CONTROL_UID, 'file owner mismatch');
       assert.equal(statSync(file).mode & 0o022, 0, 'group/other writable file');
     }
-    const args = ['--reuid=' + WORKER_UID, '--regid=' + WORKER_UID, '--clear-groups', process.execPath, SELF, 'worker-child', dbPath];
+    const args = ['--reuid=' + WORKER_UID, '--regid=' + WORKER_UID, '--clear-groups', process.execPath, childScript, 'worker-child', dbPath];
     const worker = spawnSync('setpriv', args, { encoding: 'utf8', env: restrictedEnv, timeout: 10000 });
     if (worker.error) throw worker.error;
     assert.equal(worker.status, 0, 'worker obtained write access or failed: ' + worker.stdout + worker.stderr);

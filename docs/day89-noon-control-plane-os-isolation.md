@@ -30,3 +30,7 @@ npm run test:recovery-writer-control-os-isolation
 这是真实 Linux DAC 对**新打开文件**的拒写观察，但仍只是同一主机、同一挂载命名空间、一次性 /tmp 夹具。并未运行生产控制服务，没有测试旧 Worker 已持有的可写 FD、容器重新挂载、历史数据库迁移、实际受信 mTLS 身份、不可篡改审计或 Consumer ACK。旧 Store API 保留兼容，现有 TypeScript Runtime 并未变为生产双进程架构。
 
 晚练需要专门制造旧 FD / 回滚权限恢复反例，并明确将其列为生产 NO_GO 的阻断条件。
+
+## Day 89 晚练修复补充
+
+首次 CI 运行 #44234964587 未通过：root 主进程的子进程切到 UID 65021 后不能访问 GitHub checkout 私有路径，报 `MODULE_NOT_FOUND`。修复后先把只读脚本复制到本轮 `/tmp` 夹具，再用 `setpriv` 执行；修复原因是脚本可访问性，与 SQLite 文件是否拒写是不同问题。详见 [晚练反例](day89-evening-control-handoff-negative-lab.md)。

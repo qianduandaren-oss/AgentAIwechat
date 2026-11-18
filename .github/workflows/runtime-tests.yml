@@ -303,3 +303,5 @@ jobs:
 
       - name: Day 88 evening legacy control bypass audit tamper and revoke ordering (NO_GO)
         run: npm run test:recovery-writer-control-plane-boundary
+      - name: Day 89 morning inventory of legacy control bypasses (NO_GO)
+        run: npm run test:recovery-writer-legacy-control-surface

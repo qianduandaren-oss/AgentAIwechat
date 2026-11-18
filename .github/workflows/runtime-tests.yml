@@ -305,3 +305,6 @@ jobs:
         run: npm run test:recovery-writer-control-plane-boundary
       - name: Day 89 morning inventory of legacy control bypasses (NO_GO)
         run: npm run test:recovery-writer-legacy-control-surface
+
+      - name: Day 89 noon separate control / worker Linux UIDs deny SQLite WAL SHM and directory (NO_GO)
+        run: npm run test:recovery-writer-control-os-isolation

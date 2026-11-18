@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 89 早课（Week 13）**（2026-11-18）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 89 午练（Week 13）**（2026-11-18）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 89 午练：独立 Linux UID 下控制面 SQLite 拒写
+
+- [Day 89 午练：控制面/Worker OS 拒写实验](docs/day89-noon-control-plane-os-isolation.md)：在一次性 Linux `/tmp` 夹具中用 `setpriv` 运行不同 UID 的真实子进程，Controller 建立 SQLite/WAL/SHM，Worker 尝试打开这三者以及在目录内创建文件均须被内核以 EACCES 拒绝。
+- `npm run test:recovery-writer-control-os-isolation`：仅用于临时 Linux CI/VM，需要非交互 sudo 和 setpriv；真实检查了**新打开操作**，不证明旧 FD 排空、容器挂载/回滚、生产部署或 Consumer ACK。旧实验 API 未移除；生产 **NO_GO**。
 
 ## Week 13 / Day 89 早课：控制面进程隔离与遗留入口库存
 

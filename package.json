@@ -118,7 +118,8 @@
     "test:recovery-writer-control-plane-admission": "npm run build && node dist/demos/day88-morning-collector-control-plane-admission-test.js",
     "test:recovery-writer-control-plane-service": "npm run build && node dist/demos/day88-noon-collector-control-plane-service-test.js",
     "test:recovery-writer-control-plane-boundary": "npm run build && node dist/demos/day88-evening-collector-control-boundary-test.js",
-    "test:recovery-writer-legacy-control-surface": "node scripts/day89-morning-legacy-control-surface-audit.mjs"
+    "test:recovery-writer-legacy-control-surface": "node scripts/day89-morning-legacy-control-surface-audit.mjs",
+    "test:recovery-writer-control-os-isolation": "sudo -n node scripts/day89-noon-control-plane-os-isolation.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -4,7 +4,13 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 89 午练（Week 13）**（2026-11-18）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 89 晚练（Week 13）**（2026-11-18）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 89 晚练：旧可写 FD 与回滚权限恢复的负向验收
+
+- [Day 89 晚练：旧 FD / 权限回滚反例](docs/day89-evening-control-handoff-negative-lab.md)：复用控制面 UID 65021 和 Worker UID 65022 的一次性 Linux 夹具，先拒绝新打开 DB/WAL/SHM 和目录创建，再验证**旧 FD 仍可写入故意可损坏的 SQLite 快照**；之后模拟危险回滚恢复四项可写能力，再恢复拒写。
+- **补修 Day 89 午练 CI**：最初测试失败源于 root 启动的子进程无法穿过 GitHub checkout 目录读取脚本，现将只读子脚本复制至一次性 /tmp 目录，避免将权限错误当成数据库拒写成功。
+- `npm run test:recovery-writer-control-handoff-negative`：只在隔离 Linux CI/VM 运行；实验结果表示**发现两条旁路反例**，绝非发布通过。真实部署旧 PID/starttime、旧 FD 全量排空、挂载/回滚、独立证据与 ACK 仍待证明，生产 **NO_GO**。
 
 ## Week 13 / Day 89 午练：独立 Linux UID 下控制面 SQLite 拒写
 

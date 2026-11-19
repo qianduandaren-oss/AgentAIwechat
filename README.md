@@ -1346,3 +1346,10 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 新增 `src/runtime/recovery-writer-collector-control-audit-review.ts`，在一次性 SQLite 上以外部测试变量中留存的 SHA-256 快照复核持久审计、key 状态和挑战关系。负向实验明确证明 Day 87 公共 `issueChallenge()` / `provisionLabTrustedKey()` 仍可以绕开 Day 88 服务入口、产生无审计变更；数据库直写可篡改同库审计。两个 SQLite 连接的撤销先于消费、消费先于撤销顺序分别产生 HOLD 与一次性消费结果。
 
 `npm run test:recovery-writer-control-plane-boundary`，详见 `docs/day88-evening-control-plane-release-boundary.md`。**这一测试的 PASS 包含“旁路确实存在”的负向反例。** 快照锚点仅为临时内存值，未认证；不能证明生产可信审计、旧 FD/挂载隔离或 mTLS。生产 **NO_GO**。
+
+
+## Day 90 午练：局部 Linux 实验不能升级发布证据 PASS
+
+Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86 临时子进程的真实 /proc 可写 FD、Day 89 一次性 Linux UID 新打开拒写实验视为**局部实验信号**，关联至双时点覆盖矩阵。每个 host × phase × check 单元都保持 UNKNOWN（2 主机 × 2 阶段 × 7 检查 = 28 个 UNKNOWN）。不创建任何虚构的签名主机收据。
+
+运行 npm run test:recovery-writer-cutover-local-evidence 需要 Linux + Node 22；设置 DAY90_ENABLE_DAC_LAB=1 时额外在一次性 CI/VM 中运行 sudo/setpriv 的 Day 89 实验（CI 已启用）。结果仍为 HOLD，publishAuthorized=false。参见 docs/day90-noon-cutover-local-evidence.md。生产 NO_GO。

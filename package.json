@@ -121,7 +121,8 @@
     "test:recovery-writer-legacy-control-surface": "node scripts/day89-morning-legacy-control-surface-audit.mjs",
     "test:recovery-writer-control-os-isolation": "sudo -n node scripts/day89-noon-control-plane-os-isolation.mjs",
     "test:recovery-writer-control-handoff-negative": "sudo -n node scripts/day89-evening-control-handoff-negative-lab.mjs",
-    "test:recovery-writer-cutover-coverage": "npm run build && node dist/demos/day90-morning-cutover-evidence-coverage-test.js"
+    "test:recovery-writer-cutover-coverage": "npm run build && node dist/demos/day90-morning-cutover-evidence-coverage-test.js",
+    "test:recovery-writer-cutover-local-evidence": "npm run build && node dist/demos/day90-noon-cutover-local-evidence-test.js && node scripts/day90-noon-cutover-local-probe.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

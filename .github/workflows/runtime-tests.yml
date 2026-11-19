@@ -314,3 +314,7 @@ jobs:
 
       - name: Day 90 morning two-phase per-host cutover evidence coverage (NO_GO)
         run: npm run test:recovery-writer-cutover-coverage
+
+
+      - name: Day 90 noon real procfs and disposable UID signals stay UNKNOWN (NO_GO)
+        run: DAY90_ENABLE_DAC_LAB=1 npm run test:recovery-writer-cutover-local-evidence

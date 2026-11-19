@@ -318,3 +318,6 @@ jobs:
 
       - name: Day 90 noon real procfs and disposable UID signals stay UNKNOWN (NO_GO)
         run: DAY90_ENABLE_DAC_LAB=1 npm run test:recovery-writer-cutover-local-evidence
+
+      - name: Day 90 evening release blocker register
+        run: npm run test:recovery-writer-release-blockers

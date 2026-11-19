@@ -38,7 +38,7 @@ assert.ok(result.cells.some(row => row.hostId === "fixture-host" &&
 assert.ok(result.cells.filter(row =>
   row.hostId === "unobserved-host" || row.phase === "cutover")
   .every(row => row.fixtureSignals.length === 0 && row.status === "unknown"));
-assert.match(result.coverageHoldReason, /^receipt_missing:/);
+assert.ok(/^receipt_missing:/.test(result.coverageHoldReason));
 const spoofed = mapLocalLabsToCutoverUnknownMatrix({
   ...base, signals: signals.map(s => ({ ...s, rawArtifactSha256: "f".repeat(64) }))
 });

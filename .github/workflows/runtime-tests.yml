@@ -311,3 +311,6 @@ jobs:
 
       - name: Day 89 evening stale control FD and rollback revival counterexamples (NO_GO)
         run: npm run test:recovery-writer-control-handoff-negative
+
+      - name: Day 90 morning two-phase per-host cutover evidence coverage (NO_GO)
+        run: npm run test:recovery-writer-cutover-coverage

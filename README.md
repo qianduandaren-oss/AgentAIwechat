@@ -4,7 +4,17 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 90 早课（Week 13）**（2026-11-19）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 90 晚练（Week 13）**（2026-11-19）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 90 晚练：发布阻断登记与旧 FD/危险回滚反例
+
+- [Day 90 晚练：两阶段覆盖与发布阻断登记](docs/day90-evening-release-blocker-register.md)：把 Day 90 早课的 28 格覆盖检查、午练 28 项 UNKNOWN、Day 89 旧 FD 与回滚反例连接成一个只读 `NO_GO` 决策。即使传入 28 份伪造的完整 PASS 收据，也不会给出生产授权。
+- `npm run test:recovery-writer-release-blockers`：检查缺主机、错绑定、重复、伪造观察者、时间逆序及真实证据链缺口；`publishAuthorized=false`。这不是 OS 安全证明，不能替代可信主机全集、Ed25519/Challenge、ACK 和外部审计。
+
+## Week 13 / Day 90 午练：一次性 Linux 信号映射到 UNKNOWN 矩阵
+
+- [Day 90 午练：真实 /proc 与双 UID 局部实验关联](docs/day90-noon-cutover-local-evidence.md)：实际夹具信号不转成独立主机的 PASS；两主机、两阶段、七项检查共 28 个 UNKNOWN。
+- `npm run test:recovery-writer-cutover-local-evidence`：Linux /proc 验证，隔离 CI 中可设置 `DAY90_ENABLE_DAC_LAB=1` 验证双 UID 拒写；生产 NO_GO。
 
 ## Week 13 / Day 90 早课：两阶段/多主机发布证据覆盖率编排
 

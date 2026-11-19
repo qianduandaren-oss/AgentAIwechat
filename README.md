@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–89 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–90 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 89 晚练（Week 13）**（2026-11-18）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 90 早课（Week 13）**（2026-11-19）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 90 早课：两阶段/多主机发布证据覆盖率编排
+
+- [Day 90 早课：按主机、namespace 和时序编排证据](docs/day90-morning-cutover-evidence-coverage.md)：继承 Day 86 七项检查与 Day 89 的旧 FD/回滚反例。预先冻结部署、发布、切换尝试和主机范围，分别要求 preflight、cutover 两轮独立采样；任何缺主机、缺检查、错绑、陈旧或时间逆序均 HOLD。
+- `npm run test:recovery-writer-cutover-coverage`：验证两主机 28 条合成收据的覆盖与负向回归。本模块**只审核元数据覆盖与时间顺序，不验签、不证明 OS 权限**；合成完整也只能进入隔离证明链，始终 `publishAuthorized=false`，生产 **NO_GO**。
 
 ## Week 13 / Day 89 晚练：旧可写 FD 与回滚权限恢复的负向验收
 

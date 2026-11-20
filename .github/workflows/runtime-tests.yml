@@ -324,3 +324,6 @@ jobs:
 
       - name: Day 91 morning trusted-source provenance plan (advisory NO_GO)
         run: npm run test:recovery-writer-cutover-provenance
+
+      - name: Day 91 noon read-only inventory adapter and drift (advisory NO_GO)
+        run: npm run test:recovery-writer-deployment-inventory

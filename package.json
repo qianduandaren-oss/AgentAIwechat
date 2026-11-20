@@ -123,7 +123,8 @@
     "test:recovery-writer-control-handoff-negative": "sudo -n node scripts/day89-evening-control-handoff-negative-lab.mjs",
     "test:recovery-writer-cutover-coverage": "npm run build && node dist/demos/day90-morning-cutover-evidence-coverage-test.js",
     "test:recovery-writer-cutover-local-evidence": "npm run build && node dist/demos/day90-noon-cutover-local-evidence-test.js && node scripts/day90-noon-cutover-local-probe.mjs",
-    "test:recovery-writer-release-blockers": "npm run build && node dist/demos/day90-evening-release-blockers-test.js"
+    "test:recovery-writer-release-blockers": "npm run build && node dist/demos/day90-evening-release-blockers-test.js",
+    "test:recovery-writer-cutover-provenance": "npm run build && node dist/demos/day91-morning-cutover-provenance-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -103,7 +103,7 @@ await check({ ...base, inventoryAdapter: {
   }
 } }, "inventory", "inventory_target_set_drift");
 await check({ ...base, hostReceipts: [] }, "hostCollector",
-  "host_evidence_receipt_missing:preflight:host-A:legacy_process_exited");
+  "host_evidence_receipt_missing:preflight:host-A:legacy_processes_exited");
 await check({ ...base, hostReceipts: [receipts[0], receipts[0]] },
   "hostCollector", "host_evidence_receipt_duplicate");
 await check({ ...base, hostReceipts: receipts.map((r, i) =>

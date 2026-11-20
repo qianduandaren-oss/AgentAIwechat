@@ -327,3 +327,6 @@ jobs:
 
       - name: Day 91 noon read-only inventory adapter and drift (advisory NO_GO)
         run: npm run test:recovery-writer-deployment-inventory
+
+      - name: Day 91 evening inventory host and consumer provenance breaks (NO_GO)
+        run: npm run test:recovery-writer-evidence-chain

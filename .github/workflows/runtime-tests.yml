@@ -321,3 +321,6 @@ jobs:
 
       - name: Day 90 evening release blocker register
         run: npm run test:recovery-writer-release-blockers
+
+      - name: Day 91 morning trusted-source provenance plan (advisory NO_GO)
+        run: npm run test:recovery-writer-cutover-provenance

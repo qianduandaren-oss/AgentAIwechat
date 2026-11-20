@@ -125,7 +125,8 @@
     "test:recovery-writer-cutover-local-evidence": "npm run build && node dist/demos/day90-noon-cutover-local-evidence-test.js && node scripts/day90-noon-cutover-local-probe.mjs",
     "test:recovery-writer-release-blockers": "npm run build && node dist/demos/day90-evening-release-blockers-test.js",
     "test:recovery-writer-cutover-provenance": "npm run build && node dist/demos/day91-morning-cutover-provenance-test.js",
-    "test:recovery-writer-deployment-inventory": "npm run build && node dist/demos/day91-noon-deployment-inventory-adapter-test.js"
+    "test:recovery-writer-deployment-inventory": "npm run build && node dist/demos/day91-noon-deployment-inventory-adapter-test.js",
+    "test:recovery-writer-evidence-chain": "npm run build && node dist/demos/day91-evening-evidence-chain-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

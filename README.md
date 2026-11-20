@@ -1,10 +1,15 @@
-# Agent AI 工程师 · Day 1–90 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–91 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 90 晚练（Week 13）**（2026-11-19）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 91 早课（Week 13）**（2026-11-20）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 91 早课：三类发布证据来源与受信边界
+
+- [Day 91 早课：受信 Inventory、签名采集和 Consumer ACK 的来源合同](docs/day91-morning-cutover-provenance-contract.md)：承接 Day 90 的 28 格 UNKNOWN 和发布阻断登记，增加 1 份部署清单、28 项独立主机事实、1 项 Consumer ACK 的 30 项来源任务。`claimedSource` 只是候选数据的字符串，永远不能作为已认证身份；缺控制面真实清单、OS Ed25519/Challenge 链、Consumer ACK 或外部审计锚点继续 HOLD。
+- `npm run test:recovery-writer-cutover-provenance`：验证来源矩阵、跨 attempt/namespace、伪造 controller 标签、重复/缺失主机的 fail-closed 边界。仍属只读合同，不执行生产采集或授权，**NO_GO**。
 
 ## Week 13 / Day 90 晚练：发布阻断登记与旧 FD/危险回滚反例
 

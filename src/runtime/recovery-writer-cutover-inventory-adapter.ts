@@ -83,9 +83,11 @@ function matchesHosts(
 export async function reviewDay91DeploymentInventory(
   input: Day91InventoryReviewInput
 ): Promise<Day91InventoryReviewResult> {
-  const scope = input?.scope;
+  const scope = input?.scope ?? {
+    deploymentId: "", releaseId: "", attemptId: "", expectedHosts: []
+  };
   const requirements = planDay91CutoverProvenance({
-    intent: input?.intent,
+    intent: input?.intent ?? "isolated_review",
     scope,
     claimedInventory: null
   });

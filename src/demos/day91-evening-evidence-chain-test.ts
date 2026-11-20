@@ -44,8 +44,8 @@ const receipts: WriterCutoverEvidenceReceipt[] =
     deploymentId: scope.deploymentId,
     releaseId: scope.releaseId,
     attemptId: scope.attemptId,
-    status: "pass",
-    observerKind: "independent_host_probe",
+    status: "pass" as const,
+    observerKind: "independent_host_probe" as const,
     observerId: "fake-observer",
     observedAtEpochMs: now - (slot.phase === "preflight" ? 20_000 : 10_000),
     artifactSha256: "a".repeat(64)

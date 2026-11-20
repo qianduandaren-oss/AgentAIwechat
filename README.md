@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 91 午练（Week 13）**（2026-11-20）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 91 晚练（Week 13 已完成）**（2026-11-20）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 91 晚练：三类证据断链复盘与阶段 Checkpoint
+
+- [晚练：Inventory、Host Collector、Consumer ACK 连续证据链](docs/day91-evening-evidence-chain-and-checkpoint.md)：组合 Day 90 发布阻断与 Day 91 Inventory Adapter，检查 28 格合成 PASS、清单漂移、ACK 错绑/过期/原始入口、旧 FD 和危险回滚。来源字段齐全也不能替代可信身份和真实 OS 事实，所有结果 HOLD。
+- [Week 13 / Day 85–91 阶段 Checkpoint](docs/checkpoints/week13-day91.md)；`npm run test:recovery-writer-evidence-chain`。生产 **NO_GO**。
 
 ## Week 13 / Day 91 午练：只读 Inventory Adapter 和版本/目标漂移
 

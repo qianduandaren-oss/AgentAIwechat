@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 91 早课（Week 13）**（2026-11-20）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 91 午练（Week 13）**（2026-11-20）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 13 / Day 91 午练：只读 Inventory Adapter 和版本/目标漂移
+
+- [Day 91 午练：部署 Inventory Adapter 失败关闭合同](docs/day91-noon-deployment-inventory-adapter.md)：给 Day 91 早课的 30 项受信来源计划增加只读 Adapter 接口、snapshotId/revision 锚点、有效期和 host/namespace 全集检查。未接入、过期、增减主机、版本变化、跨 attempt 均 HOLD。
+- `npm run test:recovery-writer-deployment-inventory`：内存适配器负向回归，匹配候选也 `authenticatedEvidenceCount=0` 和 `publishAuthorized=false`。不是生产控制面认证或真实部署清单证据，**NO_GO**。
 
 ## Week 13 / Day 91 早课：三类发布证据来源与受信边界
 

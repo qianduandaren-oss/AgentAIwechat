@@ -55,7 +55,7 @@ type FreezeRow = {
   state: "frozen" | "invalidated"; version: number;
 };
 const SHA = (value: string): string =>
-  createHash("sha256").update(value, "utf8").digest("hex");
+  createHash("sha256").update(new TextEncoder().encode(value)).digest("hex");
 
 const bindingValid = (binding: Day91InventoryBinding): boolean =>
   !!binding && [binding.deploymentId, binding.releaseId, binding.attemptId]
@@ -242,8 +242,11 @@ export class Day92IsolatedInventoryFreezeService {
     if (!candidate.candidate) return hold(candidate.reason);
     try {
       const write = this.config.store.freezeOnce(snapshot!, candidate.candidate.manifestSha256);
-      if (write.status === "conflict") return hold("same_attempt_manifest_conflict");
-      if (write.status === "invalidated") return hold("attempt_invalidated_new_attempt_required");
+      if (!("record" in write)) {
+        return hold(write.status === "conflict"
+          ? "same_attempt_manifest_conflict"
+          : "attempt_invalidated_new_attempt_required");
+      }
       return hold(write.status === "frozen"
         ? "durable_fixture_frozen_source_unverified"
         : "durable_fixture_exact_replay_source_unverified",

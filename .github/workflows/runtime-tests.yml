@@ -330,3 +330,6 @@ jobs:
 
       - name: Day 91 evening inventory host and consumer provenance breaks (NO_GO)
         run: npm run test:recovery-writer-evidence-chain
+
+      - name: Day 92 morning canonical inventory freeze candidate (advisory NO_GO)
+        run: npm run test:recovery-writer-inventory-freeze

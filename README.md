@@ -1378,3 +1378,8 @@ UNIQUE(effect_id)、UNIQUE(provider_id,idempotency_key)。
 Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86 临时子进程的真实 /proc 可写 FD、Day 89 一次性 Linux UID 新打开拒写实验视为**局部实验信号**，关联至双时点覆盖矩阵。每个 host × phase × check 单元都保持 UNKNOWN（2 主机 × 2 阶段 × 7 检查 = 28 个 UNKNOWN）。不创建任何虚构的签名主机收据。
 
 运行 npm run test:recovery-writer-cutover-local-evidence 需要 Linux + Node 22；设置 DAY90_ENABLE_DAC_LAB=1 时额外在一次性 CI/VM 中运行 sudo/setpriv 的 Day 89 实验（CI 已启用）。结果仍为 HOLD，publishAuthorized=false。参见 docs/day90-noon-cutover-local-evidence.md。生产 NO_GO。
+
+
+## Day 92 早课：受信 Inventory 冻结的字节身份（仍 NO_GO）
+
+新增 `planDay92InventoryFreezeCandidate()`，复用 Day 91 只读 Inventory 审核，以稳定的 domain-separated SHA-256 生成**候选**冻结清单指纹；host 遍历顺序不影响摘要，attempt/revision/namespace/时间窗变化会改变摘要。缺失、重复、漂移和过期拒绝，完整匹配也不意味着来源受信。运行 `npm run test:recovery-writer-inventory-freeze`，见 `docs/day92-morning-authenticated-inventory-freeze.md`。真实部署控制面认证、独立冻结 CAS、签名与 OS/ACK 证据尚未落地，`publishAuthorized=false`，**生产 NO_GO**。

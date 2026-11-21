@@ -1383,3 +1383,10 @@ Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86
 ## Day 92 早课：受信 Inventory 冻结的字节身份（仍 NO_GO）
 
 新增 `planDay92InventoryFreezeCandidate()`，复用 Day 91 只读 Inventory 审核，以稳定的 domain-separated SHA-256 生成**候选**冻结清单指纹；host 遍历顺序不影响摘要，attempt/revision/namespace/时间窗变化会改变摘要。缺失、重复、漂移和过期拒绝，完整匹配也不意味着来源受信。运行 `npm run test:recovery-writer-inventory-freeze`，见 `docs/day92-morning-authenticated-inventory-freeze.md`。真实部署控制面认证、独立冻结 CAS、签名与 OS/ACK 证据尚未落地，`publishAuthorized=false`，**生产 NO_GO**。
+
+
+## Day 92 午练：Inventory 冻结 CAS 与不可复活的 attempt（隔离实验）
+
+新增 `SQLiteDay92InventoryFreezeStore` 与 `Day92IsolatedInventoryFreezeService`：基于 Day 91 候选校验和 Day 92 规范化 SHA-256，使用 SQLite `BEGIN IMMEDIATE` 实现 attempt 唯一冻结、精确重放、同 attempt 换内容冲突和 version+digest 的 invalidate CAS。重新部署必须创建新 attempt；两连接、关闭重开、漂移与冲突测试：`npm run test:recovery-writer-inventory-freeze-cas`。参见 `docs/day92-noon-durable-inventory-freeze-cas.md`。
+
+**内存来源未认证，控制库未与旧 Worker 物理隔离；无真实 OS 证据、Consumer ACK、独立审计锚点。所有返回 `publishAuthorized=false`，生产 NO_GO。**

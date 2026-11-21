@@ -336,3 +336,6 @@ jobs:
 
       - name: Day 92 noon immutable inventory freeze and version CAS (isolated NO_GO)
         run: npm run test:recovery-writer-inventory-freeze-cas
+
+      - name: Day 92 evening freeze/evidence integration and unsafe rollback (NO_GO)
+        run: npm run test:recovery-writer-inventory-freeze-release-boundary

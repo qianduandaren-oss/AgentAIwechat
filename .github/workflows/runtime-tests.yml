@@ -333,3 +333,6 @@ jobs:
 
       - name: Day 92 morning canonical inventory freeze candidate (advisory NO_GO)
         run: npm run test:recovery-writer-inventory-freeze
+
+      - name: Day 92 noon immutable inventory freeze and version CAS (isolated NO_GO)
+        run: npm run test:recovery-writer-inventory-freeze-cas

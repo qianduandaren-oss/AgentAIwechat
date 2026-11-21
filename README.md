@@ -1390,3 +1390,9 @@ Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86
 新增 `SQLiteDay92InventoryFreezeStore` 与 `Day92IsolatedInventoryFreezeService`：基于 Day 91 候选校验和 Day 92 规范化 SHA-256，使用 SQLite `BEGIN IMMEDIATE` 实现 attempt 唯一冻结、精确重放、同 attempt 换内容冲突和 version+digest 的 invalidate CAS。重新部署必须创建新 attempt；两连接、关闭重开、漂移与冲突测试：`npm run test:recovery-writer-inventory-freeze-cas`。参见 `docs/day92-noon-durable-inventory-freeze-cas.md`。
 
 **内存来源未认证，控制库未与旧 Worker 物理隔离；无真实 OS 证据、Consumer ACK、独立审计锚点。所有返回 `publishAuthorized=false`，生产 NO_GO。**
+
+## Day 92 晚练：冻结记录、证据链与危险回滚（NO_GO）
+
+新增 `reviewDay92FrozenCutoverBoundary()`，将 Day 92 午练 SQLite 不可变冻结与 Day 91 三源证据审查组合，固定 HOLD。测试一次性 SQLite 的事务回滚、重启、同库直写篡改、version pin、CAS 作废及危险 SQL 回滚复活。回滚后旧 pin 可能再次匹配，**这正是未保护外部单调水位的缺口，不是成功堵漏**。
+
+运行 `npm run test:recovery-writer-inventory-freeze-release-boundary`；见 `docs/day92-evening-freeze-evidence-release-boundary.md`。既无权威来源认证、OS 写权限独立隔离、真实 Host ACK，也无可信外部审计/水位，生产 NO_GO。

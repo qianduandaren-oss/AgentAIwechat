@@ -127,7 +127,8 @@
     "test:recovery-writer-cutover-provenance": "npm run build && node dist/demos/day91-morning-cutover-provenance-test.js",
     "test:recovery-writer-deployment-inventory": "npm run build && node dist/demos/day91-noon-deployment-inventory-adapter-test.js",
     "test:recovery-writer-evidence-chain": "npm run build && node dist/demos/day91-evening-evidence-chain-test.js",
-    "test:recovery-writer-inventory-freeze": "npm run build && node dist/demos/day92-morning-inventory-freeze-candidate-test.js"
+    "test:recovery-writer-inventory-freeze": "npm run build && node dist/demos/day92-morning-inventory-freeze-candidate-test.js",
+    "test:recovery-writer-inventory-freeze-cas": "npm run build && node dist/demos/day92-noon-inventory-freeze-store-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

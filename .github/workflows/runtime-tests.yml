@@ -345,3 +345,6 @@ jobs:
 
       - name: Day 93 noon separate-file SQLite append-only checkpoint CAS (isolated NO_GO)
         run: npm run test:recovery-writer-inventory-audit-checkpoint-cas
+
+      - name: Day 93 evening audit watermark and release evidence HOLD (isolated NO_GO)
+        run: npm run test:recovery-writer-inventory-audit-release-boundary

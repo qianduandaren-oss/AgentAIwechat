@@ -342,3 +342,6 @@ jobs:
 
       - name: Day 93 morning external monotonic audit anchor candidate (NO_GO)
         run: npm run test:recovery-writer-inventory-audit-anchor
+
+      - name: Day 93 noon separate-file SQLite append-only checkpoint CAS (isolated NO_GO)
+        run: npm run test:recovery-writer-inventory-audit-checkpoint-cas

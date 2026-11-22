@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 93 午练（Week 14）**（2026-11-22）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 93 晚练（Week 14）**（2026-11-22）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 14 / Day 93 晚练：审计水位 × 冻结清单 × 发布证据联合阻断
+
+- [Day 93 晚练：同域双库回滚仍不可信](docs/day93-evening-audit-release-boundary.md)：新增 `reviewDay93AuditReleaseBoundary()`，串联 Day 92 冻结证据与 Day 93 单调检查点；输出统一 blocker 列表，覆盖单库回滚可见、两个夹具库一起回滚看似一致、revision 漂移、篡改/断连与生产发布拒绝。
+- `npm run test:recovery-writer-inventory-audit-release-boundary`：只使用临时 SQLite，演示**同时恢复两个同权限数据库及旧 pin 仍可能伪装一致**。来源未认证、旧 FD、真实 Host/Consumer 均未验收，始终 **HOLD / NO_GO**。
 
 ## Week 14 / Day 93 午练：独立文件 SQLite 审计水位的追加与 CAS
 

@@ -1,10 +1,19 @@
-# Agent AI 工程师 · Day 1–91 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–93 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 91 晚练（Week 13 已完成）**（2026-11-20）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 93 早课（Week 14）**（2026-11-22）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 14 / Day 93 早课：独立审计锚点与单调水位的信任边界
+
+- [Day 93 早课：Monotonic Audit Anchor](docs/day93-morning-monotonic-audit-anchor.md)：承接 Day 92 不可变 SQLite Freeze/CAS 的回滚反例，新增只读 `reviewDay93AuditAnchorCandidate()`，比对候选外部水位和本地冻结的版本、摘要、状态、attempt 与时效；回滚、错绑、断连全部 HOLD。
+- `npm run test:recovery-writer-inventory-audit-anchor` 在一次性 SQLite 上复现作废后 SQL 回滚，并展示“SQLite + 不可信锚点一起回滚”仍可能伪装一致。当前读接口未接入受信服务端或独立不可回滚日志，**生产 NO_GO**。
+
+## Week 14 / Day 92：库存冻结与回滚边界
+
+- [早课](docs/day92-morning-authenticated-inventory-freeze.md)规范化 Manifest/SHA-256；[午练](docs/day92-noon-durable-inventory-freeze-cas.md)实现同一 attempt SQLite BEGIN IMMEDIATE/CAS 不可变冻结；[晚练](docs/day92-evening-freeze-evidence-release-boundary.md)展示旧 SQL 绕过和回滚参照值的危险反例。均非受信生产证据，**NO_GO**。
 
 ## Week 13 / Day 91 晚练：三类证据断链复盘与阶段 Checkpoint
 

@@ -129,7 +129,8 @@
     "test:recovery-writer-evidence-chain": "npm run build && node dist/demos/day91-evening-evidence-chain-test.js",
     "test:recovery-writer-inventory-freeze": "npm run build && node dist/demos/day92-morning-inventory-freeze-candidate-test.js",
     "test:recovery-writer-inventory-freeze-cas": "npm run build && node dist/demos/day92-noon-inventory-freeze-store-test.js",
-    "test:recovery-writer-inventory-freeze-release-boundary": "npm run build && node dist/demos/day92-evening-inventory-freeze-release-boundary-test.js"
+    "test:recovery-writer-inventory-freeze-release-boundary": "npm run build && node dist/demos/day92-evening-inventory-freeze-release-boundary-test.js",
+    "test:recovery-writer-inventory-audit-anchor": "npm run build && node dist/demos/day93-morning-inventory-audit-anchor-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

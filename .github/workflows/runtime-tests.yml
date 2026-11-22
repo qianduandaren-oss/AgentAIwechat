@@ -339,3 +339,6 @@ jobs:
 
       - name: Day 92 evening freeze/evidence integration and unsafe rollback (NO_GO)
         run: npm run test:recovery-writer-inventory-freeze-release-boundary
+
+      - name: Day 93 morning external monotonic audit anchor candidate (NO_GO)
+        run: npm run test:recovery-writer-inventory-audit-anchor

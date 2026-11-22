@@ -1415,3 +1415,9 @@ Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86
 新增 `reviewDay92FrozenCutoverBoundary()`，将 Day 92 午练 SQLite 不可变冻结与 Day 91 三源证据审查组合，固定 HOLD。测试一次性 SQLite 的事务回滚、重启、同库直写篡改、version pin、CAS 作废及危险 SQL 回滚复活。回滚后旧 pin 可能再次匹配，**这正是未保护外部单调水位的缺口，不是成功堵漏**。
 
 运行 `npm run test:recovery-writer-inventory-freeze-release-boundary`；见 `docs/day92-evening-freeze-evidence-release-boundary.md`。既无权威来源认证、OS 写权限独立隔离、真实 Host ACK，也无可信外部审计/水位，生产 NO_GO。
+
+## Day 94 早课：签名 Audit Gateway 合同与受信来源边界（NO_GO）
+
+新增 `reviewDay94AuditGatewayCandidate()`：为每次审计查询生成服务端随机 challenge，响应绑定 deployment/release/attempt、checkpoint、sequence 与 event hash，并按固定 v1 编码验证临时 Ed25519 公钥对应的签名；过期、错绑、重放、断连和伪造来源字段全部 HOLD。运行 `npm run test:recovery-writer-audit-gateway-contract`，详见 `docs/day94-morning-authenticated-audit-gateway-contract.md`。
+
+**当前公钥 pin 和 Transport 仍由实验调用方注入，不代表生产受信服务端身份，也不能证明 latest head 或防止同域双回滚。** `authenticatedExternalAnchorCount=0`，`publishAuthorized=false`。真实 mTLS/IAM、不可回滚水位和 OS/ACK 证据缺失，生产 **NO_GO**。

@@ -1,6 +1,6 @@
 # Day 93 午练｜独立文件的 SQLite 单调水位实验（非生产认证）
 
-日期：2026-11-22。承接 [Day 93 早课](day93-morning-monotonic-audit-anchor.md) 的只读 \`Day93AuditAnchorReader\`，本次实现 \`SQLiteDay93AuditCheckpointStore\`，**不是外部可信 Audit Service**。
+日期：2026-11-22。承接 [Day 93 早课](day93-morning-monotonic-audit-anchor.md) 的只读 `Day93AuditAnchorReader`，本次实现 `SQLiteDay93AuditCheckpointStore`，**不是外部可信 Audit Service**。
 
 ## 为什么要有这个夹具
 
@@ -8,21 +8,21 @@ Day 92 的 Inventory SQLite 可被旧 Worker 的 SQL/FD 旁路回滚。Day 93 �
 
 ## 合同与状态机
 
-- 事件域标记：\`agent-ai/recovery/audit-event/v1\`；一条事件绑定 deployment/release/attempt、snapshotId/revision、manifest SHA-256、freezeVersion、state、checkpointSequence、采集和失效时间。
-- 首项仅允许 \`frozen(version=1, sequence=1)\`；第二项仅允许同一摘要及快照的 \`invalidated(version=2, sequence=2)\`；再次追加/复活一律拒绝。
-- 每一项存储 \`previous_event_sha256\` 和规范化 payload 的 \`event_sha256\`；读出**完整链**时重新计算，不能只检查最新一行。数据库 UPDATE/DELETE 触发器提供防误操作保护，但数据库拥有者可 DROP TRIGGER 并重新计算全链。
-- \`appendOnce(candidate, expectedHead)\` 在 \`BEGIN IMMEDIATE\` 内读取并对照期望的 sequence + eventSha256；原子追加、明确 CAS 冲突、严格精确重放。
-- \`readAnchor()\` 实现 Day 93 早课只读接口；本地冻结版本与锚点比对仍是 \`action=hold\`、\`authenticatedExternalAnchorCount=0\`、\`publishAuthorized=false\`。
+- 事件域标记：`agent-ai/recovery/audit-event/v1`；一条事件绑定 deployment/release/attempt、snapshotId/revision、manifest SHA-256、freezeVersion、state、checkpointSequence、采集和失效时间。
+- 首项仅允许 `frozen(version=1, sequence=1)`；第二项仅允许同一摘要及快照的 `invalidated(version=2, sequence=2)`；再次追加/复活一律拒绝。
+- 每一项存储 `previous_event_sha256` 和规范化 payload 的 `event_sha256`；读出**完整链**时重新计算，不能只检查最新一行。数据库 UPDATE/DELETE 触发器提供防误操作保护，但数据库拥有者可 DROP TRIGGER 并重新计算全链。
+- `appendOnce(candidate, expectedHead)` 在 `BEGIN IMMEDIATE` 内读取并对照期望的 sequence + eventSha256；原子追加、明确 CAS 冲突、严格精确重放。
+- `readAnchor()` 实现 Day 93 早课只读接口；本地冻结版本与锚点比对仍是 `action=hold`、`authenticatedExternalAnchorCount=0`、`publishAuthorized=false`。
 
 ## 动手命令
 
-\`\`\`bash
+```bash
 npm ci
 npm run test:recovery-writer-inventory-audit-anchor
 npm run test:recovery-writer-inventory-audit-checkpoint-cas
-\`\`\`
+```
 
-新测试使用 Node.js 22+ 内置 \`node:sqlite\` 和临时目录：两个连接竞争、锁争用、首次追加/重放、不同事件冲突、撤销后的不可复活、重启恢复、Inventory 旧 SQL 回滚检测、SQL trigger 拒绝以及 owner 删除 trigger 后的链损坏检测。
+新测试使用 Node.js 22+ 内置 `node:sqlite` 和临时目录：两个连接竞争、锁争用、首次追加/重放、不同事件冲突、撤销后的不可复活、重启恢复、Inventory 旧 SQL 回滚检测、SQL trigger 拒绝以及 owner 删除 trigger 后的链损坏检测。
 
 ## 威胁边界
 

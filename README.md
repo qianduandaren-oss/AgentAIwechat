@@ -4,7 +4,12 @@
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 93 早课（Week 14）**（2026-11-22）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 93 午练（Week 14）**（2026-11-22）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 14 / Day 93 午练：独立文件 SQLite 审计水位的追加与 CAS
+
+- [Day 93 午练：持久检查点 / 双连接 CAS](docs/day93-noon-isolated-audit-checkpoint-cas.md)：新增 `SQLiteDay93AuditCheckpointStore`，实现按发布 attempt 追加 frozen→invalidated 两步事件、事件哈希链完整性检查、预期 sequence+eventHash CAS、精准重放和受限 SQLite trigger。
+- `npm run test:recovery-writer-inventory-audit-checkpoint-cas` 在不同文件的临时 SQLite 上验证连接争用、恢复、直接 SQL 回滚和恶意篡改后的 HOLD。**同一 OS 身份可同时修改两库，仍非受信外部锚点，生产 NO_GO。**
 
 ## Week 14 / Day 93 早课：独立审计锚点与单调水位的信任边界
 

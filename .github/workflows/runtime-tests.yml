@@ -351,3 +351,6 @@ jobs:
 
       - name: Day 94 morning signed external audit gateway contract (NO_GO)
         run: npm run test:recovery-writer-audit-gateway-contract
+
+      - name: Day 94 noon pinned gateway peer and signed high-watermark rollback (isolated NO_GO)
+        run: npm run test:recovery-writer-audit-gateway-pinned-watermark

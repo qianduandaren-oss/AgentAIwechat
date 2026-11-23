@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { createHash, generateKeyPairSync, sign } from "node:crypto";
+import { createHash, createPublicKey, generateKeyPairSync, sign } from "node:crypto";
 import {
   DAY94_AUDIT_GATEWAY_DOMAIN, encodeDay94GatewayPayload,
   type Day94AuditGatewayRequest, type Day94AuditGatewayPayload,
@@ -18,11 +18,17 @@ const scope = {
   deploymentId: "staging:day94", releaseId: "release-94",
   attemptId: "attempt-94-01"
 };
-const keys = generateKeyPairSync("ed25519");
-const wrongKeys = generateKeyPairSync("ed25519");
-const pem = keys.publicKey.export({ type: "spki", format: "pem" }).toString();
+const keys = generateKeyPairSync("ed25519", {
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs8", format: "pem" }
+});
+const wrongKeys = generateKeyPairSync("ed25519", {
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs8", format: "pem" }
+});
+const pem = keys.publicKey;
 const spkiDigest = createHash("sha256")
-  .update(keys.publicKey.export({ type: "spki", format: "der" })).digest("hex");
+  .update(createPublicKey(keys.publicKey).export({ type: "spki", format: "der" })).digest("hex");
 const manifestSha256 = "a".repeat(64);
 const eventSha256 = "b".repeat(64);
 
@@ -62,8 +68,9 @@ function makePayload(
 function signed(payload: Day94AuditGatewayPayload, wrong = false): Day94SignedGatewayReply {
   return {
     payload,
-    signatureBase64: sign(null, encodeDay94GatewayPayload(payload),
-      wrong ? wrongKeys.privateKey : keys.privateKey).toString("base64"),
+    signatureBase64: btoa(String.fromCharCode(...sign(null,
+      encodeDay94GatewayPayload(payload),
+      wrong ? wrongKeys.privateKey : keys.privateKey))),
     claimedAuthenticated: true,
     claimedPeerId: "audit-gateway-01"
   };

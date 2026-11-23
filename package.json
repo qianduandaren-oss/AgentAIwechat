@@ -133,7 +133,8 @@
     "test:recovery-writer-inventory-audit-anchor": "npm run build && node dist/demos/day93-morning-inventory-audit-anchor-test.js",
     "test:recovery-writer-inventory-audit-checkpoint-cas": "npm run build && node dist/demos/day93-noon-audit-checkpoint-cas-test.js",
     "test:recovery-writer-inventory-audit-release-boundary": "npm run build && node dist/demos/day93-evening-inventory-audit-release-boundary-test.js",
-    "test:recovery-writer-audit-gateway-contract": "npm run build && node dist/demos/day94-morning-audit-gateway-contract-test.js"
+    "test:recovery-writer-audit-gateway-contract": "npm run build && node dist/demos/day94-morning-audit-gateway-contract-test.js",
+    "test:recovery-writer-audit-gateway-pinned-watermark": "npm run build && node dist/demos/day94-noon-audit-gateway-pinned-watermark-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

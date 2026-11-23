@@ -1421,3 +1421,10 @@ Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86
 新增 `reviewDay94AuditGatewayCandidate()`：为每次审计查询生成服务端随机 challenge，响应绑定 deployment/release/attempt、checkpoint、sequence 与 event hash，并按固定 v1 编码验证临时 Ed25519 公钥对应的签名；过期、错绑、重放、断连和伪造来源字段全部 HOLD。运行 `npm run test:recovery-writer-audit-gateway-contract`，详见 `docs/day94-morning-authenticated-audit-gateway-contract.md`。
 
 **当前公钥 pin 和 Transport 仍由实验调用方注入，不代表生产受信服务端身份，也不能证明 latest head 或防止同域双回滚。** `authenticatedExternalAnchorCount=0`，`publishAuthorized=false`。真实 mTLS/IAM、不可回滚水位和 OS/ACK 证据缺失，生产 **NO_GO**。
+
+
+## Day 94 午练：Gateway 身份配置与签名高水位钉住（隔离 NO_GO）
+
+新增 `reviewDay94PinnedGatewayWatermark()`（`src/runtime/recovery-writer-audit-gateway-pinned-watermark.ts`），直接复用 Day 94 早课 Ed25519/Challenge 验签，将**服务端预配置**的网关 peerId、公钥 SPKI 摘要和最低 sequence/eventHash 与**通道观察**到的身份分别校验。真实签名有效但 sequence 从 2 倒退至 1、同水位异 hash、Manifest 漂移、伪造 claimedPeerId 均 HOLD；签名和身份都匹配仍是实验候选。运行 `npm run test:recovery-writer-audit-gateway-pinned-watermark`，说明见 `docs/day94-noon-gateway-pinned-watermark.md`。
+
+**注意：读取策略和观测 peer 的 Adapter 都是注入的隔离夹具；没有生产 mTLS/IAM、独立无法回滚的权威水位和实际 OS/Consumer ACK。始终 `authenticatedExternalAnchorCount=0`、`publishAuthorized=false`、生产 NO_GO。**

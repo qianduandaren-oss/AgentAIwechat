@@ -1,10 +1,25 @@
-# Agent AI 工程师 · Day 1–93 TypeScript 实战项目
+# Agent AI 工程师 · Day 1–94 TypeScript 实战项目
 
 这是 Agent AI 工程师学习过程里的持续演进代码仓库。
 
 项目不是每天新建一个孤立 Demo，而是围绕同一套 TypeScript Agent Runtime 不断往生产级方向补能力：从最早的 LLM 调用、Tool Calling、Planner、Multi-Agent，到后面的 Evaluation、Tracing、Budget、安全、可靠性、优雅停机、Cancellation，以及现在的 Durable Execution / Recovery。
 
-当前课程进度：**Day 93 晚练（Week 14）**（2026-11-22）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+当前课程进度：**Day 94 晚练（Week 14）**（2026-11-23）。当前 Recovery 仍是候选架构，正式发布 NO_GO。
+
+## Week 14 / Day 94 晚练：Gateway 验签 × 证据链联合发布阻断
+
+- [Day 94 晚练：签名 Gateway 也不能越过发布证据缺口](docs/day94-evening-gateway-release-evidence-boundary.md)：新增 `reviewDay94GatewayReleaseBoundary()`，复用 Day 94 早/午 Gateway 合同及 Day 93 Audit/Freeze/Inventory/Host/Consumer 审查，汇总可解释 blocker；Gateway 验签和 Peer 夹具匹配，也不能代替 OS/FD 和 ACK 受信来源。
+- `npm run test:recovery-writer-audit-gateway-release-boundary`：真实临时 Ed25519、两份 SQLite、28 份合成 PASS + 自称认证 ACK；验证旧 head 重新签名、相同序号事件分叉、Peer 冒充、错误签名及生产意图直接拒绝。**始终 HOLD/NO_GO**，未接入真实外部审计或发布授权 API。
+
+## Week 14 / Day 94 午练：Peer / 公钥 pin 与最低审计水位
+
+- [Day 94 午练：Gateway 预配置 Peer 和水位](docs/day94-noon-gateway-pinned-watermark.md)：新增 `reviewDay94PinnedGatewayWatermark()`，将服务端实验 TrustPolicy/Peer 观察与远端声明分离，复用早课验签；重新签名的低 sequence、相同 sequence 异 eventHash、错误 Peer/公钥/策略全部 HOLD。
+- `npm run test:recovery-writer-audit-gateway-pinned-watermark`；实验布尔字段 `transportAuthenticated` 不等于生产 mTLS，任何签名/水位候选一致也不放行。
+
+## Week 14 / Day 94 早课：签名网关合同与最新高水位区分
+
+- [Day 94 早课：Audit Gateway Challenge 与 Ed25519](docs/day94-morning-authenticated-audit-gateway-contract.md)：新增 `reviewDay94AuditGatewayCandidate()`，绑定 release/attempt、随机 Challenge、时效与签名字节；区分签名完整性、受信公钥身份和真正不可回滚的最新头。
+- `npm run test:recovery-writer-audit-gateway-contract`：实验密钥生成与负向验签；没有真实 PKI/IAM、审计服务身份或最新头认证，**NO_GO**。
 
 ## Week 14 / Day 93 晚练：审计水位 × 冻结清单 × 发布证据联合阻断
 

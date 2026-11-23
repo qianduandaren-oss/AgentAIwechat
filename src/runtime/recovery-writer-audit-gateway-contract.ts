@@ -142,7 +142,7 @@ export async function reviewDay94AuditGatewayCandidate(
       releaseId: input.scope.releaseId,
       attemptId: input.scope.attemptId
     },
-    challengeHex: randomBytes(32).toString("hex"),
+    challengeHex: Array.from(randomBytes(32), b => b.toString(16).padStart(2, "0")).join(""),
     requestedAtEpochMs: input.nowEpochMs
   };
   let reply: Day94SignedGatewayReply | null;
@@ -201,7 +201,8 @@ export async function reviewDay94AuditGatewayCandidate(
       return hold("gateway_key_type_invalid");
     }
     validSignature = verify(
-      null, encodeDay94GatewayPayload(payload), pin, Buffer.from(s, "base64")
+      null, encodeDay94GatewayPayload(payload), input.pinnedPublicKeyPem,
+      Uint8Array.from(atob(s), char => char.charCodeAt(0))
     );
   } catch {
     return hold("gateway_signature_invalid");

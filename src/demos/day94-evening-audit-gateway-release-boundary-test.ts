@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { createHash, generateKeyPairSync, sign } from "node:crypto";
+import { createHash, createPublicKey, generateKeyPairSync, sign } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -48,11 +48,17 @@ const snapshot: Day91InventorySnapshot = {
 };
 const inventory = new SQLiteDay92InventoryFreezeStore(join(dir, "freeze.sqlite"));
 const audit = new SQLiteDay93AuditCheckpointStore(join(dir, "audit.sqlite"));
-const keys = generateKeyPairSync("ed25519");
-const wrong = generateKeyPairSync("ed25519");
-const publicKeyPem = keys.publicKey.export({ type: "spki", format: "pem" }).toString();
+const keys = generateKeyPairSync("ed25519", {
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs8", format: "pem" }
+});
+const wrong = generateKeyPairSync("ed25519", {
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs8", format: "pem" }
+});
+const publicKeyPem = keys.publicKey;
 const spkiSha256 = createHash("sha256")
-  .update(keys.publicKey.export({ type: "spki", format: "der" })).digest("hex");
+  .update(createPublicKey(keys.publicKey).export({ type: "spki", format: "der" })).digest("hex");
 
 try {
   const plan = await planDay92InventoryFreezeCandidate({
@@ -115,8 +121,8 @@ try {
       };
       return {
         payload: reply,
-        signatureBase64: sign(null, encodeDay94GatewayPayload(reply),
-          remoteSigningKey).toString("base64"),
+        signatureBase64: btoa(String.fromCharCode(...sign(null,
+          encodeDay94GatewayPayload(reply), remoteSigningKey))),
         claimedPeerId: "audit-gateway-01", claimedAuthenticated
       };
     }

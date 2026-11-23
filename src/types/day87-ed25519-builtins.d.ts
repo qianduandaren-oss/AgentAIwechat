@@ -1,6 +1,11 @@
 /** Minimal Ed25519 additions to existing node:crypto shims. */
 declare module "node:crypto" {
   export function randomBytes(size: number): Uint8Array;
+  /** Day 94: strict key type + SPKI DER fingerprint in the isolated gateway. */
+  export function createPublicKey(pem: string): {
+    readonly asymmetricKeyType: string;
+    export(options: { type: "spki"; format: "der" }): Uint8Array;
+  };
   export function verify(
     algorithm: null, data: Uint8Array, key: string, signature: Uint8Array
   ): boolean;

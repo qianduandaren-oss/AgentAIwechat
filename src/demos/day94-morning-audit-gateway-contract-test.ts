@@ -17,9 +17,15 @@ const scope = {
   releaseId: "release-94",
   attemptId: "attempt-94-01"
 };
-const pair = generateKeyPairSync("ed25519");
-const alternate = generateKeyPairSync("ed25519");
-const pin = pair.publicKey.export({ type: "spki", format: "pem" }).toString();
+const pair = generateKeyPairSync("ed25519", {
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs8", format: "pem" }
+});
+const alternate = generateKeyPairSync("ed25519", {
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs8", format: "pem" }
+});
+const pin = pair.publicKey;
 
 function payloadFor(req: Day94AuditGatewayRequest): Day94AuditGatewayPayload {
   return {
@@ -49,9 +55,9 @@ function signed(
 ): Day94SignedGatewayReply {
   return {
     payload,
-    signatureBase64: sign(
+    signatureBase64: btoa(String.fromCharCode(...sign(
       null, encodeDay94GatewayPayload(payload), key
-    ).toString("base64")
+    )))
   };
 }
 function review(

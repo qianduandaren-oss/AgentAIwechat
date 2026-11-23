@@ -354,3 +354,6 @@ jobs:
 
       - name: Day 94 noon pinned gateway peer and signed high-watermark rollback (isolated NO_GO)
         run: npm run test:recovery-writer-audit-gateway-pinned-watermark
+
+      - name: Day 94 evening signed gateway and release evidence blocker chain (isolated NO_GO)
+        run: npm run test:recovery-writer-audit-gateway-release-boundary

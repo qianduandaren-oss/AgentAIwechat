@@ -357,3 +357,6 @@ jobs:
 
       - name: Day 94 evening signed gateway and release evidence blocker chain (isolated NO_GO)
         run: npm run test:recovery-writer-audit-gateway-release-boundary
+
+      - name: Day 95 noon gateway key lifecycle and policy race (isolated NO_GO)
+        run: npm run test:recovery-writer-audit-gateway-key-lifecycle

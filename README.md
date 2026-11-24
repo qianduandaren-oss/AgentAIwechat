@@ -1447,3 +1447,7 @@ Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86
 ## Day 95 午练：Gateway 密钥生命周期与策略双读（隔离 NO_GO）
 
 复用 Day 94 验签与水位检查；新增 `reviewDay95GatewayLifecycle()`，检查策略 epoch、在线密钥状态/时间窗、累积撤销指纹、冻结水位和前后快照一致性。运行 `npm run test:recovery-writer-audit-gateway-key-lifecycle`，见 `docs/day95-noon-gateway-key-lifecycle-fence.md`。基线与 Reader 仍为注入夹具；双读不等于原子授权，生产 NO_GO。
+
+## Day 95 晚练：生命周期审查与发布证据阻断（隔离 NO_GO）
+
+新增 `reviewDay95LifecycleReleaseBoundary()`，组合 Day 93 来源证据审查和 Day 95 生命周期审查（内部复用 Day 94 网关验签）。一次正常审查仅查询网关一次、读取策略两次。旧密钥撤销竞态、错误换钥、稳定过期策略和合成 Host/ACK 不授予发布权。运行 `npm run test:recovery-writer-audit-gateway-lifecycle-release-boundary`，见 `docs/day95-evening-gateway-lifecycle-release-boundary.md`。双读与并行来源审查不提供原子授权；生产 NO_GO。

@@ -360,3 +360,6 @@ jobs:
 
       - name: Day 95 noon gateway key lifecycle and policy race (isolated NO_GO)
         run: npm run test:recovery-writer-audit-gateway-key-lifecycle
+
+      - name: Day 95 evening lifecycle-aware release blockers (isolated NO_GO)
+        run: npm run test:recovery-writer-audit-gateway-lifecycle-release-boundary

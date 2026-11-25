@@ -366,3 +366,6 @@ jobs:
 
       - name: Day 96 noon conditional authorization and resource fence (isolated NO_GO)
         run: npm run test:recovery-writer-atomic-authorization-fence
+
+      - name: Day 96 evening atomic authorization lab and release diagnostics (isolated NO_GO)
+        run: npm run test:recovery-writer-atomic-authorization-release-boundary

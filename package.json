@@ -137,7 +137,8 @@
     "test:recovery-writer-audit-gateway-pinned-watermark": "npm run build && node dist/demos/day94-noon-audit-gateway-pinned-watermark-test.js",
     "test:recovery-writer-audit-gateway-release-boundary": "npm run build && node dist/demos/day94-evening-audit-gateway-release-boundary-test.js",
     "test:recovery-writer-audit-gateway-key-lifecycle": "npm run build && node dist/demos/day95-noon-audit-gateway-key-lifecycle-test.js",
-    "test:recovery-writer-audit-gateway-lifecycle-release-boundary": "npm run build && node dist/demos/day95-evening-audit-gateway-lifecycle-release-boundary-test.js"
+    "test:recovery-writer-audit-gateway-lifecycle-release-boundary": "npm run build && node dist/demos/day95-evening-audit-gateway-lifecycle-release-boundary-test.js",
+    "test:recovery-writer-atomic-authorization-fence": "npm run build && node dist/demos/day96-noon-atomic-authorization-fence-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

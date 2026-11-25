@@ -1451,3 +1451,7 @@ Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86
 ## Day 95 晚练：生命周期审查与发布证据阻断（隔离 NO_GO）
 
 新增 `reviewDay95LifecycleReleaseBoundary()`，组合 Day 93 来源证据审查和 Day 95 生命周期审查（内部复用 Day 94 网关验签）。一次正常审查仅查询网关一次、读取策略两次。旧密钥撤销竞态、错误换钥、稳定过期策略和合成 Host/ACK 不授予发布权。运行 `npm run test:recovery-writer-audit-gateway-lifecycle-release-boundary`，见 `docs/day95-evening-gateway-lifecycle-release-boundary.md`。双读与并行来源审查不提供原子授权；生产 NO_GO。
+
+## Day 96 午练：原子条件签发与资源端 fencing（隔离 NO_GO）
+
+`SQLiteDay96AtomicAuthorizationLab` 在一次性 SQLite 中执行完整策略 CAS、资源水位推进、一次性能力、条件消费、模拟写入及回执；撤销与资源水位同事务推进，旧 Worker 即使抢在新写入前也会被拒绝。测试双连接、事务故障与重启重放：`npm run test:recovery-writer-atomic-authorization-fence`。见 `docs/day96-noon-atomic-authorization-fence-lab.md`。Day 95 发布阻断不变，无真实身份或外部副作用；`publishAuthorized=false`，生产 NO_GO。

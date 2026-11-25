@@ -363,3 +363,6 @@ jobs:
 
       - name: Day 95 evening lifecycle-aware release blockers (isolated NO_GO)
         run: npm run test:recovery-writer-audit-gateway-lifecycle-release-boundary
+
+      - name: Day 96 noon conditional authorization and resource fence (isolated NO_GO)
+        run: npm run test:recovery-writer-atomic-authorization-fence

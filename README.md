@@ -1455,3 +1455,7 @@ Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86
 ## Day 96 午练：原子条件签发与资源端 fencing（隔离 NO_GO）
 
 `SQLiteDay96AtomicAuthorizationLab` 在一次性 SQLite 中执行完整策略 CAS、资源水位推进、一次性能力、条件消费、模拟写入及回执；撤销与资源水位同事务推进，旧 Worker 即使抢在新写入前也会被拒绝。测试双连接、事务故障与重启重放：`npm run test:recovery-writer-atomic-authorization-fence`。见 `docs/day96-noon-atomic-authorization-fence-lab.md`。Day 95 发布阻断不变，无真实身份或外部副作用；`publishAuthorized=false`，生产 NO_GO。
+
+## Day 96 晚练：原子授权实验与发布诊断（隔离 NO_GO）
+
+`reviewDay96AtomicReleaseBoundary()` 复用 Day 95 发布审查，将 Day 96 同库 fencing 实验结果标记为未认证诊断，不调用签发、撤销或消费写入口。验证旧 fence 拒绝、正常模拟写入、撤销后历史回执重放、伪造实验结果、策略竞态与生产提前拒绝。运行 `npm run test:recovery-writer-atomic-authorization-release-boundary`；见 `docs/day96-evening-atomic-authorization-release-boundary.md`。本地原子性不是跨服务授权，生产继续 NO_GO。

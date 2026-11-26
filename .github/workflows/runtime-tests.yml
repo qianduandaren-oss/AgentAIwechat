@@ -369,3 +369,6 @@ jobs:
 
       - name: Day 96 evening atomic authorization lab and release diagnostics (isolated NO_GO)
         run: npm run test:recovery-writer-atomic-authorization-release-boundary
+
+      - name: Day 97 noon separate transaction domain revocation barrier (isolated NO_GO)
+        run: npm run test:recovery-writer-remote-revocation-barrier

@@ -139,7 +139,8 @@
     "test:recovery-writer-audit-gateway-key-lifecycle": "npm run build && node dist/demos/day95-noon-audit-gateway-key-lifecycle-test.js",
     "test:recovery-writer-audit-gateway-lifecycle-release-boundary": "npm run build && node dist/demos/day95-evening-audit-gateway-lifecycle-release-boundary-test.js",
     "test:recovery-writer-atomic-authorization-fence": "npm run build && node dist/demos/day96-noon-atomic-authorization-fence-test.js",
-    "test:recovery-writer-atomic-authorization-release-boundary": "npm run build && node dist/demos/day96-evening-atomic-authorization-release-boundary-test.js"
+    "test:recovery-writer-atomic-authorization-release-boundary": "npm run build && node dist/demos/day96-evening-atomic-authorization-release-boundary-test.js",
+    "test:recovery-writer-remote-revocation-barrier": "npm run build && node dist/demos/day97-noon-remote-revocation-barrier-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

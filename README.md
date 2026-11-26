@@ -1467,3 +1467,7 @@ Separate controller/resource SQLite domains: durable per-target commands, ACK re
 ```bash
 npm run test:recovery-writer-remote-revocation-barrier
 ```
+
+## Day 97 晚练：跨事务域撤销屏障与发布诊断（隔离 NO_GO）
+
+`reviewDay97RemoteRevocationReleaseBoundary()` 复用 Day 96 只读审查，分别统计候选资源覆盖、ACK 与匹配 head；旧模拟副作用保留对账阻断。候选完全一致也不是来源认证或发布许可。运行 `npm run test:recovery-writer-remote-revocation-release-boundary`，见 [工程文档](docs/day97-evening-remote-revocation-release-boundary.md)。

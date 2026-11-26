@@ -216,7 +216,7 @@ try {
     const noAudit=await review({...base,auditReader:null},all);
     assert.equal(noAudit.auditReason,"audit_anchor_reader_unavailable");
     const before=reads, beforePolicy=policyReads;
-    const unreadable={...all,get scope(){throw new Error("must not inspect production observation");}};
+    const unreadable={...all,get scope(): Day97BarrierObservation["scope"] {throw new Error("must not inspect production observation");}};
     check(await review({...base,intent:"production_release"},unreadable),"barrier_not_evaluated");
     assert.equal(reads,before); assert.equal(policyReads,beforePolicy);
     console.log("Day 97 evening: revocation observations never authorize release (NO_GO).");

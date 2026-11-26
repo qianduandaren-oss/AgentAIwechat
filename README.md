@@ -1459,3 +1459,11 @@ Day 90 noon 的 src/runtime/recovery-writer-cutover-local-evidence.ts 将 Day 86
 ## Day 96 晚练：原子授权实验与发布诊断（隔离 NO_GO）
 
 `reviewDay96AtomicReleaseBoundary()` 复用 Day 95 发布审查，将 Day 96 同库 fencing 实验结果标记为未认证诊断，不调用签发、撤销或消费写入口。验证旧 fence 拒绝、正常模拟写入、撤销后历史回执重放、伪造实验结果、策略竞态与生产提前拒绝。运行 `npm run test:recovery-writer-atomic-authorization-release-boundary`；见 `docs/day96-evening-atomic-authorization-release-boundary.md`。本地原子性不是跨服务授权，生产继续 NO_GO。
+
+### Day 97 — Remote revocation barrier (isolated NO_GO)
+
+Separate controller/resource SQLite domains: durable per-target commands, ACK replay, deployment/resource floor, pending coverage and simulated current-head confirmation. No real transport identity or production authority. See [lab notes](docs/day97-noon-remote-revocation-barrier-lab.md).
+
+```bash
+npm run test:recovery-writer-remote-revocation-barrier
+```

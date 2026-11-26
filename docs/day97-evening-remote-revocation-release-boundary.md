@@ -1,0 +1,5 @@
+# Day 97 evening: remote revocation diagnostics (NO_GO)
+
+Compose Day 96 read-only release review with an untrusted Day 97 observation. Expected resource IDs, ACK flags, heads, command hashes and effect counts are caller-supplied. Validate scope, exact unique coverage and shape; count recorded ACKs and matching heads independently. Full fixture match never upgrades authority. Old effects remain a reconciliation diagnostic. No calls to begin, install, recordAck, confirm or write in the reviewer. Production intent skips observation evaluation.
+
+Run `npm run test:recovery-writer-remote-revocation-release-boundary`. Fixture tests use temporary controller/resource SQLite files and the existing Day 95 signed-gateway test setup. Check ACK loss, partial ACK, full candidate match, conflicting head, duplicate target, cross-attempt and malformed counts, fabricated observations, lifecycle race and missing audit reader. No network identity, protected inventory, live authenticated head, global snapshot or anti-rollback proof; historical ACK cannot prove current floor. Production remains NO_GO.

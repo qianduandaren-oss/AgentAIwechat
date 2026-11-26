@@ -372,3 +372,6 @@ jobs:
 
       - name: Day 97 noon separate transaction domain revocation barrier (isolated NO_GO)
         run: npm run test:recovery-writer-remote-revocation-barrier
+
+      - name: Day 97 evening remote revocation release diagnostics (isolated NO_GO)
+        run: npm run test:recovery-writer-remote-revocation-release-boundary

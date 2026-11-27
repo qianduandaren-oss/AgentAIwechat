@@ -378,3 +378,6 @@ jobs:
 
       - name: Day 98 noon in-flight effect reconciliation (isolated NO_GO)
         run: npm run test:recovery-writer-inflight-effect-reconciliation
+
+      - name: Day 98 evening in-flight reconciliation release boundary (isolated NO_GO)
+        run: npm run test:recovery-writer-inflight-release-boundary

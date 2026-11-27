@@ -375,3 +375,6 @@ jobs:
 
       - name: Day 97 evening remote revocation release diagnostics (isolated NO_GO)
         run: npm run test:recovery-writer-remote-revocation-release-boundary
+
+      - name: Day 98 noon in-flight effect reconciliation (isolated NO_GO)
+        run: npm run test:recovery-writer-inflight-effect-reconciliation

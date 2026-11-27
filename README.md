@@ -1471,3 +1471,7 @@ npm run test:recovery-writer-remote-revocation-barrier
 ## Day 97 晚练：跨事务域撤销屏障与发布诊断（隔离 NO_GO）
 
 `reviewDay97RemoteRevocationReleaseBoundary()` 复用 Day 96 只读审查，分别统计候选资源覆盖、ACK 与匹配 head；旧模拟副作用保留对账阻断。候选完全一致也不是来源认证或发布许可。运行 `npm run test:recovery-writer-remote-revocation-release-boundary`，见 [工程文档](docs/day97-evening-remote-revocation-release-boundary.md)。
+
+## Day 98 午练：撤销后在途副作用对账（隔离 NO_GO）
+
+`classifyDay98InflightEffect()` 对绑定的候选回执按同资源 journal ordinal 分类；`summarizeDay98InflightInventory()` 拒绝重复 effect ID 和 provider/idempotency key。UNKNOWN 与已执行但顺序未知分别保留，不自动重发，不修改历史 Ledger 或授权。运行 `npm run test:recovery-writer-inflight-effect-reconciliation`，见 [工程文档](docs/day98-noon-inflight-effect-reconciliation.md)。

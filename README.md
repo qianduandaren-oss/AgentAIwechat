@@ -1475,3 +1475,7 @@ npm run test:recovery-writer-remote-revocation-barrier
 ## Day 98 午练：撤销后在途副作用对账（隔离 NO_GO）
 
 `classifyDay98InflightEffect()` 对绑定的候选回执按同资源 journal ordinal 分类；`summarizeDay98InflightInventory()` 拒绝重复 effect ID 和 provider/idempotency key。UNKNOWN 与已执行但顺序未知分别保留，不自动重发，不修改历史 Ledger 或授权。运行 `npm run test:recovery-writer-inflight-effect-reconciliation`，见 [工程文档](docs/day98-noon-inflight-effect-reconciliation.md)。
+
+### Day 98 evening / Week 14 checkpoint
+
+`reviewDay98InflightReleaseBoundary()` composes Day 97 diagnostics and Day 98 candidate classifications without authorizing writes or resending commands. See [integration notes](docs/day98-evening-inflight-release-boundary.md) and [Week 14 checkpoint](docs/week14-checkpoint.md). Run `npm run test:recovery-writer-inflight-release-boundary`. Production remains NO_GO.

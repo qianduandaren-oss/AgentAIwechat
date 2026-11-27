@@ -141,7 +141,8 @@
     "test:recovery-writer-atomic-authorization-fence": "npm run build && node dist/demos/day96-noon-atomic-authorization-fence-test.js",
     "test:recovery-writer-atomic-authorization-release-boundary": "npm run build && node dist/demos/day96-evening-atomic-authorization-release-boundary-test.js",
     "test:recovery-writer-remote-revocation-barrier": "npm run build && node dist/demos/day97-noon-remote-revocation-barrier-test.js",
-    "test:recovery-writer-remote-revocation-release-boundary": "npm run build && node dist/demos/day97-evening-remote-revocation-release-boundary-test.js"
+    "test:recovery-writer-remote-revocation-release-boundary": "npm run build && node dist/demos/day97-evening-remote-revocation-release-boundary-test.js",
+    "test:recovery-writer-inflight-effect-reconciliation": "npm run build && node dist/demos/day98-noon-inflight-effect-reconciliation-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

@@ -1,0 +1,7 @@
+# Day 99 noon — Isolated historical evidence archive (2026-11-28)
+
+`SQLiteDay99HistoricalEvidenceArchiveLab` reuses the Day 98 intent and terminal observation types and Day 96 SHA-256. All identities, grants and observations are synthetic. Fixture setup seeds immutable intent and scoped archive grant with monotonic revision; no production auth adapter exists. Grant, frozen intent read, candidate insert and audit are in one SQLite transaction. Permission precedes replay lookup. Same tenant/provider/evidence ID with equal canonical allowlisted content returns original ID; conflict never overwrites, same-effect conflict adds an audit event. Cross-effect conflicts do not expose prior ID. Only bounded typed fields are persisted; unknown observations and raw provider bodies are not stored.
+
+Run `npm run test:recovery-writer-historical-evidence-archive`. Test two connections, revoked grant/replay, scope mismatch, binding mismatch, exact replay, conflicting evidence, audit-trigger rollback and re-open. The test checks a synthetic business table remains unchanged; no real ledger or provider is called. Archive is not a terminal update and never authorizes dispatch or release. Independent evidence IDs may still contradict each other; evening diagnostics must retain all prior blockers.
+
+Not a production security boundary: direct SQLite access, fixture setup methods, real ingress identity, authenticated provenance, distributed ACL and anti-rollback remain unresolved. Current grant checks apply to archive/replay only; no general read API is exposed.

@@ -23,11 +23,11 @@ const pos = (x:unknown):x is number => typeof x==="number" && Number.isSafeInteg
 const keys = ["deploymentId","releaseId","attemptId","barrierId","resourceId",
   "providerId","commandId","effectId","idempotencyKey","originalFence",
   "commandSha256","targetFloor","barrierCommandSha256"] as const;
-const canonicalIntent = (i:Day98InflightIntent) => JSON.stringify(keys.map(k=>i[k]));
+export const day99CanonicalIntent = (i:Day98InflightIntent) => JSON.stringify(keys.map(k=>i[k]));
 const validIntent = (i:Day98InflightIntent) =>
   classifyDay98InflightEffect(i,undefined,[]).reason==="observation_unavailable";
 function observationJson(o:Terminal, i:Day98InflightIntent):string|null {
-  if (!o || !o.binding || canonicalIntent(o.binding)!==canonicalIntent(i)) return null;
+  if (!o || !o.binding || day99CanonicalIntent(o.binding)!==day99CanonicalIntent(i)) return null;
   if (o.kind==="applied" && id(o.receiptId) &&
       (o.journalId===undefined || id(o.journalId)) &&
       (o.commitOrdinal===undefined || pos(o.commitOrdinal))) {
@@ -38,6 +38,12 @@ function observationJson(o:Terminal, i:Day98InflightIntent):string|null {
     return JSON.stringify(["not_applied",o.final,o.noLateCommitGuarantee]);
   }
   return null;
+}
+/** Shared fixture encoding; neither digest nor source tag authenticates provenance. */
+export function day99CanonicalCandidate(f:Day99FrozenIntent,evidenceId:string,o:Terminal):string|null {
+  if(![f.tenantId,f.runId,f.originalActor,evidenceId].every(id)||!validIntent(f.intent))return null;
+  const encoded=observationJson(o,f.intent);
+  return encoded===null?null:JSON.stringify([f.tenantId,f.runId,f.originalActor,day99CanonicalIntent(f.intent),evidenceId,encoded,"synthetic_candidate"]);
 }
 export class SQLiteDay99HistoricalEvidenceArchiveLab {
   private readonly db:DatabaseSync;
@@ -108,10 +114,9 @@ export class SQLiteDay99HistoricalEvidenceArchiveLab {
       if(!f)return result("permission_denied");
       const i=JSON.parse(f.intent_json) as Day98InflightIntent;
       if(!validIntent(i)||i.effectId!==q.effectId||!id(f.original_actor))throw Error("invalid_frozen_state");
-      const o=observationJson(q.observation,i);
-      if(o===null)return result("evidence_binding_or_schema_conflict");
-      // Fixed allowlist, bounded IDs/ordinals; no arbitrary raw payload or credentials stored.
-      const j=JSON.stringify([q.tenantId,q.runId,f.original_actor,canonicalIntent(i),q.evidenceId,o,"synthetic_candidate"]);
+      // Fixed allowlist shared with the isolated read-only diagnostic.
+      const j=day99CanonicalCandidate({tenantId:q.tenantId,runId:q.runId,originalActor:f.original_actor,intent:i},q.evidenceId,q.observation);
+      if(j===null)return result("evidence_binding_or_schema_conflict");
       const digest=hash(j);
       const prior=this.db.prepare("SELECT archive_id,canonical_json,digest,run,effect FROM day99_lab_evidence WHERE tenant=? AND provider=? AND evidence_id=?")
         .get(q.tenantId,i.providerId,q.evidenceId) as {archive_id:string;canonical_json:string;digest:string;run:string;effect:string}|undefined;

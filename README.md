@@ -1483,3 +1483,7 @@ npm run test:recovery-writer-remote-revocation-barrier
 ### Day 99 noon — Historical evidence archive (isolated NO_GO)
 
 Current scoped archive grant, frozen historical attribution, candidate evidence + audit transaction; no terminal writes or resend. See [lab contract](docs/day99-noon-historical-evidence-archive.md). Run `npm run test:recovery-writer-historical-evidence-archive`.
+
+### Day 99 evening — Historical evidence archive diagnostics (isolated NO_GO)
+
+`reviewDay99HistoricalEvidenceArchiveReleaseBoundary()` composes Day 98 and compares internal candidate archive snapshots with frozen intents and terminal observations. It detects coverage mismatches, digest/encoding conflicts and distinct terminal candidates without exposing a production read API or granting dispatch authority. See [integration notes](docs/day99-evening-historical-evidence-archive-release-boundary.md). Run `npm run test:recovery-writer-historical-evidence-archive-release-boundary`.

@@ -1479,3 +1479,7 @@ npm run test:recovery-writer-remote-revocation-barrier
 ### Day 98 evening / Week 14 checkpoint
 
 `reviewDay98InflightReleaseBoundary()` composes Day 97 diagnostics and Day 98 candidate classifications without authorizing writes or resending commands. See [integration notes](docs/day98-evening-inflight-release-boundary.md) and [Week 14 checkpoint](docs/week14-checkpoint.md). Run `npm run test:recovery-writer-inflight-release-boundary`. Production remains NO_GO.
+
+### Day 99 noon — Historical evidence archive (isolated NO_GO)
+
+Current scoped archive grant, frozen historical attribution, candidate evidence + audit transaction; no terminal writes or resend. See [lab contract](docs/day99-noon-historical-evidence-archive.md). Run `npm run test:recovery-writer-historical-evidence-archive`.

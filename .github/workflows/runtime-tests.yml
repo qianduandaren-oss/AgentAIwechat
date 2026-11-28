@@ -381,3 +381,6 @@ jobs:
 
       - name: Day 98 evening in-flight reconciliation release boundary (isolated NO_GO)
         run: npm run test:recovery-writer-inflight-release-boundary
+
+      - name: Day 99 noon historical evidence archive and scoped replay (isolated NO_GO)
+        run: npm run test:recovery-writer-historical-evidence-archive

@@ -143,7 +143,8 @@
     "test:recovery-writer-remote-revocation-barrier": "npm run build && node dist/demos/day97-noon-remote-revocation-barrier-test.js",
     "test:recovery-writer-remote-revocation-release-boundary": "npm run build && node dist/demos/day97-evening-remote-revocation-release-boundary-test.js",
     "test:recovery-writer-inflight-effect-reconciliation": "npm run build && node dist/demos/day98-noon-inflight-effect-reconciliation-test.js",
-    "test:recovery-writer-inflight-release-boundary": "npm run build && node dist/demos/day98-evening-inflight-release-boundary-test.js"
+    "test:recovery-writer-inflight-release-boundary": "npm run build && node dist/demos/day98-evening-inflight-release-boundary-test.js",
+    "test:recovery-writer-historical-evidence-archive": "npm run build && node dist/demos/day99-noon-historical-evidence-archive-test.js"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

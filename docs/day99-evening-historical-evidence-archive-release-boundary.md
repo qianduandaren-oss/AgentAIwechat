@@ -1,0 +1,7 @@
+# Day 99 evening — Historical evidence archive release diagnostics (2026-11-28)
+
+The diagnostic composes Day 98 without mutating archive grants, the effect ledger, provider state, or resource fences. It receives an internal synthetic snapshot, not an authorized read API. It checks tenant/run/frozen intent, archive identity, canonical allowlisted encoding, local digest, duplicate identities and candidate coverage in both directions. Distinct terminal payloads for one effect are kept as a conflict, not resolved by arrival time. Matching candidate sets do not establish completeness, authenticated provenance, audit integrity or current read authority. The SHA-256 is not a signature; metadata (including archivedBy/revision) is checked for shape, not authenticated.
+
+The integration test reads persisted SQLite rows via an internal fixture connection. It exercises missing records, matches, digest and scope conflicts, duplicate identities, unexpected candidate coverage, distinct terminal evidence, revoked replay, inherited policy and audit blockers and production early denial. The direct fixture SQL is not a public read capability. Production needs authenticated read ingress, authoritative tenant/run scope, an independently protected log, trustworthy provider receipts and a separate terminal authorization path.
+
+Run npm run test:recovery-writer-historical-evidence-archive-release-boundary. Production remains NO_GO.
